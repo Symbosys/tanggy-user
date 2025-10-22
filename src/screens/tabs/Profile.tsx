@@ -1,6 +1,4 @@
-import React from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -10,23 +8,26 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../../context/AuthContext';
+import { AppNavigation } from '../../types/type';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const ProfileScreen: React.FC = ({navigation}: any) => {
+const ProfileScreen = ({navigation}: AppNavigation) => {
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
-    navigation.navigate('Login');
+    await logout(); 
+    navigation.navigate('Login'); 
   };
 
-
-
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
-
       <ScrollView
         style={styles.scrollView}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 50 }}
+      >
         {/* User Info Section */}
         <View style={styles.userSection}>
           <View style={styles.userInfo}>
@@ -61,11 +62,7 @@ const ProfileScreen: React.FC = ({navigation}: any) => {
           {/* Rewards */}
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuIcon}>
-              <MaterialCommunityIcons
-                name="gift-outline"
-                size={24}
-                color="#666"
-              />
+              <MaterialCommunityIcons name="gift-outline" size={24} color="#666" />
             </View>
             <View style={styles.menuContent}>
               <Text style={styles.menuTitle}>Rewards</Text>
@@ -79,11 +76,7 @@ const ProfileScreen: React.FC = ({navigation}: any) => {
           {/* Orders */}
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuIcon}>
-              <MaterialCommunityIcons
-                name="shopping-outline"
-                size={24}
-                color="#666"
-              />
+              <MaterialCommunityIcons name="shopping-outline" size={24} color="#666" />
             </View>
             <View style={styles.menuContent}>
               <Text style={styles.menuTitle}>Orders</Text>
@@ -95,15 +88,13 @@ const ProfileScreen: React.FC = ({navigation}: any) => {
           {/* Addresses */}
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => navigation.navigate('Address')}>
+          >
             <View style={styles.menuIcon}>
               <MaterialIcons name="location-on" size={24} color="#666" />
             </View>
             <View style={styles.menuContent}>
               <Text style={styles.menuTitle}>Addresses</Text>
-              <Text style={styles.menuSubtitle}>
-                1 saved addresses
-              </Text>
+              <Text style={styles.menuSubtitle}>1 saved address</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#CCC" />
           </TouchableOpacity>
@@ -111,11 +102,7 @@ const ProfileScreen: React.FC = ({navigation}: any) => {
           {/* Minta Wallet */}
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuIcon}>
-              <MaterialCommunityIcons
-                name="wallet-outline"
-                size={24}
-                color="#666"
-              />
+              <MaterialCommunityIcons name="wallet-outline" size={24} color="#666" />
             </View>
             <View style={styles.menuContent}>
               <Text style={styles.menuTitle}>Minta Wallet</Text>
@@ -124,131 +111,12 @@ const ProfileScreen: React.FC = ({navigation}: any) => {
             <MaterialIcons name="chevron-right" size={24} color="#CCC" />
           </TouchableOpacity>
 
-          {/* Notifications */}
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuIcon}>
-              <MaterialIcons name="notifications-none" size={24} color="#666" />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Notifications</Text>
-              <Text style={styles.menuSubtitle}>0 unread notification</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
-          {/* Contact Us */}
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuIcon}>
-              <MaterialCommunityIcons
-                name="message-text-outline"
-                size={24}
-                color="#666"
-              />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Contact Us</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Minta Zone Section */}
-        <View style={styles.liciousZoneSection}>
-          <Text style={styles.sectionTitle}>Minta Zone</Text>
-
-          {/* Recipes */}
-          <TouchableOpacity style={styles.zoneItem}>
-            <View style={styles.zoneIcon}>
-              <MaterialCommunityIcons
-                name="silverware-fork-knife"
-                size={24}
-                color="#666"
-              />
-            </View>
-            <Text style={styles.zoneTitle}>Recipes</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
-          {/* Blogs */}
-          <TouchableOpacity style={styles.zoneItem}>
-            <View style={styles.zoneIcon}>
-              <MaterialCommunityIcons name="pen" size={24} color="#666" />
-            </View>
-            <Text style={styles.zoneTitle}>Blogs</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
-          {/* Terms & conditions */}
-          <TouchableOpacity style={styles.zoneItem}>
-            <View style={styles.zoneIcon}>
-              <MaterialCommunityIcons
-                name="file-document-outline"
-                size={24}
-                color="#666"
-              />
-            </View>
-            <Text style={styles.zoneTitle}>Terms & conditions</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
-          {/* FAQs */}
-          <TouchableOpacity style={styles.zoneItem}>
-            <View style={styles.zoneIcon}>
-              <MaterialCommunityIcons
-                name="help-circle-outline"
-                size={24}
-                color="#666"
-              />
-            </View>
-            <Text style={styles.zoneTitle}>FAQs</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
-          {/* Privacy policy */}
-          <TouchableOpacity style={styles.zoneItem}>
-            <View style={styles.zoneIcon}>
-              <MaterialCommunityIcons
-                name="account-outline"
-                size={24}
-                color="#666"
-              />
-            </View>
-            <Text style={styles.zoneTitle}>Privacy policy</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
-          {/* Delete account */}
-          <TouchableOpacity style={styles.zoneItem}>
-            <View style={styles.zoneIcon}>
-              <MaterialCommunityIcons
-                name="delete-outline"
-                size={24}
-                color="#666"
-              />
-            </View>
-            <Text style={styles.zoneTitle}>Delete account</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
-          {/* Cancellation & Reschedule Policy */}
-          <TouchableOpacity style={styles.zoneItem}>
-            <View style={styles.zoneIcon}>
-              <MaterialIcons name="notifications-none" size={24} color="#666" />
-            </View>
-            <Text style={styles.zoneTitle}>
-              Cancellation & Reschedule Policy
-            </Text>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
           {/* Logout */}
-          <TouchableOpacity style={styles.zoneItem}>
-            <View style={styles.zoneIcon}>
+          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+            <View style={styles.menuIcon}>
               <MaterialIcons name="logout" size={24} color="#666" />
             </View>
-            <Text style={styles.zoneTitle} onPress={handleLogout}>
-              Logout
-            </Text>
+            <Text style={styles.zoneTitle}>Logout</Text>
             <MaterialIcons name="chevron-right" size={24} color="#CCC" />
           </TouchableOpacity>
         </View>
@@ -258,15 +126,13 @@ const ProfileScreen: React.FC = ({navigation}: any) => {
           <Text style={styles.versionText}>App Version - 8.55.0 (327)</Text>
           <Text style={styles.bundleText}>Bundle - 1.0.41</Text>
         </View>
-
-        <View style={{height: 50}} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#F8F8F8',
   },
@@ -356,14 +222,13 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
   menuIcon: {
     marginRight: 16,
-    marginTop: 2,
   },
   menuContent: {
     flex: 1,
@@ -378,29 +243,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     lineHeight: 20,
-  },
-  liciousZoneSection: {
-    backgroundColor: '#FFFFFF',
-    marginTop: 16,
-    paddingTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000',
-    paddingHorizontal: 20,
-    marginBottom: 8,
-  },
-  zoneItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  zoneIcon: {
-    marginRight: 16,
   },
   zoneTitle: {
     fontSize: 16,

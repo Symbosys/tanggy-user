@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -15,16 +14,20 @@ import {
   View
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { SafeAreaView } from 'react-native-safe-area-context'; // ✅ added
 import { AppNavigation } from '../../types/type';
+import { useAuth } from '../../context/AuthContext';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-const LoginScreen = ({navigation}: AppNavigation) => {
+const LoginScreen = ({ navigation }: AppNavigation) => {
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const slideAnim = useRef(new Animated.Value(height)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  const { skipLogin } = useAuth();
 
   useEffect(() => {
     if (showPhoneModal) {
@@ -62,7 +65,6 @@ const LoginScreen = ({navigation}: AppNavigation) => {
   };
 
   const handleOpenModal = () => {
-    console.log('Button pressed, opening modal');
     setShowPhoneModal(true);
   };
 
@@ -71,155 +73,153 @@ const LoginScreen = ({navigation}: AppNavigation) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="" />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Skip Button */}
-      <TouchableOpacity style={styles.skipButton}>
-        <Text style={styles.skipText}>Skip</Text>
-      </TouchableOpacity>
-
-      {/* Green Background Section with Image */}
-      <View style={styles.topSection}>
-        {/* Delivery Person Illustration */}
-        <View style={styles.illustrationContainer}>
-          <Image
-            source={require('../../assets/logo/LOGO.png')}
-            style={styles.illustration}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* Tagline */}
-        <Text style={styles.tagline}>Quick & fresh.</Text>
-      </View>
-
-      {/* Bottom White Section */}
-      <View style={styles.bottomSection}>
-        {/* Primary Button */}
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleOpenModal}>
-          <Text style={styles.primaryButtonText}>Log in with phone number</Text>
+      <View style={styles.container}>
+        {/* Skip Button */}
+        <TouchableOpacity onPress={async () => {
+          await skipLogin();
+          navigation.reset({index: 0, routes: [{name: 'select_your_location'}]});
+        }} style={styles.skipButton}>
+          <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
 
-        {/* Terms and Privacy */}
-        <View style={styles.termsContainer}>
-          <Text style={styles.termsText}>
-            By tapping, I accept the{' '}
-            <Text style={styles.termsLink}>terms of service</Text>
-            {' & '}
-            <Text style={styles.termsLink}>privacy policy</Text>
-          </Text>
+        {/* Green Background Section with Image */}
+        <View style={styles.topSection}>
+          <View style={styles.illustrationContainer}>
+            <Image
+              source={require('../../assets/logo/LOGO.png')}
+              style={styles.illustration}
+              resizeMode="contain"
+            />
+          </View>
+          <Text style={styles.tagline}>Quick & fresh.</Text>
         </View>
-      </View>
 
-      {/* Phone Number Modal */}
-      <Modal
-        visible={showPhoneModal}
-        transparent={true}
-        animationType="none"
-        onRequestClose={handleCloseModal}>
-        <View style={styles.modalContainer}>
-          <TouchableWithoutFeedback onPress={handleCloseModal}>
+        {/* Bottom White Section */}
+        <View style={styles.bottomSection}>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleOpenModal}>
+            <Text style={styles.primaryButtonText}>Log in with phone number</Text>
+          </TouchableOpacity>
+
+          <View style={styles.termsContainer}>
+            <Text style={styles.termsText}>
+              By tapping, I accept the{' '}
+              <Text style={styles.termsLink}>terms of service</Text>
+              {' & '}
+              <Text style={styles.termsLink}>privacy policy</Text>
+            </Text>
+          </View>
+        </View>
+
+        {/* Phone Number Modal */}
+        <Modal
+          visible={showPhoneModal}
+          transparent
+          animationType="none"
+          onRequestClose={handleCloseModal}>
+          <View style={styles.modalContainer}>
+            <TouchableWithoutFeedback onPress={handleCloseModal}>
+              <Animated.View
+                style={[
+                  styles.backdrop,
+                  { opacity: backdropAnim },
+                ]}
+              />
+            </TouchableWithoutFeedback>
+
             <Animated.View
               style={[
-                styles.backdrop,
-                {
-                  opacity: backdropAnim,
-                },
-              ]}
-            />
-          </TouchableWithoutFeedback>
+                styles.modalContent,
+                { transform: [{ translateY: slideAnim }] },
+              ]}>
+              {/* ✅ Wrap modal content inside SafeAreaView */}
+              <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['bottom']}>
+                {/* Green Header */}
+                <ImageBackground
+                  source={require('../../assets/logo/LOGO.png')}
+                  style={styles.modalHeader}>
+                  <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={handleCloseModal}>
+                    <Icon name="arrow-back" size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
 
-          <Animated.View
-            style={[
-              styles.modalContent,
-              {
-                transform: [{translateY: slideAnim}],
-              },
-            ]}>
-            {/* Green Header */}
-            <ImageBackground
-              source={require('../../assets/logo/LOGO.png')}
-              style={styles.modalHeader}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={handleCloseModal}>
-                <Icon name="arrow-back" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
+                  <TouchableOpacity style={styles.skipButtonModal}>
+                    <Text style={styles.skipText}>Skip</Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity style={styles.skipButtonModal}>
-                <Text style={styles.skipText}>Skip</Text>
-              </TouchableOpacity>
+                  <Text style={styles.lowestPriceText}>Quick & Fresh</Text>
+                </ImageBackground>
 
-              <Text style={styles.lowestPriceText}>Quick & Fresh</Text>
-            </ImageBackground>
+                {/* White Content */}
+                <View style={styles.modalBody}>
+                  <Text style={styles.modalTitle}>
+                    Enter your mobile number to manage orders
+                  </Text>
 
-            {/* White Content */}
-            <View style={styles.modalBody}>
-              <Text style={styles.modalTitle}>
-                Enter your mobile number to manage orders
-              </Text>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Mobile Number</Text>
-                <View style={styles.phoneInputWrapper}>
-                  <View style={styles.countryCodeContainer}>
-                    <Text style={styles.flagEmoji}>🇮🇳</Text>
-                    <Text style={styles.countryCode}>+91</Text>
-                    <Icon name="keyboard-arrow-down" size={20} color="#000" />
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Mobile Number</Text>
+                    <View style={styles.phoneInputWrapper}>
+                      <View style={styles.countryCodeContainer}>
+                        <Text style={styles.flagEmoji}>🇮🇳</Text>
+                        <Text style={styles.countryCode}>+91</Text>
+                        <Icon name="keyboard-arrow-down" size={20} color="#000" />
+                      </View>
+                      <View style={styles.divider} />
+                      <TextInput
+                        style={styles.phoneInput}
+                        keyboardType="phone-pad"
+                        maxLength={10}
+                        value={phoneNumber}
+                        onChangeText={setPhoneNumber}
+                      />
+                    </View>
                   </View>
-                  <View style={styles.divider} />
-                  <TextInput
-                    style={styles.phoneInput}
-                    placeholder=""
-                    keyboardType="phone-pad"
-                    maxLength={10}
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                  />
-                </View>
-              </View>
 
-              <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={[
-                    styles.continueButton,
-                    (phoneNumber.length < 10 || loading) &&
-                      styles.continueButtonDisabled,
-                  ]}
-                  onPress={handleLogin}
-                  disabled={phoneNumber.length < 10 || loading}>
-                  <Text
-                    style={[
-                      styles.continueButtonText,
-                      phoneNumber.length < 10 &&
-                        styles.continueButtonTextDisabled,
-                      {opacity: loading ? 0.5 : 1},
-                    ]}>
-                    {loading ? 'Continue...' : 'Continue'}
-                  </Text>
-                </TouchableOpacity>
+                  <View style={styles.modalFooter}>
+                    <TouchableOpacity
+                      style={[
+                        styles.continueButton,
+                        (phoneNumber.length < 10 || loading) && styles.continueButtonDisabled,
+                      ]}
+                      onPress={handleLogin}
+                      disabled={phoneNumber.length < 10 || loading}>
+                      <Text
+                        style={[
+                          styles.continueButtonText,
+                          phoneNumber.length < 10 && styles.continueButtonTextDisabled,
+                          { opacity: loading ? 0.5 : 1 },
+                        ]}>
+                        {loading ? 'Continue...' : 'Continue'}
+                      </Text>
+                    </TouchableOpacity>
 
-                <View style={styles.modalTermsContainer}>
-                  <Text style={styles.modalTermsText}>
-                    I accept the{' '}
-                    <Text style={styles.modalTermsLink}>terms of service</Text>
-                    {' & '}
-                    <Text style={styles.modalTermsLink}>privacy policy</Text>
-                  </Text>
+                    <View style={styles.modalTermsContainer}>
+                      <Text style={styles.modalTermsText}>
+                        I accept the{' '}
+                        <Text style={styles.modalTermsLink}>terms of service</Text>
+                        {' & '}
+                        <Text style={styles.modalTermsLink}>privacy policy</Text>
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
-    </View>
+              </SafeAreaView>
+            </Animated.View>
+          </View>
+        </Modal>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f9eae9',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f9eae9',
@@ -241,31 +241,9 @@ const styles = StyleSheet.create({
   },
   topSection: {
     flex: 1,
-    backgroundColor: '#f9eae9',
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 40,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 50,
-  },
-  logoText: {
-    fontSize: 72,
-    fontWeight: '900',
-    color: '#FF69B4',
-    fontStyle: 'italic',
-    textShadowColor: '#8B008B',
-    textShadowOffset: {width: 0, height: 4},
-    textShadowRadius: 0,
-    letterSpacing: -2,
-  },
-  bySwiggy: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    letterSpacing: 1,
-    marginTop: -10,
   },
   tagline: {
     fontSize: 26,
@@ -278,7 +256,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    width: width,
+    width,
   },
   illustration: {
     width: width * 0.8,
@@ -297,24 +275,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 18,
-    borderRadius: 30,
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  secondaryButtonText: {
-    color: '#1D9C3A',
     fontSize: 18,
     fontWeight: '700',
   },
@@ -333,7 +299,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontWeight: '600',
   },
-  // Modal Styles
   modalContainer: {
     flex: 1,
   },
@@ -346,7 +311,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: height,
+    height,
     backgroundColor: 'transparent',
   },
   modalHeader: {
@@ -373,28 +338,6 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     zIndex: 10,
   },
-  modalLogoContainer: {
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  modalLogoText: {
-    fontSize: 60,
-    fontWeight: '900',
-    color: '#FF69B4',
-    fontStyle: 'italic',
-    textShadowColor: '#8B008B',
-    textShadowOffset: {width: 0, height: 4},
-    textShadowRadius: 0,
-    letterSpacing: -2,
-  },
-  modalBySwiggy: {
-    fontSize: 10,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    letterSpacing: 1,
-    marginTop: -8,
-  },
   lowestPriceText: {
     fontSize: 16,
     color: 'black',
@@ -408,11 +351,11 @@ const styles = StyleSheet.create({
     paddingTop: 30,
   },
   modalTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#000000',
-    marginBottom: 30,
-    lineHeight: 32,
+    marginBottom: 20,
+    textAlign: 'center',
   },
   inputContainer: {
     marginBottom: 30,
@@ -420,7 +363,6 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#',
     marginBottom: 10,
     marginLeft: 5,
   },

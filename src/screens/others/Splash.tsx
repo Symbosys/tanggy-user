@@ -7,6 +7,7 @@ import {
   Dimensions,
   Easing,
 } from 'react-native';
+import { useAuth } from '../../context/AuthContext';
 import { NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../types/type';
 import { COLORS } from "../../theme/theme";
@@ -24,17 +25,21 @@ const Splash = ({
   const glowOpacity = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
+  const { isAuthenticated, hasSkippedLogin } = useAuth();
+
   useEffect(() => {
-    const letterAnimations = letters.map((_, index) => {
-      return Animated.timing(letterAnims[index], {
+    // Animate letters
+    const letterAnimations = letters.map((_, index) =>
+      Animated.timing(letterAnims[index], {
         toValue: 1,
         duration: 500,
         delay: index * 200,
         easing: Easing.out(Easing.bounce),
         useNativeDriver: true,
-      });
-    });
+      }),
+    );
 
+    // Glow animation
     const glowAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(glowOpacity, {
@@ -52,6 +57,7 @@ const Splash = ({
       ]),
     );
 
+    // Scale animation
     const scaleAnimation = Animated.timing(scaleAnim, {
       toValue: 1,
       duration: 1000,
@@ -60,32 +66,36 @@ const Splash = ({
     });
 
     Animated.sequence([
-      Animated.parallel([
-        scaleAnimation,
-        Animated.stagger(100, letterAnimations),
-      ]),
+      Animated.parallel([scaleAnimation, Animated.stagger(100, letterAnimations)]),
       glowAnimation,
     ]).start();
 
+    // Delay before routing
     const timeout = setTimeout(() => {
-      navigation.navigate('BottomTab');
+      // Decide where to navigate
+      if (isAuthenticated) {
+        navigation.navigate('BottomTab'); // User logged in or skipped login
+      } else if (hasSkippedLogin) {
+        navigation.navigate('BottomTab'); // Guest flow
+      } else {
+        navigation.navigate('Login'); // Fresh user
+      }
     }, 3000);
 
     return () => clearTimeout(timeout);
-  }, [navigation]);
+  }, [isAuthenticated, hasSkippedLogin, letterAnims, glowOpacity, scaleAnim, navigation]);
 
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.glowOverlay, { opacity: glowOpacity }]} />
 
-      {/* Animated Cursive Logo Text */}
+      {/* Animated Logo */}
       <Animated.View
         style={[
           styles.textRow,
-          {
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}>
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
         {letters.map((char, index) => (
           <Animated.Text
             key={index}
@@ -108,7 +118,8 @@ const Splash = ({
                   },
                 ],
               },
-            ]}>
+            ]}
+          >
             {char}
           </Animated.Text>
         ))}
@@ -128,11 +139,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.secondary, // #f9eae9 (soft pink)
+    backgroundColor: COLORS.secondary,
   },
   glowOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Kept as is (neutral effect)
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   textRow: {
     flexDirection: 'row',
@@ -142,20 +153,20 @@ const styles = StyleSheet.create({
   letter: {
     fontSize: 60,
     fontWeight: '700',
-    color: COLORS.highlight, // #ff9fa3 (coral/peach)
+    color: COLORS.highlight,
     marginHorizontal: 6,
     fontFamily: 'cursive',
-    textShadowColor: 'rgba(255, 159, 163, 0.7)', // Derived from COLORS.highlight
+    textShadowColor: 'rgba(255, 159, 163, 0.7)',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 10,
   },
   tagline: {
     fontSize: 20,
-    color: COLORS.textSecondary, // #4a4a4a (secondary text)
+    color: COLORS.textSecondary,
     fontWeight: '600',
     marginBottom: 40,
     fontStyle: 'italic',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)', // Kept as is (standard shadow)
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 2 },
     textShadowRadius: 6,
   },
@@ -164,7 +175,7 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)', // Kept as is (neutral effect)
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     bottom: 100,
     opacity: 0.6,
   },

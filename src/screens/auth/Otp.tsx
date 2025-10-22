@@ -90,7 +90,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
       ToastAndroid.show('Please enter full OTP', ToastAndroid.SHORT);
       return;
     }
-    navigation.reset({index: 0, routes: [{name: 'BottomTab'}]});
+    navigation.reset({index: 0, routes: [{name: 'select_your_location'}]});
     setVerifyLoading(true);
     return;
   };

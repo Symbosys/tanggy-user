@@ -1,34 +1,77 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ToastAndroid } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import HeaderAddress from '../../components/home/Header';
 import WelcomeBanner from '../../components/home/WelcomeBanner';
 import WelcomeRewards from '../../components/home/WelcomeRewards';
+import { AppNavigation } from '../../types/type';
+import { getAllBestSellerProducts } from '../../services/product.service';
+import { AxiosError } from 'axios';
+import { ErrorMessage } from '../../utils/utils';
+import { Product } from '../../types/product.type';
+import ProductCard from '../../components/ui/Product';
+import ShopByCategory from '../../components/home/ShopByCategory';
+import { useLocationStore } from '../../store/location';
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }: AppNavigation) {
+  const insets = useSafeAreaInsets();
+  const [bestSellerProducts, setBestSellerProducts] = useState<Product[]>([]);
+  const { latitude, longitude } = useLocationStore()
+
+  useEffect(() => {
+    const fetchBestSellerProducts = async () => {
+      try {
+        const response = await getAllBestSellerProducts({lat: latitude ?? undefined, lng: longitude ?? undefined, isActive: true});
+        console.log("🚀 ~ file: Home.tsx ~ line 32 ~ fetchBestSellerProducts ~ response", response.data.products);
+        setBestSellerProducts(response.data.products)
+      } catch (error) {
+        ErrorMessage(error as AxiosError | Error);
+      }
+    }
+    fetchBestSellerProducts()
+  },[latitude, longitude])
+  
   return (
-    <View style={styles.container}>
-      <HeaderAddress />
-      <ScrollView style={styles.scrollView}
-        showsVerticalScrollIndicator={false}>
-        <WelcomeBanner />
-        <WelcomeRewards />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <View style={styles.container}>
+        <HeaderAddress navigation={navigation} />
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+          showsVerticalScrollIndicator={false}>
+          <WelcomeBanner />
+          <WelcomeRewards />
 
+          {/* BestSeller Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Bestsellers</Text>
+            <Text style={styles.sectionSubtitle}>
+              Most popular products near you!
+            </Text>
 
-        {/* BestSeller Section  */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Bestsellers</Text>
-          <Text style={styles.sectionSubtitle}>
-            Most popular products near you!
-          </Text>
-        </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} >
+              {
+                bestSellerProducts && bestSellerProducts?.map((product) => (
+                  <ProductCard key={product.id} product={product} navigation={navigation} />
+                ))
+              }
+            </ScrollView>
+          </View>
 
-        
-      </ScrollView>
-    </View>
+          {/* Shop By Category */}
+          <ShopByCategory />
+
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -36,11 +79,8 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  bottomSpacing: {
-    height: 40,
-  },
 
-  // BestSeller Section Styles
+  // BestSeller Section
   section: {
     paddingHorizontal: 16,
     marginBottom: 24,
