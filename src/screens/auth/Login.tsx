@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  ToastAndroid,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View
@@ -17,6 +18,9 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context'; // ✅ added
 import { AppNavigation } from '../../types/type';
 import { useAuth } from '../../context/AuthContext';
+import { ErrorMessage } from '../../utils/utils';
+import { AxiosError } from 'axios';
+import api from '../../api/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -69,7 +73,27 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
   };
 
   const handleLogin = async () => {
-    navigation.navigate('Otp', { mobile: phoneNumber });
+    setLoading(true);
+    try {
+      if (phoneNumber.length === 10) {
+        const res = await api.post('/auth/user/request-otp', {
+          mobile: phoneNumber,
+        });
+        if (res.data.success) {
+          ToastAndroid.show(res.data.message, ToastAndroid.SHORT);
+          navigation.navigate('Otp', { mobile: phoneNumber });
+        }
+      } else {
+        ToastAndroid.show(
+          'Please enter a valid 10-digit number',
+          ToastAndroid.SHORT,
+        );
+      }
+    } catch (error) {
+      ErrorMessage(error as AxiosError | Error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

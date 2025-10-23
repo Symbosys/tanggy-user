@@ -1,33 +1,44 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ToastAndroid } from 'react-native';
+import { AxiosError } from 'axios';
+import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import BottomNav from '../../components/home/BottomNav';
+import CartSummary from '../../components/home/CartSummary';
 import HeaderAddress from '../../components/home/Header';
+import ShopByCategory from '../../components/home/ShopByCategory';
 import WelcomeBanner from '../../components/home/WelcomeBanner';
 import WelcomeRewards from '../../components/home/WelcomeRewards';
-import { AppNavigation } from '../../types/type';
-import { getAllBestSellerProducts } from '../../services/product.service';
-import { AxiosError } from 'axios';
-import { ErrorMessage } from '../../utils/utils';
-import { Product } from '../../types/product.type';
 import ProductCard from '../../components/ui/Product';
-import ShopByCategory from '../../components/home/ShopByCategory';
+import { useAuth } from '../../context/AuthContext';
+import { getAllBestSellerProducts } from '../../services/product.service';
+import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
+import { Product } from '../../types/product.type';
+import { AppNavigation } from '../../types/type';
+import { ErrorMessage } from '../../utils/utils';
 
 export default function HomeScreen({ navigation }: AppNavigation) {
   const insets = useSafeAreaInsets();
   const [bestSellerProducts, setBestSellerProducts] = useState<Product[]>([]);
   const { latitude, longitude } = useLocationStore()
+  const { userId, token } = useAuth()
+  const {totalItems: totalCartItems, fetchCart} = useCartStore()
+
+  console.log("🚀 ~ file: Home.tsx ~ line 11 ~ HomeScreen ~ totalCartItems", totalCartItems)
+  
+  // console.log("🚀 ~ file: Home.tsx ~ line 11 ~ HomeScreen ~ bestSellerProducts", bestSellerProducts)
 
   useEffect(() => {
     const fetchBestSellerProducts = async () => {
       try {
-        const response = await getAllBestSellerProducts({lat: latitude ?? undefined, lng: longitude ?? undefined, isActive: true});
-        console.log("🚀 ~ file: Home.tsx ~ line 32 ~ fetchBestSellerProducts ~ response", response.data.products);
+        const response = await getAllBestSellerProducts({lat: latitude ?? undefined, lng: longitude ?? undefined, isActive: true, userId: userId ?? undefined});
+        // console.log("🚀 ~ file: Home.tsx ~ line 32 ~ fetchBestSellerProducts ~ response", response.data.products);
         setBestSellerProducts(response.data.products)
       } catch (error) {
         ErrorMessage(error as AxiosError | Error);
       }
     }
+    if(userId) fetchCart()
     fetchBestSellerProducts()
   },[latitude, longitude])
   
@@ -61,7 +72,11 @@ export default function HomeScreen({ navigation }: AppNavigation) {
           {/* Shop By Category */}
           <ShopByCategory />
 
+          <View style={styles.bottomSpacing} />
         </ScrollView>
+        {/* Cart Summary */}
+        {totalCartItems > 0 && <CartSummary navigation={navigation} />}
+        <BottomNav />
       </View>
     </SafeAreaView>
   );
@@ -99,5 +114,8 @@ const styles = StyleSheet.create({
   horizontalScroll: {
     marginHorizontal: -16,
     paddingHorizontal: 16,
+  },
+  bottomSpacing: {
+    height: 40,
   },
 });

@@ -6,6 +6,9 @@ import BottomTab from './Bottom';
 import Splash from '../screens/others/Splash';
 import SelectYourLocation from '../screens/location/Location';
 import { RootStackParamList } from '../types/type';
+import Cart from '../screens/cart/Cart';
+import AddressScreen from '../screens/address/Address';
+import AddAddress from '../screens/location/Map';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -13,7 +16,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName='BottomTab'
+        // initialRouteName='BottomTab'
       
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />
@@ -21,6 +24,10 @@ export default function StackNavigation() {
         <Stack.Screen name="Otp" component={Otp} />
         <Stack.Screen name='select_your_location' component={SelectYourLocation} options={{headerShown: true}} />
         <Stack.Screen name="BottomTab" component={BottomTab} />
+        <Stack.Screen name='Cart' component={Cart} />
+
+        <Stack.Screen name='Address' component={AddressScreen} />
+        <Stack.Screen name='AddAddress' component={AddAddress} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -5,11 +5,19 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../../context/AuthContext';
 import { Product } from '../../types/product.type';
 import { RootStackParamList } from '../../types/type';
-import { calculateDiscount, parseToDecimal } from '../../utils/utils';
+import { calculateDiscount, ErrorMessage, parseToDecimal } from '../../utils/utils';
 import { COLORS } from '../../theme/theme';
+import { useState } from 'react';
+import { useCartStore } from '../../store/cart';
+import { AxiosError } from 'axios';
 
 const ProductCard = ({ product, navigation }: { product: Product, navigation: NavigationProp<RootStackParamList> }) => {
     const { isAuthenticated } = useAuth();
+    const {addToCart} = useCartStore()
+
+    console.log('Product:', product.cartQuantity);
+    const [quantity, setQuantity] = useState(Number(product.cartQuantity) || 0);
+
 
     const handleIncreaseQuantity = async () => {
         if (!isAuthenticated) {
@@ -21,8 +29,44 @@ const ProductCard = ({ product, navigation }: { product: Product, navigation: Na
                     { text: 'Cancel', style: 'cancel' },
                 ],
             );
+            return; // 🧠 important: stop here, otherwise it will still run below
+        }
+
+        const newQuantity = (quantity || 0) + 1;
+        setQuantity(newQuantity);
+
+        try {
+            await addToCart(Number(product.id), newQuantity);
+        } catch (error) {
+            ErrorMessage(error as AxiosError | Error);
         }
     };
+
+    const handleDecreaseQuantity = async () => {
+        if (!isAuthenticated) {
+            Alert.alert(
+                'Login Required',
+                'You need to log in to add this product to your cart.',
+                [
+                    { text: 'Login', onPress: () => navigation.navigate('Login') },
+                    { text: 'Cancel', style: 'cancel' },
+                ],
+            );
+            return;
+        }
+
+        if (quantity <= 0) return; // 🧠 prevent negative quantities
+
+        const newQuantity = quantity - 1;
+        setQuantity(newQuantity);
+
+        try {
+            await addToCart(Number(product.id), newQuantity);
+        } catch (error) {
+            ErrorMessage(error as AxiosError | Error);
+        }
+    };
+
 
     return (
         <View style={styles.productCard}>
@@ -47,15 +91,19 @@ const ProductCard = ({ product, navigation }: { product: Product, navigation: Na
             {/* Quantity */}
             <View style={styles.qtyWrapper}>
                 {
-                    product?.cartQuantity === 0 ?
+                    quantity === 0 ?
                         (<TouchableOpacity onPress={handleIncreaseQuantity} style={styles.addButton}>
                             <MaterialIcons name="add" size={20} color={COLORS.primary} />
                         </TouchableOpacity>)
                         :
                         (<View style={styles.qtyContainer}>
-                            <MaterialIcons name="remove" size={20} color={COLORS.primary} />
-                            <Text style={styles.qtyText}>{product.cartQuantity}</Text>
-                            <MaterialIcons name="add" size={20} color={COLORS.primary} />
+                            <TouchableOpacity onPress={handleDecreaseQuantity}>
+                                <MaterialIcons name="remove" size={20} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <Text style={styles.qtyText}>{quantity}</Text>
+                            <TouchableOpacity onPress={handleIncreaseQuantity}>
+                                <MaterialIcons name="add" size={20} color={COLORS.primary} />
+                            </TouchableOpacity>
                         </View>)
                 }
             </View>

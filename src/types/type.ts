@@ -6,6 +6,10 @@ export type RootStackParamList = {
   Otp: { mobile: string };
   select_your_location: undefined;
   BottomTab: undefined;
+  Cart: undefined;
+
+  AddAddress: undefined;
+  Address: undefined;
 };
 
 

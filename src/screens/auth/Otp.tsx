@@ -14,6 +14,10 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { RootStackParamList } from '../../types/type';
+import { ErrorMessage } from '../../utils/utils';
+import { AxiosError } from 'axios';
+import api from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
 
 const {width} = Dimensions.get('window');
 
@@ -32,6 +36,8 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
   const [verifyLoading, setVerifyLoading] = useState<boolean>(false);
   const inputRefs = useRef<Array<TextInput | null>>([]);
   const phoneNumber = route?.params?.mobile || '+91 7091291644';
+
+  const {login} = useAuth()
 
 
   useEffect(() => {
@@ -78,10 +84,21 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
   const handleResendSMS = async () => {
     setTimer(60);
     setOtp(['', '', '', '']);
-    return;
-    // Implement resend SMS logic here
-    // Example: await api.post('/auth/user/send-otp', { mobile: phoneNumber });
-    // ToastAndroid.show('OTP resent', ToastAndroid.SHORT);
+    try {
+      const res = await api.post('/auth/user/request-otp', { mobile: phoneNumber });
+      if (res.data.success) {
+        ToastAndroid.show('OTP resent successfully', ToastAndroid.SHORT);
+      }
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        ToastAndroid.show(
+          error.response?.data.message || 'Failed to resend OTP',
+          ToastAndroid.LONG,
+        );
+      } else {
+        ToastAndroid.show('Something went wrong', ToastAndroid.SHORT);
+      }
+    }
   };
 
   const handleVerify = async () => {
@@ -90,9 +107,25 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
       ToastAndroid.show('Please enter full OTP', ToastAndroid.SHORT);
       return;
     }
-    navigation.reset({index: 0, routes: [{name: 'select_your_location'}]});
     setVerifyLoading(true);
-    return;
+    try {
+      const res = await api.post('/auth/user/verify-otp', {
+        otp: otpCode,
+        mobile: phoneNumber,
+      });
+      if (res.data.success) {
+        ToastAndroid.show(res.data.message, ToastAndroid.SHORT);
+        await login(res.data?.token, res.data?.user?.id);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'select_your_location' }],
+        });
+      }
+    } catch (error) {
+      ErrorMessage(error as AxiosError | Error)
+    } finally {
+      setVerifyLoading(false);
+    }
   };
 
   return (

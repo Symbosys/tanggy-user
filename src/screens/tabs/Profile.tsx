@@ -88,6 +88,7 @@ const ProfileScreen = ({navigation}: AppNavigation) => {
           {/* Addresses */}
           <TouchableOpacity
             style={styles.menuItem}
+            onPress={() => navigation.navigate("Address")}
           >
             <View style={styles.menuIcon}>
               <MaterialIcons name="location-on" size={24} color="#666" />
