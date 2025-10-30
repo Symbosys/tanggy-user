@@ -99,3 +99,11 @@ To learn more about React Native, take a look at the following resources:
 
 
 npx @react-native-community/cli@latest init MintafreshUser --package-name com.mintafresh.user
+
+
+ref={bottomSheetRef}
+                snapPoints={['25%', '50%', '90%']}
+                initialSnapIndex={1}
+                enablePanDownToClose={true}
+                backdropOpacity={0.6}
+                onClose={() => console.log('Sheet closed')}

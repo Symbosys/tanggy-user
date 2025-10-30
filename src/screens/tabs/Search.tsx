@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const SearchScreen = () => {
@@ -20,73 +21,75 @@ const SearchScreen = () => {
   ];
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <Icon name="search" size={24} color="#8d6d58" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              value="Chicken"
-              placeholder="Search"
-              placeholderTextColor="#8d6d58"
-            />
-            <TouchableOpacity style={styles.clearButton}>
-              <Icon name="cancel" size={24} color="#8d6d58" />
-            </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollView}>
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Icon name="search" size={24} color="#8d6d58" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                value="Chicken"
+                placeholder="Search"
+                placeholderTextColor="#8d6d58"
+              />
+              <TouchableOpacity style={styles.clearButton}>
+                <Icon name="cancel" size={24} color="#8d6d58" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        {/* Suggestions */}
-        <Text style={styles.sectionTitle}>Suggestions</Text>
-        <View style={styles.suggestionsContainer}>
-          {suggestions.map((item, index) => (
-            <View key={index} style={styles.suggestionItem}>
-              <Text style={styles.suggestionText}>{item}</Text>
+          {/* Suggestions */}
+          <Text style={styles.sectionTitle}>Suggestions</Text>
+          <View style={styles.suggestionsContainer}>
+            {suggestions.map((item, index) => (
+              <View key={index} style={styles.suggestionItem}>
+                <Text style={styles.suggestionText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Results */}
+          <Text style={styles.sectionTitle}>Results</Text>
+          {results.map((item, index) => (
+            <View key={index} style={styles.resultItem}>
+              <View style={styles.resultContent}>
+                <Image
+                  source={{ uri: item.image }}
+                  style={styles.resultImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.resultTextContainer}>
+                  <Text style={styles.resultTitle}>{item.name}</Text>
+                  <Text style={styles.resultDescription}>{item.description}</Text>
+                </View>
+              </View>
+              <Text style={styles.resultPrice}>{item.price}</Text>
             </View>
           ))}
-        </View>
-
-        {/* Results */}
-        <Text style={styles.sectionTitle}>Results</Text>
-        {results.map((item, index) => (
-          <View key={index} style={styles.resultItem}>
-            <View style={styles.resultContent}>
-              <Image
-                source={{ uri: item.image }}
-                style={styles.resultImage}
-                resizeMode="cover"
-              />
-              <View style={styles.resultTextContainer}>
-                <Text style={styles.resultTitle}>{item.name}</Text>
-                <Text style={styles.resultDescription}>{item.description}</Text>
+          {/* Results */}
+          <Text style={styles.sectionTitle}>Results</Text>
+          {results.map((item, index) => (
+            <View key={index} style={styles.resultItem}>
+              <View style={styles.resultContent}>
+                <Image
+                  source={{ uri: item.image }}
+                  style={styles.resultImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.resultTextContainer}>
+                  <Text style={styles.resultTitle}>{item.name}</Text>
+                  <Text style={styles.resultDescription}>{item.description}</Text>
+                </View>
               </View>
+              <Text style={styles.resultPrice}>{item.price}</Text>
             </View>
-            <Text style={styles.resultPrice}>{item.price}</Text>
-          </View>
-        ))}
-        {/* Results */}
-        <Text style={styles.sectionTitle}>Results</Text>
-        {results.map((item, index) => (
-          <View key={index} style={styles.resultItem}>
-            <View style={styles.resultContent}>
-              <Image
-                source={{ uri: item.image }}
-                style={styles.resultImage}
-                resizeMode="cover"
-              />
-              <View style={styles.resultTextContainer}>
-                <Text style={styles.resultTitle}>{item.name}</Text>
-                <Text style={styles.resultDescription}>{item.description}</Text>
-              </View>
-            </View>
-            <Text style={styles.resultPrice}>{item.price}</Text>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
 
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 

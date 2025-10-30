@@ -7,9 +7,16 @@ export type RootStackParamList = {
   select_your_location: undefined;
   BottomTab: undefined;
   Cart: undefined;
+  Cart2: undefined;
 
   AddAddress: undefined;
   Address: undefined;
+
+  OrderPlaced: undefined;
+  OrderTracking: undefined;
+  ChatWithDelivery: undefined;
+  OrderDetails: undefined;
+  AllOrders: undefined;
 };
 
 

@@ -76,7 +76,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
         </ScrollView>
         {/* Cart Summary */}
         {totalCartItems > 0 && <CartSummary navigation={navigation} />}
-        <BottomNav />
+        {/* <BottomNav /> */}
       </View>
     </SafeAreaView>
   );

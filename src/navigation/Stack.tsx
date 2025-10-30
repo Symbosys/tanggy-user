@@ -9,6 +9,12 @@ import { RootStackParamList } from '../types/type';
 import Cart from '../screens/cart/Cart';
 import AddressScreen from '../screens/address/Address';
 import AddAddress from '../screens/location/Map';
+import OrderTracking from '../screens/order/Tracking';
+import ChatScreen from '../screens/order/Chat';
+import { Screen } from 'react-native-screens';
+import OrderDetailsScreen from '../screens/order/OrderDetails';
+import OrderConfirmationScreen from '../screens/order/OrderPlaced';
+import AllOrdersScreen from '../screens/order/AllOrders';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -16,7 +22,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        // initialRouteName='BottomTab'
+        initialRouteName='OrderTracking'
       
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />
@@ -26,8 +32,17 @@ export default function StackNavigation() {
         <Stack.Screen name="BottomTab" component={BottomTab} />
         <Stack.Screen name='Cart' component={Cart} />
 
+
         <Stack.Screen name='Address' component={AddressScreen} />
         <Stack.Screen name='AddAddress' component={AddAddress} />
+
+        
+        <Stack.Screen name='OrderPlaced' component={OrderConfirmationScreen} />
+        <Stack.Screen name='OrderTracking' component={OrderTracking} />
+        <Stack.Screen name='ChatWithDelivery' component={ChatScreen} />
+        <Stack.Screen name='OrderDetails' component={OrderDetailsScreen} />
+
+        <Stack.Screen name='AllOrders' component={AllOrdersScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

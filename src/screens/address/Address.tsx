@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useAddressStore } from '../../store/address';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -31,199 +32,205 @@ const AddressScreen = ({ navigation }: { navigation: any }) => {
 
     if (loading) {
         return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color="#8719C6" />
-                <Text style={styles.loadingText}>Loading your addresses...</Text>
-            </View>
+            <SafeAreaView>
+                <View style={styles.center}>
+                    <ActivityIndicator size="large" color="#8719C6" />
+                    <Text style={styles.loadingText}>Loading your addresses...</Text>
+                </View>
+            </SafeAreaView>
         );
     }
 
     if (error || !addresses || addresses.length === 0) {
         return (
-            <View style={styles.emptyContainer}>
-                <View style={styles.emptyIconContainer}>
-                    <View
-                        style={[
-                            styles.emptyIconGradient,
-                            { backgroundColor: '#8719C6' }
-                        ]}>
-                        <Icon name="location-off" size={60} color="#fff" />
+            <SafeAreaView>
+                <View style={styles.emptyContainer}>
+                    <View style={styles.emptyIconContainer}>
+                        <View
+                            style={[
+                                styles.emptyIconGradient,
+                                { backgroundColor: '#8719C6' }
+                            ]}>
+                            <Icon name="location-off" size={60} color="#fff" />
+                        </View>
                     </View>
+                    <Text style={styles.emptyTitle}>No Address Found</Text>
+                    <Text style={styles.emptySubtitle}>
+                        Add your delivery address to continue ordering
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.addFirstButton}
+                        onPress={() => navigation.navigate('AddAddress')}>
+                        <View
+                            style={[
+                                styles.addFirstButtonGradient,
+                                { backgroundColor: '#8719C6' }
+                            ]}>
+                            <Icon name="add-location" size={24} color="#fff" />
+                            <Text style={styles.addFirstButtonText}>
+                                Add Your First Address
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
-                <Text style={styles.emptyTitle}>No Address Found</Text>
-                <Text style={styles.emptySubtitle}>
-                    Add your delivery address to continue ordering
-                </Text>
-                <TouchableOpacity
-                    style={styles.addFirstButton}
-                    onPress={() => navigation.navigate('AddAddress')}>
-                    <View
-                        style={[
-                            styles.addFirstButtonGradient,
-                            { backgroundColor: '#8719C6' }
-                        ]}>
-                        <Icon name="add-location" size={24} color="#fff" />
-                        <Text style={styles.addFirstButtonText}>
-                            Add Your First Address
-                        </Text>
-                    </View>
-                </TouchableOpacity>
-            </View>
+            </SafeAreaView>
         );
     }
 
     return (
-        <View style={styles.container}>
-            <View
-                style={[
-                    styles.headerGradient,
-                    { backgroundColor: '#8719C6' }
-                ]}>
-                <View style={styles.header}>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => navigation.goBack()}>
-                        <Icon name="arrow-back" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>My Addresses</Text>
-                    <View style={styles.headerRight}>
-                        <View style={styles.addressCount}>
-                            <Text style={styles.addressCountText}>{addresses.length}</Text>
+        <SafeAreaView style={styles.container}>
+            <View style={styles.container}>
+                <View
+                    style={[
+                        styles.headerGradient,
+                        { backgroundColor: '#8719C6' }
+                    ]}>
+                    <View style={styles.header}>
+                        <TouchableOpacity
+                            style={styles.backButton}
+                            onPress={() => navigation.goBack()}>
+                            <Icon name="arrow-back" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>My Addresses</Text>
+                        <View style={styles.headerRight}>
+                            <View style={styles.addressCount}>
+                                <Text style={styles.addressCountText}>{addresses.length}</Text>
+                            </View>
                         </View>
                     </View>
                 </View>
-            </View>
 
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}>
-                {addresses.map(addr => (
-                    <View key={addr.id} style={styles.addressCard}>
-                        {addr.isDefault && (
-                            <View style={styles.defaultRibbon}>
-                                <View
-                                    style={[
-                                        styles.ribbonGradient,
-                                        { backgroundColor: '#8719C6' }
-                                    ]}>
-                                    <Icon name="verified" size={14} color="#fff" />
-                                    <Text style={styles.ribbonText}>DEFAULT</Text>
-                                </View>
-                            </View>
-                        )}
-
-                        <View style={styles.addressCardContent}>
-                            <View style={styles.addressHeader}>
-                                <View style={styles.addressTypeContainer}>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}>
+                    {addresses.map(addr => (
+                        <View key={addr.id} style={styles.addressCard}>
+                            {addr.isDefault && (
+                                <View style={styles.defaultRibbon}>
                                     <View
                                         style={[
-                                            styles.addressIconCircle,
-                                            addr.type === 'HOME'
-                                                ? styles.homeIcon
-                                                : addr.type === 'WORK'
-                                                    ? styles.workIcon
-                                                    : styles.otherIcon,
+                                            styles.ribbonGradient,
+                                            { backgroundColor: '#8719C6' }
                                         ]}>
-                                        <Text style={styles.addressIcon}>
+                                        <Icon name="verified" size={14} color="#fff" />
+                                        <Text style={styles.ribbonText}>DEFAULT</Text>
+                                    </View>
+                                </View>
+                            )}
+
+                            <View style={styles.addressCardContent}>
+                                <View style={styles.addressHeader}>
+                                    <View style={styles.addressTypeContainer}>
+                                        <View
+                                            style={[
+                                                styles.addressIconCircle,
+                                                addr.type === 'HOME'
+                                                    ? styles.homeIcon
+                                                    : addr.type === 'WORK'
+                                                        ? styles.workIcon
+                                                        : styles.otherIcon,
+                                            ]}>
+                                            <Text style={styles.addressIcon}>
+                                                {addr.type === 'HOME'
+                                                    ? '🏠'
+                                                    : addr.type === 'WORK'
+                                                        ? '🏢'
+                                                        : '📍'}
+                                            </Text>
+                                        </View>
+                                        <Text style={styles.addressType}>
                                             {addr.type === 'HOME'
-                                                ? '🏠'
+                                                ? 'Home'
                                                 : addr.type === 'WORK'
-                                                    ? '🏢'
-                                                    : '📍'}
+                                                    ? 'Work'
+                                                    : 'Other'}
                                         </Text>
                                     </View>
-                                    <Text style={styles.addressType}>
-                                        {addr.type === 'HOME'
-                                            ? 'Home'
-                                            : addr.type === 'WORK'
-                                                ? 'Work'
-                                                : 'Other'}
-                                    </Text>
-                                </View>
 
-                                <View style={styles.actions}>
-                                    <TouchableOpacity
-                                        style={styles.actionButton}
-                                        onPress={() =>
-                                            navigation.navigate('EditAddress', { id: addr.id })
-                                        }>
-                                        <Icon name="edit" size={18} color="#8719C6" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.actionButton}
-                                        onPress={() =>
-                                            Alert.alert(
-                                                'Delete Address',
-                                                'Are you sure you want to delete this address?',
-                                                [
-                                                    { text: 'Cancel', style: 'cancel' },
-                                                    {
-                                                        text: 'Delete',
-                                                        onPress: () => deleteAddress(addr.id),
-                                                        style: 'destructive',
-                                                    },
-                                                ],
-                                            )
-                                        }>
-                                        <Icon name="delete" size={18} color="#ff4444" />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            <View style={styles.divider} />
-
-                            <View style={styles.addressDetails}>
-                                <View style={styles.detailRow}>
-                                    <Icon name="location-on" size={18} color="#8719C6" />
-                                    <Text style={styles.addressText}>{addr.completeAddress}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Icon name="phone" size={18} color="#8719C6" />
-                                    <Text style={styles.phoneText}>{addr.receiverContact}</Text>
-                                </View>
-                                {addr.receiverName && (
-                                    <View style={styles.detailRow}>
-                                        <Icon name="person" size={18} color="#8719C6" />
-                                        <Text style={styles.phoneText}>{addr.receiverName}</Text>
+                                    <View style={styles.actions}>
+                                        <TouchableOpacity
+                                            style={styles.actionButton}
+                                            onPress={() =>
+                                                navigation.navigate('EditAddress', { id: addr.id })
+                                            }>
+                                            <Icon name="edit" size={18} color="#8719C6" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.actionButton}
+                                            onPress={() =>
+                                                Alert.alert(
+                                                    'Delete Address',
+                                                    'Are you sure you want to delete this address?',
+                                                    [
+                                                        { text: 'Cancel', style: 'cancel' },
+                                                        {
+                                                            text: 'Delete',
+                                                            onPress: () => deleteAddress(addr.id),
+                                                            style: 'destructive',
+                                                        },
+                                                    ],
+                                                )
+                                            }>
+                                            <Icon name="delete" size={18} color="#ff4444" />
+                                        </TouchableOpacity>
                                     </View>
+                                </View>
+
+                                <View style={styles.divider} />
+
+                                <View style={styles.addressDetails}>
+                                    <View style={styles.detailRow}>
+                                        <Icon name="location-on" size={18} color="#8719C6" />
+                                        <Text style={styles.addressText}>{addr.completeAddress}</Text>
+                                    </View>
+                                    <View style={styles.detailRow}>
+                                        <Icon name="phone" size={18} color="#8719C6" />
+                                        <Text style={styles.phoneText}>{addr.receiverContact}</Text>
+                                    </View>
+                                    {addr.receiverName && (
+                                        <View style={styles.detailRow}>
+                                            <Icon name="person" size={18} color="#8719C6" />
+                                            <Text style={styles.phoneText}>{addr.receiverName}</Text>
+                                        </View>
+                                    )}
+                                </View>
+
+                                {!addr.isDefault && (
+                                    <TouchableOpacity
+                                        style={styles.defaultButton}
+                                        onPress={() => setDefaultAddress(addr.id)}>
+                                        <View
+                                            style={[
+                                                styles.defaultButtonGradient,
+                                                { backgroundColor: '#f9eae9' }
+                                            ]}>
+                                            <Icon name="check-circle" size={18} color="#8719C6" />
+                                            <Text style={styles.defaultButtonText}>Set as Default</Text>
+                                        </View>
+                                    </TouchableOpacity>
                                 )}
                             </View>
-
-                            {!addr.isDefault && (
-                                <TouchableOpacity
-                                    style={styles.defaultButton}
-                                    onPress={() => setDefaultAddress(addr.id)}>
-                                    <View
-                                        style={[
-                                            styles.defaultButtonGradient,
-                                            { backgroundColor: '#f9eae9' }
-                                        ]}>
-                                        <Icon name="check-circle" size={18} color="#8719C6" />
-                                        <Text style={styles.defaultButtonText}>Set as Default</Text>
-                                    </View>
-                                </TouchableOpacity>
-                            )}
                         </View>
-                    </View>
-                ))}
+                    ))}
 
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => navigation.navigate('AddAddress')}>
-                    <View
-                        style={[
-                            styles.addButtonGradient,
-                            { backgroundColor: '#8719C6' }
-                        ]}>
-                        <Icon name="add-circle" size={24} color="#fff" />
-                        <Text style={styles.addButtonText}>Add New Address</Text>
-                    </View>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => navigation.navigate('AddAddress')}>
+                        <View
+                            style={[
+                                styles.addButtonGradient,
+                                { backgroundColor: '#8719C6' }
+                            ]}>
+                            <Icon name="add-circle" size={24} color="#fff" />
+                            <Text style={styles.addButtonText}>Add New Address</Text>
+                        </View>
+                    </TouchableOpacity>
 
-                <View style={styles.bottomPadding} />
-            </ScrollView>
-        </View>
+                    <View style={styles.bottomPadding} />
+                </ScrollView>
+            </View>
+        </SafeAreaView>
     );
 };
 
