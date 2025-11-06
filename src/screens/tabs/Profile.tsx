@@ -12,13 +12,74 @@ import { useAuth } from '../../context/AuthContext';
 import { AppNavigation } from '../../types/type';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const ProfileScreen = ({navigation}: AppNavigation) => {
+const ProfileScreen = ({ navigation }: AppNavigation) => {
   const { logout } = useAuth();
 
   const handleLogout = async () => {
-    await logout(); 
-    navigation.navigate('Login'); 
+    await logout();
+    navigation.navigate('Login');
   };
+
+  const menuItems = [
+    {
+      id: 1,
+      title: 'Rewards',
+      subtitle: 'Complete milestones and win exciting rewards',
+      iconType: 'MaterialCommunityIcons',
+      iconName: 'gift-outline',
+      onPress: () => { },
+    },
+    {
+      id: 2,
+      title: 'My Orders',
+      subtitle: 'Orders placed: 0',
+      iconType: 'MaterialCommunityIcons',
+      iconName: 'shopping-outline',
+      onPress: () => navigation.navigate('MyOrders'),
+    },
+    {
+      id: 3,
+      title: 'Addresses',
+      subtitle: '1 saved address',
+      iconType: 'MaterialIcons',
+      iconName: 'location-on',
+      onPress: () => navigation.navigate('Address'),
+    },
+    {
+      id: 4,
+      title: 'Minta Wallet',
+      subtitle: 'Cash+: ₹0.0 | Cash: ₹0.0',
+      iconType: 'MaterialCommunityIcons',
+      iconName: 'wallet-outline',
+      onPress: () => navigation.navigate('Wallet'),
+    },
+    {
+      id: 5,
+      title: 'Terms & Conditions',
+      subtitle: '',
+      iconType: 'MaterialIcons',
+      iconName: 'gavel',
+      onPress: () => navigation.navigate('TermsAndConditions'),
+    },
+
+    {
+      id: 6,
+      title: 'Privacy Policy',
+      subtitle: '',
+      iconType: 'MaterialIcons',
+      iconName: 'shield',
+      onPress: () => navigation.navigate('PrivacyPolicy'),
+    },
+
+    {
+      id: 7,
+      title: 'Logout',
+      subtitle: '',
+      iconType: 'MaterialIcons',
+      iconName: 'logout',
+      onPress: handleLogout,
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -48,7 +109,9 @@ const ProfileScreen = ({navigation}: AppNavigation) => {
             <Text style={styles.infinitiLogoSub}>Infiniti ∞</Text>
             <View style={styles.infinitiOffer}>
               <Text style={styles.offerText}>Upto 5% Cashback &</Text>
-              <Text style={styles.offerText}>Free Delivery on All Orders!</Text>
+              <Text style={styles.offerText}>
+                Free Delivery on All Orders!
+              </Text>
             </View>
           </View>
           <TouchableOpacity style={styles.exploreButton}>
@@ -59,67 +122,38 @@ const ProfileScreen = ({navigation}: AppNavigation) => {
 
         {/* Menu Items */}
         <View style={styles.menuContainer}>
-          {/* Rewards */}
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuIcon}>
-              <MaterialCommunityIcons name="gift-outline" size={24} color="#666" />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Rewards</Text>
-              <Text style={styles.menuSubtitle}>
-                Complete milestones and win exciting rewards
-              </Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
+          {menuItems.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.menuItem}
+              onPress={item.onPress}
+            >
+              <View style={styles.menuIcon}>
+                {item.iconType === 'MaterialCommunityIcons' ? (
+                  <MaterialCommunityIcons
+                    name={item.iconName}
+                    size={24}
+                    color="#666"
+                  />
+                ) : (
+                  <MaterialIcons name={item.iconName} size={24} color="#666" />
+                )}
+              </View>
 
-          {/* Orders */}
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuIcon}>
-              <MaterialCommunityIcons name="shopping-outline" size={24} color="#666" />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Orders</Text>
-              <Text style={styles.menuSubtitle}>Orders placed: 0</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
+              {item.title === 'Logout' ? (
+                <Text style={styles.zoneTitle}>{item.title}</Text>
+              ) : (
+                <View style={styles.menuContent}>
+                  <Text style={styles.menuTitle}>{item.title}</Text>
+                  {item.subtitle ? (
+                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                  ) : null}
+                </View>
+              )}
 
-          {/* Addresses */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate("Address")}
-          >
-            <View style={styles.menuIcon}>
-              <MaterialIcons name="location-on" size={24} color="#666" />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Addresses</Text>
-              <Text style={styles.menuSubtitle}>1 saved address</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
-          {/* Minta Wallet */}
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuIcon}>
-              <MaterialCommunityIcons name="wallet-outline" size={24} color="#666" />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Minta Wallet</Text>
-              <Text style={styles.menuSubtitle}>Cash+: ₹0.0 | Cash: ₹0.0</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
-
-          {/* Logout */}
-          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-            <View style={styles.menuIcon}>
-              <MaterialIcons name="logout" size={24} color="#666" />
-            </View>
-            <Text style={styles.zoneTitle}>Logout</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#CCC" />
-          </TouchableOpacity>
+              <MaterialIcons name="chevron-right" size={24} color="#CCC" />
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* App Version */}
@@ -264,6 +298,7 @@ const styles = StyleSheet.create({
   bundleText: {
     fontSize: 14,
     color: '#999',
+    marginBottom: 15,
   },
 });
 

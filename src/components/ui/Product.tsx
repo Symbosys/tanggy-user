@@ -13,28 +13,30 @@ import { AxiosError } from 'axios';
 
 const ProductCard = ({ product, navigation }: { product: Product, navigation: NavigationProp<RootStackParamList> }) => {
     const { isAuthenticated } = useAuth();
-    const {addToCart} = useCartStore()
+    const { addToCart } = useCartStore();
 
-    console.log('Product:', product.cartQuantity);
     const [quantity, setQuantity] = useState(Number(product.cartQuantity) || 0);
 
+    // 🧭 Navigate to details screen
+    const handleNavigateToDetails = () => {
+        navigation.navigate("ProductDetails", { product }); 
+    };
 
     const handleIncreaseQuantity = async () => {
         if (!isAuthenticated) {
             Alert.alert(
-                'Login Required',
-                'You need to log in to add this product to your cart.',
+                "Login Required",
+                "You need to log in to add this product to your cart.",
                 [
-                    { text: 'Login', onPress: () => navigation.navigate('Login') },
-                    { text: 'Cancel', style: 'cancel' },
-                ],
+                    { text: "Login", onPress: () => navigation.navigate("Login") },
+                    { text: "Cancel", style: "cancel" },
+                ]
             );
-            return; // 🧠 important: stop here, otherwise it will still run below
+            return;
         }
 
         const newQuantity = (quantity || 0) + 1;
         setQuantity(newQuantity);
-
         try {
             await addToCart(Number(product.id), newQuantity);
         } catch (error) {
@@ -45,21 +47,20 @@ const ProductCard = ({ product, navigation }: { product: Product, navigation: Na
     const handleDecreaseQuantity = async () => {
         if (!isAuthenticated) {
             Alert.alert(
-                'Login Required',
-                'You need to log in to add this product to your cart.',
+                "Login Required",
+                "You need to log in to add this product to your cart.",
                 [
-                    { text: 'Login', onPress: () => navigation.navigate('Login') },
-                    { text: 'Cancel', style: 'cancel' },
-                ],
+                    { text: "Login", onPress: () => navigation.navigate("Login") },
+                    { text: "Cancel", style: "cancel" },
+                ]
             );
             return;
         }
 
-        if (quantity <= 0) return; // 🧠 prevent negative quantities
+        if (quantity <= 0) return;
 
         const newQuantity = quantity - 1;
         setQuantity(newQuantity);
-
         try {
             await addToCart(Number(product.id), newQuantity);
         } catch (error) {
@@ -67,36 +68,35 @@ const ProductCard = ({ product, navigation }: { product: Product, navigation: Na
         }
     };
 
-
     return (
-        <View style={styles.productCard}>
-            {/* Overlay when product is not available */}
-            {!product.isAvailable && (
-                <View style={styles.unavailableOverlay}>
-                    <Text style={styles.unavailableText}>Not Available</Text>
+        <TouchableOpacity activeOpacity={0.9} onPress={handleNavigateToDetails}>
+            <View style={styles.productCard}>
+                {/* Overlay when product is not available */}
+                {!product.isAvailable && (
+                    <View style={styles.unavailableOverlay}>
+                        <Text style={styles.unavailableText}>Not Available</Text>
+                    </View>
+                )}
+
+                <Image
+                    source={{ uri: product?.images[0]?.image.url }}
+                    style={styles.productImage}
+                />
+
+                {/* Badge */}
+                <View style={styles.productBadge}>
+                    <MaterialCommunityIcons name="shield-check" size={16} color={COLORS.primary} />
+                    <Text style={styles.badgeText}>INDIA'S #1 CHOICE</Text>
                 </View>
-            )}
 
-            <Image
-                source={{ uri: product?.images[0]?.image.url }}
-                style={styles.productImage}
-            />
-
-            {/* Badge */}
-            <View style={styles.productBadge}>
-                <MaterialCommunityIcons name="shield-check" size={16} color={COLORS.primary} />
-                <Text style={styles.badgeText}>INDIA'S #1 CHOICE</Text>
-            </View>
-
-            {/* Quantity */}
-            <View style={styles.qtyWrapper}>
-                {
-                    quantity === 0 ?
-                        (<TouchableOpacity onPress={handleIncreaseQuantity} style={styles.addButton}>
+                {/* Quantity Controls */}
+                <View style={styles.qtyWrapper}>
+                    {quantity === 0 ? (
+                        <TouchableOpacity onPress={handleIncreaseQuantity} style={styles.addButton}>
                             <MaterialIcons name="add" size={20} color={COLORS.primary} />
-                        </TouchableOpacity>)
-                        :
-                        (<View style={styles.qtyContainer}>
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={styles.qtyContainer}>
                             <TouchableOpacity onPress={handleDecreaseQuantity}>
                                 <MaterialIcons name="remove" size={20} color={COLORS.primary} />
                             </TouchableOpacity>
@@ -104,34 +104,36 @@ const ProductCard = ({ product, navigation }: { product: Product, navigation: Na
                             <TouchableOpacity onPress={handleIncreaseQuantity}>
                                 <MaterialIcons name="add" size={20} color={COLORS.primary} />
                             </TouchableOpacity>
-                        </View>)
-                }
-            </View>
+                        </View>
+                    )}
+                </View>
 
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.productDetails}>
-                {product.weight} g | {product.pieces} {Number(product.pieces) === 1 ? 'piece' : 'pieces'}
-            </Text>
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.productDetails}>
+                    {product.weight} g | {product.pieces}{" "}
+                    {Number(product.pieces) === 1 ? "piece" : "pieces"}
+                </Text>
 
-            <View style={styles.priceRow}>
-                <Text style={styles.productPrice}>₹{parseToDecimal(product.sellingPrice).toFixed(2)}</Text>
-                {product?.marketPrice && (
-                    <Text style={styles.productOriginalPrice}>
-                        ₹{parseToDecimal(product.marketPrice).toFixed(2)}
-                    </Text>
-                )}
-                {product?.marketPrice && (
-                    <Text style={styles.productDiscount}>
-                        {calculateDiscount(product.marketPrice, product.sellingPrice)}% off
-                    </Text>
-                )}
-            </View>
+                <View style={styles.priceRow}>
+                    <Text style={styles.productPrice}>₹{parseToDecimal(product.sellingPrice).toFixed(2)}</Text>
+                    {product?.marketPrice && (
+                        <Text style={styles.productOriginalPrice}>
+                            ₹{parseToDecimal(product.marketPrice).toFixed(2)}
+                        </Text>
+                    )}
+                    {product?.marketPrice && (
+                        <Text style={styles.productDiscount}>
+                            {calculateDiscount(product.marketPrice, product.sellingPrice)}% off
+                        </Text>
+                    )}
+                </View>
 
-            <View style={styles.deliveryInfo}>
-                <MaterialCommunityIcons name="lightning-bolt" size={14} color={COLORS.highlight} />
-                <Text style={styles.deliveryInfoText}>Delivery in 30 mins</Text>
+                <View style={styles.deliveryInfo}>
+                    <MaterialCommunityIcons name="lightning-bolt" size={14} color={COLORS.highlight} />
+                    <Text style={styles.deliveryInfoText}>Delivery in 30 mins</Text>
+                </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 };
 

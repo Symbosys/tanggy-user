@@ -70,7 +70,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
           </View>
 
           {/* Shop By Category */}
-          <ShopByCategory />
+          <ShopByCategory navigation={navigation} />
 
           <View style={styles.bottomSpacing} />
         </ScrollView>

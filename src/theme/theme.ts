@@ -1,5 +1,5 @@
 export const COLORS = {
-  primary: '#8719C6',    // Deep Purple (for buttons, highlights)
+  primary: '#9235D0',    // Deep Purple (for buttons, highlights)
   secondary: '#f9eae9',  // Soft Pink (for backgrounds, cards)
   accent: '#b58ff0',     // Lavender (hover, subtle accents)
   highlight: '#ff9fa3',  // Coral/Peach (alerts, badges)
@@ -9,6 +9,21 @@ export const COLORS = {
   textSecondary: '#4a4a4a', // Secondary text
   muted: '#888888',       // Muted text or icons
 };
+
+export const FONTS = {
+  regular: "400",
+  medium: "500",
+  bold: "700",
+  extraBold: "800",
+};
+
+// export const FONTS = {
+//   regular: 'Poppins-Regular',
+//   medium: 'Poppins-Medium',
+//   bold: 'Poppins-Bold',
+//   extraBold: 'Poppins-ExtraBold',
+//   weight: 800,
+// };
 
 // export const THEME = {
 //   light: {

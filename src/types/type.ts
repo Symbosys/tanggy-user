@@ -1,4 +1,5 @@
 import { NavigationProp } from "@react-navigation/native";
+import { Product } from "./product.type";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -16,7 +17,17 @@ export type RootStackParamList = {
   OrderTracking: undefined;
   ChatWithDelivery: undefined;
   OrderDetails: undefined;
-  AllOrders: undefined;
+  MyOrders: undefined;
+
+  ProductDetails: { product: Product };
+  CategoryResults: undefined;
+
+  // User Profile
+  Wallet: undefined;
+
+  // Legal screen
+  TermsAndConditions: undefined;
+  PrivacyPolicy: undefined;
 };
 
 

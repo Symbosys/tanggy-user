@@ -6,7 +6,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function App() {
   return (
-    <GestureHandlerRootView>
+    <GestureHandlerRootView
+      style={{ flex: 1 }}
+    >
     <SafeAreaProvider>
       <AuthProvider>
         <StackNavigation />

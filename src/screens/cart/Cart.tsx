@@ -120,7 +120,7 @@ const Cart = ({ navigation }: AppNavigation) => {
     }
     Alert.alert('Checkout', `Proceed to checkout for ₹${calculateTotal()}?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Checkout', onPress: () => console.log('Navigating to checkout...') },
+      { text: 'Checkout', onPress: () => navigation.navigate('OrderPlaced') },
     ]);
   };
   const handleClearCart = () => {

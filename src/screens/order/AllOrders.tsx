@@ -56,7 +56,7 @@ export default function AllOrdersScreen() {
     const [selectedTab, setSelectedTab] = useState('Past Orders');
     const data = selectedTab === 'Ongoing' ? ongoingOrders : pastOrders;
 
-    const renderOrderCard = ({ item }) => (
+    const renderOrderCard = ({ item }: any) => (
         <View
             style={{
                 backgroundColor: COLORS.white,
@@ -101,10 +101,10 @@ export default function AllOrdersScreen() {
 
             {/* Items */}
             <View style={{ borderTopWidth: 1, borderTopColor: '#ddd', marginTop: 12, paddingTop: 10 }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', marginBottom: 6, color: COLORS.textPrimary }}>
+                <Text style={{ fontSize: 13, fontWeight: '800', marginBottom: 6, color: COLORS.textPrimary }}>
                     Items ordered:
                 </Text>
-                {item.items.map((food) => (
+                {item.items.map((food: any) => (
                     <View key={food.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                         <Image
                             source={{ uri: food.image }}
@@ -170,7 +170,7 @@ export default function AllOrdersScreen() {
                     >
                         <Text
                             style={{
-                                fontWeight: selectedTab === tab ? 'bold' : '500',
+                                fontWeight: selectedTab === tab ? 'bold' : '800',
                                 color: selectedTab === tab ? COLORS.primary : COLORS.muted,
                             }}
                         >

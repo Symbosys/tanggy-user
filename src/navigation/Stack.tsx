@@ -1,20 +1,26 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AlwaysOpen from '../components/ui/Sheet';
+import AddressScreen from '../screens/address/Address';
 import Login from '../screens/auth/Login';
 import Otp from '../screens/auth/Otp';
-import BottomTab from './Bottom';
-import Splash from '../screens/others/Splash';
-import SelectYourLocation from '../screens/location/Location';
-import { RootStackParamList } from '../types/type';
 import Cart from '../screens/cart/Cart';
-import AddressScreen from '../screens/address/Address';
+import SelectYourLocation from '../screens/location/Location';
 import AddAddress from '../screens/location/Map';
-import OrderTracking from '../screens/order/Tracking';
+import AllOrdersScreen from '../screens/order/AllOrders';
 import ChatScreen from '../screens/order/Chat';
-import { Screen } from 'react-native-screens';
 import OrderDetailsScreen from '../screens/order/OrderDetails';
 import OrderConfirmationScreen from '../screens/order/OrderPlaced';
-import AllOrdersScreen from '../screens/order/AllOrders';
+import OrderTracking from '../screens/order/Tracking';
+import Splash from '../screens/others/Splash';
+import { RootStackParamList } from '../types/type';
+import BottomTab from './Bottom';
+import ProductDetailsScreen from '../screens/productsDetails/ProductDetails';
+import MyAddressesScreen from '../screens/address/TestAddress';
+import CategoryResults from '../screens/results/CategoryResults';
+import TermsAndConditionsScreen from '../screens/legal/TermsAndConditions';
+import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicy';
+import MyWalletScreen from '../screens/wallet/Wallet';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -22,7 +28,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName='OrderTracking'
+        // initialRouteName='MyOrders'
       
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />
@@ -30,10 +36,12 @@ export default function StackNavigation() {
         <Stack.Screen name="Otp" component={Otp} />
         <Stack.Screen name='select_your_location' component={SelectYourLocation} options={{headerShown: true}} />
         <Stack.Screen name="BottomTab" component={BottomTab} />
+        <Stack.Screen name='ProductDetails' component={ProductDetailsScreen} />
         <Stack.Screen name='Cart' component={Cart} />
 
+        <Stack.Screen name='CategoryResults' component={CategoryResults} />
 
-        <Stack.Screen name='Address' component={AddressScreen} />
+        <Stack.Screen name='Address' component={MyAddressesScreen} />
         <Stack.Screen name='AddAddress' component={AddAddress} />
 
         
@@ -42,7 +50,14 @@ export default function StackNavigation() {
         <Stack.Screen name='ChatWithDelivery' component={ChatScreen} />
         <Stack.Screen name='OrderDetails' component={OrderDetailsScreen} />
 
-        <Stack.Screen name='AllOrders' component={AllOrdersScreen} />
+        {/* User Profile  */}
+        <Stack.Screen name='MyOrders' component={AllOrdersScreen} />
+        <Stack.Screen name='Wallet' component={MyWalletScreen} />
+
+
+        {/* Legal Screen  */}
+        <Stack.Screen name='TermsAndConditions' component={TermsAndConditionsScreen} />
+        <Stack.Screen name='PrivacyPolicy' component={PrivacyPolicyScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

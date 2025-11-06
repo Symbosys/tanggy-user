@@ -11,10 +11,11 @@ import {
 import Toast from 'react-native-toast-message';
 import api from '../../api/api';
 import { Category } from '../../types/product.type';
+import { AppNavigation } from '../../types/type';
 
 const {width} = Dimensions.get('window');
 
-const ShopByCategory = () => {
+const ShopByCategory = ({ navigation }: AppNavigation) => {
   const [category, setCategory] = useState<Category[]>([]);
 
   const fetchCategory = async () => {
@@ -46,7 +47,7 @@ const ShopByCategory = () => {
       <Text style={styles.sectionSubtitle}>Freshest meats and much more!</Text>
       <View style={styles.categoryGrid}>
         {category.map((category, index) => (
-          <TouchableOpacity key={index} style={styles.categoryItem}>
+          <TouchableOpacity key={index} style={styles.categoryItem} onPress={() => navigation.navigate("CategoryResults")}>
             <Image source={{uri: category.image.url}} style={styles.categoryImage} />
             <Text style={styles.categoryName}>{category.name}</Text>
             {category.name === 'Heat & Eat' && (
