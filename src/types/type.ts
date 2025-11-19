@@ -8,11 +8,18 @@ export type RootStackParamList = {
   select_your_location: undefined;
   BottomTab: undefined;
   Cart: undefined;
-  Cart2: undefined;
+
+  Search: undefined;
+  
+  Home: undefined;
+  Category: undefined;
+  Profile: undefined;
+  Discount: undefined;
 
   AddAddress: undefined;
   Address: undefined;
 
+  // Order
   OrderPlaced: undefined;
   OrderTracking: undefined;
   ChatWithDelivery: undefined;
@@ -20,7 +27,7 @@ export type RootStackParamList = {
   MyOrders: undefined;
 
   ProductDetails: { product: Product };
-  CategoryResults: undefined;
+  CategoryResults: { categoryId?: string; categoryName: string };
 
   // User Profile
   Wallet: undefined;
@@ -28,6 +35,15 @@ export type RootStackParamList = {
   // Legal screen
   TermsAndConditions: undefined;
   PrivacyPolicy: undefined;
+
+
+  // Support
+  HelpSupport: undefined;
+  HowToTrackOrder: undefined;
+  SupportHistory: undefined;
+  ChatWithSupport: undefined;
+  ReportIssue: undefined;
+  AiAssistant: undefined;
 };
 
 

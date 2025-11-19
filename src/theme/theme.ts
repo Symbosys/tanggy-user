@@ -8,6 +8,8 @@ export const COLORS = {
   textPrimary: '#222222', // Main text
   textSecondary: '#4a4a4a', // Secondary text
   muted: '#888888',       // Muted text or icons
+  warning: '#FF9800',     // Warning color for status updates
+  success: '#4CAF50',     // Success color for successful actions
 };
 
 export const FONTS = {

@@ -1,121 +1,991 @@
+import {
+  Dimensions,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Alert,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AxiosError } from 'axios';
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import BottomNav from '../../components/home/BottomNav';
-import CartSummary from '../../components/home/CartSummary';
-import HeaderAddress from '../../components/home/Header';
-import ShopByCategory from '../../components/home/ShopByCategory';
-import WelcomeBanner from '../../components/home/WelcomeBanner';
-import WelcomeRewards from '../../components/home/WelcomeRewards';
-import ProductCard from '../../components/ui/Product';
+import { useEffect, useState, useRef } from 'react';
+import Toast from 'react-native-toast-message';
+import api from '../../api/api';
+import { Category, Product } from '../../types/product.type';
+import { AppNavigation } from '../../types/type';
 import { useAuth } from '../../context/AuthContext';
-import { getAllBestSellerProducts } from '../../services/product.service';
+import { getAllProducts } from '../../services/product.service';
 import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
-import { Product } from '../../types/product.type';
-import { AppNavigation } from '../../types/type';
-import { ErrorMessage } from '../../utils/utils';
+import { parseToDecimal, ErrorMessage } from '../../utils/utils';
+import { COLORS } from '../../theme/theme';
+import ProductCard from '../../components/ui/products/Product';
+import CategoryList from '../../components/ui/CategoryList';
+import Video, { VideoRef } from 'react-native-video';
+
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }: AppNavigation) {
-  const insets = useSafeAreaInsets();
+  const [category, setCategory] = useState<Category[]>([]);
   const [bestSellerProducts, setBestSellerProducts] = useState<Product[]>([]);
-  const { latitude, longitude } = useLocationStore()
-  const { userId, token } = useAuth()
-  const {totalItems: totalCartItems, fetchCart} = useCartStore()
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+  const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
+  const videoRef = useRef<VideoRef>(null);
+  const { latitude, longitude } = useLocationStore();
+  const { userId, isAuthenticated } = useAuth();
+  const { totalItems: totalCartItems, subtotal: subTotal, fetchCart, addToCart } = useCartStore();
 
-  console.log("🚀 ~ file: Home.tsx ~ line 11 ~ HomeScreen ~ totalCartItems", totalCartItems)
-  
-  // console.log("🚀 ~ file: Home.tsx ~ line 11 ~ HomeScreen ~ bestSellerProducts", bestSellerProducts)
+  console.log("cartItems", totalCartItems, subTotal, isAuthenticated, userId);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/category/all');
+      setCategory(res.data.data);
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        Toast.show({
+          type: 'error',
+          text1: error.response?.data.message || "Something went wrong",
+        });
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: "Something went wrong",
+        });
+      }
+    }
+  };
+
+  const fetchBestSellerProducts = async () => {
+    try {
+      const response = await getAllProducts({
+        lat: latitude ?? undefined,
+        lng: longitude ?? undefined,
+        isActive: true,
+        userId: userId ?? undefined,
+        isBestSeller: true
+      });
+      console.log('Best seller products:', response.data);
+      setBestSellerProducts(response.data.products);
+    } catch (error) {
+      ErrorMessage(error as AxiosError | Error);
+    }
+  };
+
+  const fetchRecommendedProducts = async () => {
+    try {
+      const response = await getAllProducts({
+        lat: latitude ?? undefined,
+        lng: longitude ?? undefined,
+        isActive: true,
+        userId: userId ?? undefined,
+        isRecommended: true
+      });
+      setRecommendedProducts(response.data.products);
+      console.log('Recommended products:', response.data);
+    } catch (error) {
+      ErrorMessage(error as AxiosError | Error);
+    }
+  }
 
   useEffect(() => {
-    const fetchBestSellerProducts = async () => {
-      try {
-        const response = await getAllBestSellerProducts({lat: latitude ?? undefined, lng: longitude ?? undefined, isActive: true, userId: userId ?? undefined});
-        // console.log("🚀 ~ file: Home.tsx ~ line 32 ~ fetchBestSellerProducts ~ response", response.data.products);
-        setBestSellerProducts(response.data.products)
-      } catch (error) {
+    fetchCategories();
+    fetchBestSellerProducts();
+    if (userId) fetchCart();
+    if (userId) fetchRecommendedProducts();
+  }, [latitude, longitude, userId]);
+
+  // Ensure video starts playing once ready
+  useEffect(() => {
+    if (isVideoReady && videoRef.current) {
+      videoRef.current.seek(0);
+    }
+  }, [isVideoReady]);
+
+  const onVideoLoad = () => {
+    setIsVideoReady(true);
+  };
+
+  const onVideoError = (error: any) => {
+    console.log('Video Error:', error);
+  };
+
+  const handleNavigateToDetails = (product: Product) => {
+    navigation.navigate("ProductDetails", { product });
+  };
+
+  const handleAddToCart = async (productId: number, quantity: number = 1) => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        "Login Required",
+        "You need to log in to add this product to your cart.",
+        [
+          { text: "Login", onPress: () => navigation.navigate("Login") },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+      return;
+    }
+
+    try {
+      await addToCart(productId, quantity);
+      Toast.show({
+        type: 'success',
+        text1: 'Added to cart!',
+      });
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        Toast.show({
+          type: 'error',
+          text1: error.response?.data?.message || 'Failed to add to cart',
+        });
+      } else {
         ErrorMessage(error as AxiosError | Error);
       }
     }
-    if(userId) fetchCart()
-    fetchBestSellerProducts()
-  },[latitude, longitude])
-  
+  };
+
+  const handleSearchPress = () => {
+    navigation.navigate('Search');
+  };
+
+  const bestsellerProducts = bestSellerProducts;
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <View style={styles.container}>
-        <HeaderAddress navigation={navigation} />
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
-          showsVerticalScrollIndicator={false}>
-          <WelcomeBanner />
-          <WelcomeRewards />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-          {/* BestSeller Section */}
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header with Gradient Background */}
+        <View style={styles.headerContainer}>
+          <Video
+            ref={videoRef}
+            source={require('../../assets/video/home.mp4')}
+            style={styles.video}
+            resizeMode="cover"
+            repeat={true}
+            paused={!isVideoReady}
+            ignoreSilentSwitch="ignore"
+            playInBackground={false}
+            onLoad={onVideoLoad}
+            onError={onVideoError}
+            muted
+          />
+          <View style={styles.videoOverlay} />
+          <View style={styles.topBar}>
+            <View style={styles.locationContainer}>
+              <Icon name="location-on" size={24} color={COLORS.white} />
+              <View style={styles.locationTextContainer}>
+                <View style={styles.locationRow}>
+                  <Text style={styles.locationText}>
+                    Delivering to: Kanke, Ranchi
+                  </Text>
+                  <Icon name="expand-more" size={16} color={COLORS.white} />
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <Icon name="person" size={24} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.heroSection}>
+            {/* <Text style={styles.heroTitle}>Fresh, Fast & Delivered</Text>
+            <Text style={styles.heroSubtitle}>
+              The best quality meat, delivered to your doorstep.
+            </Text> */}
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <TouchableOpacity
+            style={styles.searchBar}
+            onPress={handleSearchPress}
+            activeOpacity={0.7}
+          >
+            <Icon name="search" size={24} color={COLORS.muted} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for chicken, meat, or dishes…"
+              placeholderTextColor={COLORS.muted}
+              editable={false}
+              pointerEvents="none"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Main Content */}
+        <View style={styles.mainContent}>
+          {/* Categories Section */}
+          <CategoryList categories={category} navigation={navigation} />
+
+          {/* Recommended Section */}
+          {isAuthenticated && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recommended For You</Text>
+                <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("CategoryResults", { categoryName: 'Recommended For You' })}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                  <Icon name="arrow-forward" size={16} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.productScroll}
+              >
+                {recommendedProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onPress={() => handleNavigateToDetails(product)}
+                    onAddToCart={(e) => {
+                      e.stopPropagation();
+                      handleAddToCart(Number(product.id), 1);
+                    }}
+                    showBestsellerBadge={false}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+
+          )}
+
+          {/* Bestsellers Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Bestsellers</Text>
-            <Text style={styles.sectionSubtitle}>
-              Most popular products near you!
-            </Text>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} >
-              {
-                bestSellerProducts && bestSellerProducts?.map((product) => (
-                  <ProductCard key={product.id} product={product} navigation={navigation} />
-                ))
-              }
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Bestsellers 🔥</Text>
+              <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("CategoryResults", { categoryName: 'Bestsellers' })}>
+                <Text style={styles.seeAllText}>See All</Text>
+                <Icon name="arrow-forward" size={16} color={COLORS.primary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.productScroll}
+            >
+              {bestsellerProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onPress={() => handleNavigateToDetails(product)}
+                  onAddToCart={(e) => {
+                    e.stopPropagation();
+                    handleAddToCart(Number(product.id), 1);
+                  }}
+                  showBestsellerBadge={true}
+                />
+              ))}
             </ScrollView>
           </View>
 
-          {/* Shop By Category */}
-          <ShopByCategory navigation={navigation} />
+          {/* Bottom Spacer */}
+          <View style={{ height: 200 }} />
+        </View>
+      </ScrollView>
 
-          <View style={styles.bottomSpacing} />
-        </ScrollView>
-        {/* Cart Summary */}
-        {totalCartItems > 0 && <CartSummary navigation={navigation} />}
-        {/* <BottomNav /> */}
-      </View>
-    </SafeAreaView>
+      {/* Floating Cart Button */}
+      {totalCartItems > 0 && isAuthenticated && (
+        <View style={styles.floatingCartContainer}>
+          <TouchableOpacity
+            style={styles.cartButton}
+            onPress={() => navigation.navigate('Cart')}
+          >
+            <View style={styles.cartLeft}>
+              <Icon name="shopping-cart" size={32} color={COLORS.white} />
+              <View style={styles.cartDetails}>
+                <Text style={styles.cartItems}>{totalCartItems} {totalCartItems > 1 ? 'Items' : 'Item'}</Text>
+                <Text style={styles.cartTotal}>₹{parseToDecimal(subTotal).toFixed(2)}</Text>
+              </View>
+            </View>
+            <View style={styles.cartArrowButton}>
+              <Icon name="arrow-forward" size={32} color={COLORS.primary} />
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.background,
   },
   scrollView: {
     flex: 1,
   },
-
-  // BestSeller Section
-  section: {
+  headerContainer: {
+    backgroundColor: COLORS.primary,
+    paddingTop: 16,
+    paddingBottom: 48,
+    position: 'relative',
+    overflow: 'hidden',
+    height: 350,
+  },
+  video: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 24,
+    paddingBottom: 8,
+    position: 'relative',
+    zIndex: 10,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  locationTextContainer: {
+    flexDirection: 'column',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroSection: {
+    paddingHorizontal: 16,
+    paddingTop: 100,
+    alignItems: 'center',
+    position: 'relative',
+    zIndex: 10,
+  },
+  heroTitle: {
+    color: COLORS.white,
+    fontSize: 30,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  heroSubtitle: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginTop: -24,
+    zIndex: 10,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 28,
+    height: 56,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    paddingHorizontal: 8,
+  },
+  searchIcon: {
+    paddingLeft: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    paddingHorizontal: 8,
+  },
+  mainContent: {
+    paddingTop: 32,
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
   },
-  sectionSubtitle: {
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  seeAllText: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
+    fontWeight: '800',
+    color: COLORS.primary,
   },
-  horizontalScroll: {
-    marginHorizontal: -16,
+  productScroll: {
+    paddingHorizontal: 16,
+    gap: 16,
+    paddingBottom: 8,
+  },
+  floatingCartContainer: {
+    position: 'absolute',
+    bottom: 96,
+    left: 0,
+    right: 0,
     paddingHorizontal: 16,
   },
-  bottomSpacing: {
-    height: 40,
+  cartButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    borderRadius: 32,
+    height: 64,
+    paddingLeft: 24,
+    paddingRight: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  cartLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  cartDetails: {
+    flexDirection: 'column',
+  },
+  cartItems: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  cartTotal: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  cartArrowButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// HomeScreen.tsx
+// import {
+//   Dimensions,
+//   Image,
+//   ScrollView,
+//   StatusBar,
+//   StyleSheet,
+//   Text,
+//   TextInput,
+//   TouchableOpacity,
+//   View,
+//   Alert,
+// } from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import { AxiosError } from 'axios';
+// import { useEffect, useState } from 'react';
+// import Toast from 'react-native-toast-message';
+// import api from '../../api/api';
+// import { Category, Product } from '../../types/product.type';
+// import { AppNavigation } from '../../types/type';
+// import { useAuth } from '../../context/AuthContext';
+// import { getAllProducts } from '../../services/product.service';
+// import { useCartStore } from '../../store/cart';
+// import { useLocationStore } from '../../store/location';
+// import { parseToDecimal, ErrorMessage } from '../../utils/utils';
+// import { COLORS } from '../../theme/theme';
+// import ProductCard from '../../components/ui/products/Product';
+// import CategoryList from '../../components/ui/CategoryList';
+
+// const { width } = Dimensions.get('window');
+
+// export default function HomeScreen({ navigation }: AppNavigation) {
+//   const [category, setCategory] = useState<Category[]>([]);
+//   const [bestSellerProducts, setBestSellerProducts] = useState<Product[]>([]);
+//   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+//   const { latitude, longitude } = useLocationStore();
+//   const { userId, isAuthenticated } = useAuth();
+//   const { totalItems: totalCartItems, subtotal: subTotal, fetchCart, addToCart } = useCartStore();
+
+//   console.log("cartItems", totalCartItems, subTotal, isAuthenticated, userId);
+
+//   const fetchCategories = async () => {
+//     try {
+//       const res = await api.get('/category/all');
+//       setCategory(res.data.data);
+//     } catch (error) {
+//       if (error instanceof AxiosError) {
+//         Toast.show({
+//           type: 'error',
+//           text1: error.response?.data.message || "Something went wrong",
+//         });
+//       } else {
+//         Toast.show({
+//           type: 'error',
+//           text1: "Something went wrong",
+//         });
+//       }
+//     }
+//   };
+
+//   const fetchBestSellerProducts = async () => {
+//     try {
+//       const response = await getAllProducts({
+//         lat: latitude ?? undefined,
+//         lng: longitude ?? undefined,
+//         isActive: true,
+//         userId: userId ?? undefined,
+//         isBestSeller: true
+//       });
+//       console.log('Best seller products:', response.data);
+//       setBestSellerProducts(response.data.products);
+//     } catch (error) {
+//       ErrorMessage(error as AxiosError | Error);
+//     }
+//   };
+
+//   const fetchRecommendedProducts = async () => {
+//     try {
+//       const response = await getAllProducts({
+//         lat: latitude ?? undefined,
+//         lng: longitude ?? undefined,
+//         isActive: true,
+//         userId: userId ?? undefined,
+//         isRecommended: true
+//       });
+//       setRecommendedProducts(response.data.products);
+//       console.log('Recommended products:', response.data);
+//     } catch (error) {
+//       ErrorMessage(error as AxiosError | Error);
+//     }
+//   }
+
+//   useEffect(() => {
+//     fetchCategories();
+//     fetchBestSellerProducts();
+//     if (userId) fetchCart();
+//     if (userId) fetchRecommendedProducts();
+//   }, [latitude, longitude, userId]);
+
+//   const handleNavigateToDetails = (product: Product) => {
+//     navigation.navigate("ProductDetails", { product });
+//   };
+
+//   const handleAddToCart = async (productId: number, quantity: number = 1) => {
+//     if (!isAuthenticated) {
+//       Alert.alert(
+//         "Login Required",
+//         "You need to log in to add this product to your cart.",
+//         [
+//           { text: "Login", onPress: () => navigation.navigate("Login") },
+//           { text: "Cancel", style: "cancel" },
+//         ]
+//       );
+//       return;
+//     }
+
+//     try {
+//       await addToCart(productId, quantity);
+//       Toast.show({
+//         type: 'success',
+//         text1: 'Added to cart!',
+//       });
+//     } catch (error) {
+//       if (error instanceof AxiosError) {
+//         Toast.show({
+//           type: 'error',
+//           text1: error.response?.data?.message || 'Failed to add to cart',
+//         });
+//       } else {
+//         ErrorMessage(error as AxiosError | Error);
+//       }
+//     }
+//   };
+
+//   const handleSearchPress = () => {
+//     navigation.navigate('Search');
+//   };
+
+//   const bestsellerProducts = bestSellerProducts;
+
+//   return (
+//     <View style={styles.container}>
+//       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
+//       <ScrollView
+//         style={styles.scrollView}
+//         showsVerticalScrollIndicator={false}
+//       >
+//         {/* Header with Gradient Background */}
+//         <View style={styles.headerContainer}>
+//           <View style={styles.topBar}>
+//             <View style={styles.locationContainer}>
+//               <Icon name="location-on" size={24} color={COLORS.white} />
+//               <View style={styles.locationTextContainer}>
+//                 <View style={styles.locationRow}>
+//                   <Text style={styles.locationText}>
+//                     Delivering to: Kanke, Ranchi
+//                   </Text>
+//                   <Icon name="expand-more" size={16} color={COLORS.white} />
+//                 </View>
+//               </View>
+//             </View>
+//             <TouchableOpacity
+//               style={styles.profileButton}
+//               onPress={() => navigation.navigate('Profile')}
+//             >
+//               <Icon name="person" size={24} color={COLORS.white} />
+//             </TouchableOpacity>
+//           </View>
+
+//           <View style={styles.heroSection}>
+//             <Text style={styles.heroTitle}>Fresh, Fast & Delivered</Text>
+//             <Text style={styles.heroSubtitle}>
+//               The best quality meat, delivered to your doorstep.
+//             </Text>
+//           </View>
+//         </View>
+
+//         {/* Search Bar */}
+//         <View style={styles.searchContainer}>
+//           <TouchableOpacity
+//             style={styles.searchBar}
+//             onPress={handleSearchPress}
+//             activeOpacity={0.7}
+//           >
+//             <Icon name="search" size={24} color={COLORS.muted} style={styles.searchIcon} />
+//             <TextInput
+//               style={styles.searchInput}
+//               placeholder="Search for chicken, meat, or dishes…"
+//               placeholderTextColor={COLORS.muted}
+//               editable={false}
+//               pointerEvents="none"
+//             />
+//           </TouchableOpacity>
+//         </View>
+
+//         {/* Main Content */}
+//         <View style={styles.mainContent}>
+//           {/* Categories Section */}
+//           <CategoryList categories={category} navigation={navigation} />
+
+//           {/* Recommended Section */}
+//           {isAuthenticated && (
+//             <View style={styles.section}>
+//               <View style={styles.sectionHeader}>
+//                 <Text style={styles.sectionTitle}>Recommended For You</Text>
+//                 <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("CategoryResults",{categoryName: 'Recommended For You'})}>
+//                   <Text style={styles.seeAllText}>See All</Text>
+//                   <Icon name="arrow-forward" size={16} color={COLORS.primary} />
+//                 </TouchableOpacity>
+//               </View>
+//               <ScrollView
+//                 horizontal
+//                 showsHorizontalScrollIndicator={false}
+//                 contentContainerStyle={styles.productScroll}
+//               >
+//                 {recommendedProducts.map((product) => (
+//                   <ProductCard
+//                     key={product.id}
+//                     product={product}
+//                     onPress={() => handleNavigateToDetails(product)}
+//                     onAddToCart={(e) => {
+//                       e.stopPropagation();
+//                       handleAddToCart(Number(product.id), 1);
+//                     }}
+//                     showBestsellerBadge={false}
+//                   />
+//                 ))}
+//               </ScrollView>
+//             </View>
+
+//           )}
+          
+//           {/* Bestsellers Section */}
+//           <View style={styles.section}>
+//             <View style={styles.sectionHeader}>
+//               <Text style={styles.sectionTitle}>Bestsellers 🔥</Text>
+//               <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("CategoryResults", {categoryName: 'Bestsellers'})}>
+//                 <Text style={styles.seeAllText}>See All</Text>
+//                 <Icon name="arrow-forward" size={16} color={COLORS.primary} />
+//               </TouchableOpacity>
+//             </View>
+//             <ScrollView
+//               horizontal
+//               showsHorizontalScrollIndicator={false}
+//               contentContainerStyle={styles.productScroll}
+//             >
+//               {bestsellerProducts.map((product) => (
+//                 <ProductCard
+//                   key={product.id}
+//                   product={product}
+//                   onPress={() => handleNavigateToDetails(product)}
+//                   onAddToCart={(e) => {
+//                     e.stopPropagation();
+//                     handleAddToCart(Number(product.id), 1);
+//                   }}
+//                   showBestsellerBadge={true}
+//                 />
+//               ))}
+//             </ScrollView>
+//           </View>
+
+//           {/* Bottom Spacer */}
+//           <View style={{ height: 200 }} />
+//         </View>
+//       </ScrollView>
+
+//       {/* Floating Cart Button */}
+//       {totalCartItems > 0 && isAuthenticated && (
+//         <View style={styles.floatingCartContainer}>
+//           <TouchableOpacity
+//             style={styles.cartButton}
+//             onPress={() => navigation.navigate('Cart')}
+//           >
+//             <View style={styles.cartLeft}>
+//               <Icon name="shopping-cart" size={32} color={COLORS.white} />
+//               <View style={styles.cartDetails}>
+//                 <Text style={styles.cartItems}>{totalCartItems} {totalCartItems > 1 ? 'Items' : 'Item'}</Text>
+//                 <Text style={styles.cartTotal}>₹{parseToDecimal(subTotal).toFixed(2)}</Text>
+//               </View>
+//             </View>
+//             <View style={styles.cartArrowButton}>
+//               <Icon name="arrow-forward" size={32} color={COLORS.primary} />
+//             </View>
+//           </TouchableOpacity>
+//         </View>
+//       )}
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: COLORS.background,
+//   },
+//   scrollView: {
+//     flex: 1,
+//   },
+//   headerContainer: {
+//     backgroundColor: COLORS.primary,
+//     paddingTop: 16,
+//     paddingBottom: 48,
+//   },
+//   topBar: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     paddingHorizontal: 16,
+//     paddingBottom: 8,
+//   },
+//   locationContainer: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 8,
+//   },
+//   locationTextContainer: {
+//     flexDirection: 'column',
+//   },
+//   locationRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   locationText: {
+//     color: COLORS.white,
+//     fontSize: 14,
+//     fontWeight: '800',
+//   },
+//   profileButton: {
+//     width: 40,
+//     height: 40,
+//     borderRadius: 20,
+//     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   heroSection: {
+//     paddingHorizontal: 16,
+//     paddingTop: 100,
+//     alignItems: 'center',
+//   },
+//   heroTitle: {
+//     color: COLORS.white,
+//     fontSize: 30,
+//     fontWeight: '900',
+//     textAlign: 'center',
+//     marginBottom: 16,
+//   },
+//   heroSubtitle: {
+//     color: 'rgba(255, 255, 255, 0.8)',
+//     fontSize: 16,
+//     textAlign: 'center',
+//   },
+//   searchContainer: {
+//     paddingHorizontal: 16,
+//     marginTop: -24,
+//     zIndex: 10,
+//   },
+//   searchBar: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     backgroundColor: COLORS.white,
+//     borderRadius: 28,
+//     height: 56,
+//     shadowColor: '#000',
+//     shadowOffset: { width: 0, height: 4 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 8,
+//     elevation: 5,
+//     paddingHorizontal: 8,
+//   },
+//   searchIcon: {
+//     paddingLeft: 12,
+//   },
+//   searchInput: {
+//     flex: 1,
+//     fontSize: 16,
+//     color: COLORS.textPrimary,
+//     paddingHorizontal: 8,
+//   },
+//   mainContent: {
+//     paddingTop: 32,
+//   },
+//   section: {
+//     marginBottom: 32,
+//   },
+//   sectionHeader: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     paddingHorizontal: 16,
+//     marginBottom: 16,
+//   },
+//   sectionTitle: {
+//     fontSize: 20,
+//     fontWeight: '800',
+//     color: COLORS.textPrimary,
+//   },
+//   seeAllButton: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 4,
+//   },
+//   seeAllText: {
+//     fontSize: 14,
+//     fontWeight: '800',
+//     color: COLORS.primary,
+//   },
+//   productScroll: {
+//     paddingHorizontal: 16,
+//     gap: 16,
+//     paddingBottom: 8,
+//   },
+//   floatingCartContainer: {
+//     position: 'absolute',
+//     bottom: 96,
+//     left: 0,
+//     right: 0,
+//     paddingHorizontal: 16,
+//   },
+//   cartButton: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     backgroundColor: COLORS.primary,
+//     borderRadius: 32,
+//     height: 64,
+//     paddingLeft: 24,
+//     paddingRight: 8,
+//     shadowColor: COLORS.primary,
+//     shadowOffset: { width: 0, height: 8 },
+//     shadowOpacity: 0.3,
+//     shadowRadius: 16,
+//     elevation: 8,
+//   },
+//   cartLeft: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 16,
+//   },
+//   cartDetails: {
+//     flexDirection: 'column',
+//   },
+//   cartItems: {
+//     color: 'rgba(255, 255, 255, 0.8)',
+//     fontSize: 14,
+//     fontWeight: '800',
+//   },
+//   cartTotal: {
+//     color: COLORS.white,
+//     fontSize: 20,
+//     fontWeight: '800',
+//   },
+//   cartArrowButton: {
+//     width: 48,
+//     height: 48,
+//     borderRadius: 24,
+//     backgroundColor: COLORS.white,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+// });

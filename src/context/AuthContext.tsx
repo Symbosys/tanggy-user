@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../api/api';
 
 interface AuthContextType {
   token: string | null;
@@ -67,6 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // ✅ Logout function
   const logout = async () => {
     try {
+      await api.post("/auth/user/logout");
       setToken(null);
       setUserId(null);
       setIsAuthenticated(false);

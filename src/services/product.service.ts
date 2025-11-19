@@ -2,7 +2,7 @@ import api from "../api/api";
 import { GetAllProductsResponse } from "../types/product.type";
 
 
-interface GetAllProductsParams {
+export interface GetAllProductsParams {
   categoryId?: string;
   subCategoryId?: string;
   maxPrice?: number;
@@ -14,9 +14,13 @@ interface GetAllProductsParams {
   rangeKm?: number;
   userId?: string;
   onlyAvailable?: boolean;
+  isBestSeller?: boolean;
+  isRecommended?: boolean;
+
+  marketPrice?: number | null;
 }
 
-export const getAllBestSellerProducts = async (
+export const getAllProducts = async (
   params: GetAllProductsParams = {}
 ): Promise<GetAllProductsResponse> => {
   try {

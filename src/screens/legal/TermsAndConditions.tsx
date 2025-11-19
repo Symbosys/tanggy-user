@@ -112,75 +112,261 @@ const TermsAndConditions = ({ navigation }: AppNavigation) => {
             >
                 {/* Sub-header */}
                 <View style={styles.subHeader}>
-                    <Text style={styles.subHeaderText}>Our terms and conditions outline the rules for using MintaFresh.</Text>
-                    <Text style={styles.lastUpdated}>Last Updated: 12 October 2023</Text>
+                    <Text style={styles.subHeaderText}>Minta Club Pvt Ltd. (“FTH”) is the owner of the brand mintafresh.com and the website www.mintafresh.com, the minta fresh mobile application on iOS and Android devices (together referred as ”Platform”).</Text>
+                    <Text style={styles.lastUpdated}>Last Updated: November 09, 2025</Text>
                 </View>
 
                 {/* Content Card */}
                 <View style={styles.contentCard}>
-                    {/* Introduction */}
+                    {/* Customer Registration and Privacy Policy */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="info" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>1. Introduction</Text>
+                            <Text style={styles.sectionTitle}>1. Customer Registration and Privacy Policy</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            Welcome to MintaFresh. These terms and conditions outline the rules and regulations for the use of our application and services. By accessing this app, we assume you accept these terms and conditions. Do not continue to use MintaFresh if you do not agree to all of the terms and conditions stated on this page.
+                            The platform provides for registration process to serve its customer better and may now or in the future collect the following personally identifiable information to serve you better: a) Name including first and last name; b) email address; c) mobile phone numbers and contact details; d) Postal Pin code; e) Personal demographic profile like your age, gender, occupation, location, education, address etc.,
+
+                            By completing the registration or placing an order, the Customer agrees to receive promotional and transactional communication, text messages, mobile notifications, phone calls and newsletters. The Customer can opt out by contacting the customer service at customercare@mintaclub.com. We will never sell or provide your information to third party companies or outside agencies for commercial purposes. However, the platform may contain links to other web sites that we do not directly manage such as Google Analytics used to understand and optimize user’s behaviour. FTH shall not be responsible for the privacy policies of such external web sites.
                         </Text>
                     </View>
 
-                    {/* User Account & Responsibilities */}
+                    {/* Who Can Sign Up */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="person" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>2. User Account & Responsibilities</Text>
+                            <Text style={styles.sectionTitle}>2. Who Can Sign Up</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            You are responsible for maintaining the confidentiality of your account and password and for restricting access to your device. You agree to accept responsibility for all activities that occur under your account or password. We reserve the right to refuse service, terminate accounts, remove or edit content, or cancel orders in our sole discretion.
+                            Any person can sign up for services provided if he or she is competent to enter a contract. Section 11 of the Indian Contract Act, 1872 specifies that every person is competent to contract provided he or she has attained the age of 18 years, is of sound mind and not disqualified from contracting by any other law to which he or she is subject to.
                         </Text>
                     </View>
 
-                    {/* Ordering and Payments */}
+                    {/* Terms of access to Platform */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="payment" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>3. Ordering and Payments</Text>
+                            <Text style={styles.sectionTitle}>3. Terms of access to Platform</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            All payments must be made at the time of placing the order. We accept various forms of payment as indicated on the app. Prices for our products are subject to change without notice. We strive to provide accurate product and pricing information, but pricing or typographical errors may occur.
+                            FTH grants customers limited access rights for personal use on this platform and not to download (other than page caching) or edit any portion of it.
+
+                            The access to this platform is for personal use of the Customer and not for any commercial use or to access its contents to collect and use of product listings, descriptions, or prices; any derivative use of this platform or any use of data mining, robots, or similar data gathering and extraction tools. No portions of this platform may be reproduced, duplicated, copied, sold, resold or otherwise exploited for any commercial purpose without express written consent of FTH.
+
+                            Further no Customer is authorized to frame or utilize framing techniques to enclose any trademark, logo, or other proprietary information (including images, text, page layout, or form) on the platform without express written consent of FTH.
+
+                            Any unauthorized use automatically terminates the permission granted by FTH.
                         </Text>
                     </View>
 
-                    {/* Delivery Policy */}
+                    {/* Pricing */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="local_shipping" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>4. Delivery Policy</Text>
+                            <Text style={styles.sectionTitle}>4. Pricing</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            We will make every effort to deliver your order within the estimated delivery time. However, we are not liable for any delays that are outside of our control. Risk of loss and title for items purchased from MintaFresh pass to you upon our delivery to the carrier.
+                            Prices displayed for all the products on www.mintafresh.com exclude GST. The prices of all products mentioned at the time of ordering will be charged on the date of the delivery except for fresh food products. In case fresh food prices are higher or lower on the date of delivery, additional charges will be collected or refunded at the time of the delivery of the order.
                         </Text>
                     </View>
 
-                    {/* Cancellations and Refunds */}
+                    {/* Delivery and Handling Charges */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="undo" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>5. Cancellations and Refunds</Text>
+                            <Text style={styles.sectionTitle}>5. Delivery and Handling Charges</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            Our policy on cancellations and refunds is detailed within the app. Please review it carefully before placing an order. Generally, orders cannot be cancelled once they have been dispatched. Refunds will be processed according to our refund policy, available in the app's help section.
+                            FTH may impose delivery and handling fees and taxes from time to time.
+
+                            FTH endeavours to fulfil orders on time, but the actual delivery time may differ from the delivery time stated at the time of placing the order. Delivery delays will be communicated by FTH.
                         </Text>
                     </View>
 
-                    {/* Limitation of Liability */}
+                    {/* Order Cancellation */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="gavel" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>6. Limitation of Liability</Text>
+                            <Text style={styles.sectionTitle}>6. Order Cancellation</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            MintaFresh will not be liable for any indirect, incidental, special, or consequential damages that result from the use of, or the inability to use, the service or products. Our liability is limited to the maximum extent permitted by law.
+                            A Customer can opt to cancel order within 15 minute for the order placed either online or by calling our customer service and receive refund of advance paid if any. This is not applicable for Express delivery orders since those are processed and shipped immediately. To avoid any damage claims after delivery, users are recommended to inspect the product seal before accepting the order.
+
+                            FTH reserves the right to cancel any order at its discretion based on product availability or if it suspects any fraudulent transaction by a customer or breaches the terms & conditions of using the platform.
+                        </Text>
+                    </View>
+
+                    {/* Return & Refunds */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="info" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>7. Return & Refunds</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            FTH believes in Centum Customer satisfaction and "no questions asked return and refund policy" for issues relating to quality or freshness of its supplies. Customer may request for a refund/replacement within 1 hours of delivery of the products in case of any quality issues.
+
+                            The mode of refund shall be as determined by FTH from time to time, such as, credit to mintacash, or to the original payment source. However, considering the order value and challenges to refund for cash on delivery orders in particular, the refunds will be applied to the subsequent purchases or credited to Customers mintacash account.
+                        </Text>
+                    </View>
+
+                    {/* Customer Acceptance */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="person" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>8. Customer Acceptance</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            I hereby agree upon:
+
+                            a. To pay extra cost claimed by FTH in the case of redelivery due to wrong name or address or any other wrong information provided while booking order.
+                            b. To use the platform to transact for lawful purposes in compliance with all applicable laws and regulation.
+                            c. To provide authentic and true information in all instances and authorize FTH to validate the information provided at any point to time and reject registration if any details are found to be untrue wholly or partly.
+                            d. To access the services made available on the platform and to purchase the products offered at my own risk after using best and prudent judgement as a well-informed Customer.
+                            e. That the delivery address provided is correct and proper in all respects.
+                            f. That the product descriptions have been carefully checked before placing the order and agree to be bound by the terms and conditions of sale.
+                            g. That there may be excess / short quantity when ordering a cut SKU of a particular product. For example, the Steak version of a particular fish may have some variance in the final weight, given the fact it is hard to cut a fish in to an exact weight without damaging the shape of the Steak piece. In such instances, I agree to pay the difference amount at the time of delivery or adjust excess payment against next order.
+                        </Text>
+                    </View>
+
+                    {/* Obligations of Visitor / Customer */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="payment" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>9. Obligations of Visitor / Customer</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            I hereby unconditionally undertake not to use the Platform for:
+
+                            a. Disseminating any objectionable material, harassing, libelous, abusive, threatening, harmful, vulgar, obscene, or any unlawful activity.
+                            b. To transmit material that constitutes a criminal offence or results in civil liability or otherwise breaches any relevant laws, regulations or code of practice.
+                            c. To gain unauthorized access to other computer network systems.
+                            d. Interfere with any other person's right to use or enjoyment of the platform. Breach of applicable laws.
+                            e. Interfere or disrupt networks or web sites connected to the platform.
+                            f. Make, transmit or store electronic copies of materials protected by copyright without the permission of FTH.
+                            g. To post customer review feedback in violation of this policy or right of any third party, including copyright, trademark, privacy or other personal or proprietary right(s), and cause injury to any person or entity.
+                            h. To post comments containing libelous or otherwise unlawful, threatening, abusive or obscene material, or contain software viruses, political campaigning, commercial solicitation, chain letters, mass mailings or any form of "spam".
+                            i. Not to use a false email address, impersonate any person or entity, or otherwise mislead as to the origin of any Customer feedback submitted on the Platform.
+                            j. To be solely responsible for the content of any Customer Feedback made and agree upon to indemnify FTH for all claims resulting from such Customer Feedback submitted.
+                        </Text>
+                    </View>
+
+                    {/* Customer Reviews & Feedback */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="local_shipping" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>10. Customer Reviews & Feedback</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            To post customer review feedback in violation of this policy or right of any third party, including copyright, trademark, privacy or other personal or proprietary right(s), and cause injury to any person or entity.
+                        </Text>
+                    </View>
+
+                    {/* Unsubscribe Process */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="undo" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>11. Unsubscribe Process</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            By taking the steps below, you can choose not to get any marketing or sales messages from us in the future. You can unsubscribe by emailing: customercare@mintaclub.com or by writing to Minta Club Private Limited HI-76, Harmu Colony, Ranchi – 834002, Email: info@mintaclub.com.
+                        </Text>
+                    </View>
+
+                    {/* Pictures & Colors */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="gavel" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>12. Pictures & Colors</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            FTH has made every effort to display the products and its colors on the platform as accurately as possible. FTH does not guarantee nor take responsibility for variations in pictorial representations for fresh foods and colors variation due to technical reasons.
+                        </Text>
+                    </View>
+
+                    {/* Right to Modify Terms & Conditions of Service */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="info" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>13. Right to Modify Terms & Conditions of Service</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            FTH reserves unconditional right to modify terms and conditions of transacting business on mintafresh platform without any prior notification and consent of customers. When a registered customer accesses mintafresh platform, he or she is deemed to have accepted the latest version of the Terms & Conditions on the Site.
+                        </Text>
+                    </View>
+
+                    {/* Governing Law and Jurisdiction */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="person" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>14. Governing Law and Jurisdiction</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            All disputes arising out of or in doing business on the platform shall be amicably settled at the first instance by mutual discussions and negotiations. In the event the dispute is not resolved then the same may be referred to arbitration in accordance with the provisions of the Arbitration and Conciliation Act, 1996 or any enactment of statutory modification thereof. The arbitration proceedings shall be in the English/Hindi language and shall be held in Ranchi. The award of the arbitral tribunal shall be final and binding upon the parties and no appeal against the same shall lie to any court. The courts of competent jurisdiction in Bangalore shall have exclusive jurisdiction over any dispute, differences or claims arising out of this agreement.
+                        </Text>
+                    </View>
+
+                    {/* Copyright & Trademark Rights */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="payment" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>15. Copyright & Trademark Rights</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            The Customer acknowledges that access to this platform does not confer and shall not be considered as conferring upon anyone any license under any of FTH or any third party's intellectual property rights.
+
+                            FTH expressly reserve all intellectual property rights in all text, programs, products, processes, technology, content, and other materials, which appear on the Platform.
+
+                            All rights, including copyright, on this platform is owned by FTH.
+
+                            Any use of this platform or its contents, including copying or storing it either in whole or part, is prohibited without the permission of FTH.
+
+                            The names and logos and all related product and service names, design marks and slogans are the trademarks or service marks of FTH.
+
+                            References on mintafresh Platform to any names, marks, products, or services of third parties or hypertext links to third party sites or information provided is solely for customer convenience and does not in any way constitute or imply FTH endorsement, sponsorship or recommendation of the third party, information, product or service.
+
+                            FTH is not responsible for content of any third-party sites and does not make any representations regarding the content or accuracy of material on such sites. Customers deciding to link to any such third-party websites, are doing entirely at their own risk.
+
+                            All materials, including images, text, illustrations, designs, icons, photographs, programs, music clips or downloads, video clips and written and other materials hosted on mintafresh platform (collectively, the "Promotional Material") are intended solely for customer convenience. All software used in mintafresh platform is the property of FTH or its licensees and protected by copyright laws.
+
+                            The Contents and software in mintafresh platform are to be used only as a shopping resource. Any other use, including the reproduction, modification, distribution, transmission, republication, display, of the Contents on this platform is strictly prohibited.
+
+                            All Contents are copyrights, trademarks, and/or other intellectual property owned, controlled, or licensed by FTH and its affiliates and are protected by copyright laws.
+
+                            The compilation (meaning the collection, arrangement, and assembly) of all Contents on this platform is the exclusive property of FTH and is also protected by copyright laws.
+
+                            Objectionable Material
+
+                            While all IT security measures are taken to ensure wholesome and socially acceptable content are available on mintafresh platform, notwithstanding the best efforts the customer understands and accepts the risk that while using this platform or any services provided on the www.mintafresh.com, one may encounter Content that may be deemed by some to be offensive, indecent, or objectionable, which Content may or may not be identified as such.
+
+                            FTH and its affiliates shall have no liability to Customer for Content that may be deemed offensive, indecent, or objectionable to you.
+                        </Text>
+                    </View>
+
+                    {/* Indemnity */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="local_shipping" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>16. Indemnity</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            As a Customer, I hereby agree upon to defend, indemnify and hold harmless FTH, its employees, directors, officers, agents and their successors and assigns from and against any and all claims, liabilities, damages, losses, costs and expenses, including attorney's fees, caused by or arising out of claims based upon my actions or inactions, which may result in any loss or liability to FTH or any third party including but not limited to breach of any warranties, representations or undertakings or in relation to the non-fulfilment of any obligations under this User Agreement or arising out of violation of any applicable laws, regulations including but not limited to Intellectual Property Rights, payment of statutory dues and taxes, claim of libel, defamation, violation of rights of privacy or publicity, loss of service to other subscribers and infringement of intellectual property or other rights.
+
+                            This clause shall survive the expiry or termination of this User Agreement. We may terminate this User Agreement at any time, without notice or liability to FTH.
+                        </Text>
+                    </View>
+
+                    {/* Grievances */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="undo" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>17. Grievances</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            Details of the Grievance contact is given below;
+
+                            Minta Club Private Limited
+                            HI-76, Harmu Colony, Ranchi – 834002
+                            Email: info@mintaclub.com
                         </Text>
                     </View>
                 </View>

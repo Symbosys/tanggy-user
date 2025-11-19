@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
     View,
     Text,
@@ -7,54 +7,116 @@ import {
     ScrollView,
     Image,
     Dimensions,
+    FlatList,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../../theme/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { calculateDiscount, parseToDecimal } from '../../utils/utils';
 
-const {  height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const HEADER_HEIGHT = 0.45 * screenHeight;
 const BOTTOM_BAR_HEIGHT = 80;
 
 interface ProductDetailsScreenProps { }
 
-const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = () => {
+const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navigation }: any) => {
+    const { product } = route.params;
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [quantity, setQuantity] = useState(1);
+    const flatListRef = useRef<FlatList>(null);
+
+    // Handle scroll event for image carousel
+    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const contentOffsetX = event.nativeEvent.contentOffset.x;
+        const currentIndex = Math.round(contentOffsetX / screenWidth);
+        setCurrentImageIndex(currentIndex);
+    };
+
+    const handleQuantityDecrease = () => {
+        if (quantity > 1) {
+            setQuantity(quantity - 1);
+        }
+    };
+
+    const handleQuantityIncrease = () => {
+        setQuantity(quantity + 1);
+    };
+
+    const renderImageItem = ({ item }: any) => (
+        <View style={[styles.imageSlide, { width: screenWidth }]}>
+            <Image
+                source={{ uri: item.image.url }}
+                style={styles.productImage}
+                resizeMode="cover"
+            />
+        </View>
+    );
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Top App Bar & Image Carousel Section */}
             <View style={styles.headerSection}>
-                {/* Header Image with Overlay */}
+                {/* Header Image with Carousel */}
                 <View style={[styles.headerImage, { height: HEADER_HEIGHT }]}>
-                    {/* Overlay Gradient - hardcoded as semi-transparent black */}
+                    {/* Image Carousel */}
+                    <FlatList
+                        ref={flatListRef}
+                        data={product.images}
+                        renderItem={renderImageItem}
+                        keyExtractor={(item) => item.id}
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        onScroll={handleScroll}
+                        scrollEventThrottle={16}
+                    />
+
+                    {/* Overlay Gradient */}
                     <View style={styles.overlayGradient} />
+
                     {/* Top App Bar */}
                     <View style={styles.topBar}>
-                        <TouchableOpacity style={styles.iconButton}>
+                        <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={() => navigation.goBack()}
+                        >
                             <Icon name="arrow-back" size={24} color="white" />
                         </TouchableOpacity>
                         <View style={styles.rightIcons}>
-                            <TouchableOpacity style={styles.iconButton}>
-                                <Icon name="favorite-border" size={24} color="white" />
-                            </TouchableOpacity>
                             <TouchableOpacity style={styles.iconButton}>
                                 <Icon name="share" size={24} color="white" />
                             </TouchableOpacity>
                         </View>
                     </View>
-                    {/* Bestseller Badge */}
-                    <View style={styles.badgeContainer}>
-                        <View style={styles.bestsellerBadge}>
-                            <Text style={styles.bestsellerText}>BESTSELLER</Text>
+
+                    {/* Bestseller Badge - Only show if product is active and available */}
+                    {product.isActive && product.isAvailable && (
+                        <View style={styles.badgeContainer}>
+                            <View style={styles.bestsellerBadge}>
+                                <Text style={styles.bestsellerText}>BESTSELLER</Text>
+                            </View>
                         </View>
-                    </View>
+                    )}
+
                     {/* Carousel Dots */}
-                    <View style={styles.carouselDots}>
-                        <View style={styles.activeDot} />
-                        <View style={styles.inactiveDot} />
-                        <View style={styles.inactiveDot} />
-                        <View style={styles.inactiveDot} />
-                    </View>
+                    {product.images.length > 1 && (
+                        <View style={styles.carouselDots}>
+                            {product.images.map((_: any, index: any) => (
+                                <View
+                                    key={index}
+                                    style={
+                                        index === currentImageIndex
+                                            ? styles.activeDot
+                                            : styles.inactiveDot
+                                    }
+                                />
+                            ))}
+                        </View>
+                    )}
                 </View>
             </View>
 
@@ -66,37 +128,51 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = () => {
             >
                 {/* Headline & Meta Text */}
                 <View style={styles.headlineSection}>
-                    <Text style={styles.title}>Chicken Curry Cut (Skinless)</Text>
-                    <Text style={styles.description}>Tender, juicy, perfect for hearty curries.</Text>
-                    <Text style={styles.category}>Category: Poultry</Text>
+                    <Text style={styles.title}>{product.name}</Text>
+                    <Text style={styles.description}>{product.description}</Text>
+                    <Text style={styles.category}>
+                        Category: {product.category?.name || 'N/A'}
+                        {product.subCategory?.name && ` • ${product.subCategory.name}`}
+                    </Text>
                 </View>
 
                 {/* Price & Weight Selection Card */}
                 <View style={styles.priceCard}>
                     <View style={styles.priceHeader}>
                         <View style={styles.priceContainer}>
-                            <Text style={styles.currentPrice}>₹149</Text>
-                            <Text style={styles.originalPrice}>₹185</Text>
+                            <Text style={styles.currentPrice}>{parseToDecimal(product.sellingPrice).toFixed(2)}</Text>
+                            <Text style={styles.originalPrice}>{parseToDecimal(product.marketPrice).toFixed(3)}</Text>
                         </View>
-                        <View style={styles.discountBadgeCard}>
-                            <Text style={styles.discountText}>20% OFF</Text>
-                        </View>
+                        {product.marketPrice && (
+                            <View style={styles.discountBadgeCard}>
+                                <Text style={styles.discountText}>{calculateDiscount(product.marketPrice, product.sellingPrice)}% OFF</Text>
+                            </View>
+                        )}
                     </View>
-                    <View style={styles.weightSection}>
-                        <Text style={styles.weightLabel}>Select Weight</Text>
-                        <View style={styles.weightButtons}>
-                            <TouchableOpacity style={[styles.weightButton, styles.activeWeightButton]}>
-                                <Text style={styles.activeWeightText}>500g</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.weightButton}>
-                                <Text style={styles.inactiveWeightText}>1kg</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.weightButton}>
-                                <Text style={styles.inactiveWeightText}>250g</Text>
-                            </TouchableOpacity>
-                        </View>
+
+                    {/* Weight and Pieces Info */}
+                    <View style={styles.productMetaContainer}>
+                        {product.weight && (
+                            <View style={styles.metaItem}>
+                                <Icon name="scale" size={16} color={COLORS.textSecondary} />
+                                <Text style={styles.metaText}>Weight: {product.weight}</Text>
+                            </View>
+                        )}
+                        {product.pieces && (
+                            <View style={styles.metaItem}>
+                                <Icon name="inventory" size={16} color={COLORS.textSecondary} />
+                                <Text style={styles.metaText}>Pieces: {product.pieces}</Text>
+                            </View>
+                        )}
                     </View>
-                    <Text style={styles.stockText}>In Stock</Text>
+
+                    {/* Stock Status */}
+                    <Text style={[
+                        styles.stockText,
+                        !product.isAvailable && styles.outOfStockText
+                    ]}>
+                        {product.isAvailable ? 'In Stock' : 'Out of Stock'}
+                    </Text>
                 </View>
 
                 {/* Freshness Tags */}
@@ -119,9 +195,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = () => {
                 <View style={styles.descriptionCard}>
                     <Text style={styles.descriptionTitle}>Product Description</Text>
                     <Text style={styles.descriptionBody}>
-                        Our skinless Chicken Curry Cut is a mix of bone-in and boneless pieces from the entire bird. Perfect for
-                        traditional curries, biryanis, or stews, each piece is precisely cut for uniform cooking. Sourced from local
-                        farms and processed with the highest hygiene standards.
+                        {product.description || 'Our premium quality product is sourced from local farms and processed with the highest hygiene standards. Perfect for all your cooking needs.'}
                     </Text>
                 </View>
 
@@ -146,105 +220,32 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = () => {
                         </View>
                     </View>
                 </View>
-
-                {/* Vendor Section */}
-                <View style={styles.vendorCard}>
-                    <View style={styles.vendorHeader}>
-                        <Image
-                            source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTJXTp4WFc0nuF8YT1vqm95Orjej7pk-87mBi7D2y4_PqWmSSXy64q-0BHC7G3x9Y8VvkZ7WNu8AB7_PgYK_LQuLYSVUbAlsytBauz5oiTJYz9yZVOqJrEOErUy94k9fWwFz1_XqgDsPiC5emtkVzCj08WU_dMWS-xxpA8S5qo420RS_fCBU3D-ehUyVHuCShkIXOO1SKJNdbCo9ebLHgFJizbMiia4SmNtAdFdlXnnpPNOaQhrHf0gHplPqdZ_LSiGfXzxDWShH8Y' }}
-                            style={styles.vendorLogo}
-                        />
-                        <View style={styles.vendorInfo}>
-                            <Text style={styles.vendorName}>Vendor Fresh Farms</Text>
-                            <View style={styles.vendorRating}>
-                                <Icon name="star" size={16} color="#fbbf24" />
-                                <Text style={styles.vendorRatingText}>4.8 (250 ratings) • Pune</Text>
-                            </View>
-                        </View>
-                        <TouchableOpacity>
-                            <Icon name="chevron-right" size={24} color={COLORS.primary} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* Customer Reviews */}
-                <View style={styles.reviewsSection}>
-                    <View style={styles.reviewsHeader}>
-                        <Text style={styles.reviewsTitle}>Ratings & Reviews</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.seeAllText}>See All</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.reviewsCard}>
-                        <View style={styles.ratingSummary}>
-                            <View style={styles.overallRating}>
-                                <Text style={styles.overallScore}>4.7</Text>
-                                <Text style={styles.overallLabel}>out of 5</Text>
-                            </View>
-                            <View style={styles.ratingBars}>
-                                <View style={styles.barRow}>
-                                    <Text style={styles.starLabel}>5 ★</Text>
-                                    <View style={styles.barContainer}>
-                                        <View style={[styles.bar, styles.barFill85]} />
-                                    </View>
-                                </View>
-                                <View style={styles.barRow}>
-                                    <Text style={styles.starLabel}>4 ★</Text>
-                                    <View style={styles.barContainer}>
-                                        <View style={[styles.bar, styles.barFill10]} />
-                                    </View>
-                                </View>
-                                <View style={styles.barRow}>
-                                    <Text style={styles.starLabel}>3 ★</Text>
-                                    <View style={styles.barContainer}>
-                                        <View style={[styles.bar, styles.barFill3]} />
-                                    </View>
-                                </View>
-                                <View style={styles.barRow}>
-                                    <Text style={styles.starLabel}>2 ★</Text>
-                                    <View style={styles.barContainer}>
-                                        <View style={[styles.bar, styles.barFill1]} />
-                                    </View>
-                                </View>
-                                <View style={styles.barRow}>
-                                    <Text style={styles.starLabel}>1 ★</Text>
-                                    <View style={styles.barContainer}>
-                                        <View style={[styles.bar, styles.barFill1]} />
-                                    </View>
-                                </View>
-                            </View>
-                        </View>
-                        <View style={styles.reviewSample}>
-                            <View style={styles.starsContainer}>
-                                <Icon name="star" size={16} color="#fbbf24" />
-                                <Icon name="star" size={16} color="#fbbf24" />
-                                <Icon name="star" size={16} color="#fbbf24" />
-                                <Icon name="star" size={16} color="#fbbf24" />
-                                <Icon name="star" size={16} color="#fbbf24" />
-                            </View>
-                            <Text style={styles.reviewText}>
-                                "Absolutely fresh and well-cut. Made the best chicken curry I've had in a long time!" - Priya S.
-                            </Text>
-                        </View>
-                    </View>
-                </View>
+            
             </ScrollView>
 
             {/* Sticky Bottom Bar */}
-            <View style={styles.bottomBar}>
-                <View style={styles.quantityContainer}>
-                    <TouchableOpacity style={styles.quantityButton}>
-                        <Text style={styles.quantityText}>-</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.quantity}>1</Text>
-                    <TouchableOpacity style={styles.quantityButton}>
-                        <Text style={styles.quantityText}>+</Text>
+            {product.isAvailable && (
+                <View style={styles.bottomBar}>
+                    <View style={styles.quantityContainer}>
+                        <TouchableOpacity
+                            style={styles.quantityButton}
+                            onPress={handleQuantityDecrease}
+                        >
+                            <Text style={styles.quantityText}>-</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.quantity}>{quantity}</Text>
+                        <TouchableOpacity
+                            style={styles.quantityButton}
+                            onPress={handleQuantityIncrease}
+                        >
+                            <Text style={styles.quantityText}>+</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity style={styles.addToCartButton}>
+                        <Text style={styles.addToCartText}>Add to Cart</Text>
                     </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.addToCartButton}>
-                    <Text style={styles.addToCartText}>Add to Cart</Text>
-                </TouchableOpacity>
-            </View>
+            )}
         </SafeAreaView>
     );
 };
@@ -260,8 +261,15 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     headerImage: {
-        backgroundColor: 'black', // Placeholder for image
+        backgroundColor: 'black',
         justifyContent: 'space-between',
+    },
+    imageSlide: {
+        height: '100%',
+    },
+    productImage: {
+        width: '100%',
+        height: '100%',
     },
     overlayGradient: {
         position: 'absolute',
@@ -269,7 +277,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)', // Hardcoded semi-transparent black
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
     },
     topBar: {
         flexDirection: 'row',
@@ -280,7 +288,7 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)', // Hardcoded for gradient effect
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
     },
     iconButton: {
         width: 40,
@@ -300,7 +308,7 @@ const styles = StyleSheet.create({
         left: 16,
     },
     bestsellerBadge: {
-        backgroundColor: '#ec4899', // Hardcoded pink-orange gradient as solid
+        backgroundColor: '#ec4899',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 9999,
@@ -308,13 +316,17 @@ const styles = StyleSheet.create({
     bestsellerText: {
         color: 'white',
         fontSize: 12,
-        fontWeight: '700',
+        fontWeight: '800',
     },
     carouselDots: {
         flexDirection: 'row',
         justifyContent: 'center',
         gap: 8,
         padding: 16,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
     },
     activeDot: {
         width: 24,
@@ -338,16 +350,17 @@ const styles = StyleSheet.create({
     detailsContent: {
         padding: 24,
         paddingTop: 24,
-        paddingBottom: BOTTOM_BAR_HEIGHT,
+        paddingBottom: BOTTOM_BAR_HEIGHT + 24,
     },
     headlineSection: {
         marginBottom: 24,
     },
     title: {
         fontSize: 24,
-        fontWeight: '700',
+        fontWeight: '800',
         color: COLORS.textPrimary,
         lineHeight: 28,
+        textTransform: 'capitalize',
     },
     description: {
         fontSize: 16,
@@ -357,9 +370,10 @@ const styles = StyleSheet.create({
     },
     category: {
         fontSize: 14,
-        color: '#16a34a', // Hardcoded green
-        fontWeight: '500',
+        color: '#16a34a',
+        fontWeight: '800',
         marginTop: 8,
+        textTransform: 'capitalize',
     },
     priceCard: {
         backgroundColor: COLORS.white,
@@ -370,6 +384,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 1,
         elevation: 1,
+        marginBottom: 16,
     },
     priceHeader: {
         flexDirection: 'row',
@@ -384,7 +399,7 @@ const styles = StyleSheet.create({
     },
     currentPrice: {
         fontSize: 30,
-        fontWeight: '700',
+        fontWeight: '800',
         color: COLORS.textPrimary,
     },
     originalPrice: {
@@ -393,61 +408,43 @@ const styles = StyleSheet.create({
         textDecorationLine: 'line-through',
     },
     discountBadgeCard: {
-        backgroundColor: 'rgba(135, 25, 198, 0.2)', // Hardcoded primary/20
+        backgroundColor: 'rgba(135, 25, 198, 0.2)',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 9999,
     },
     discountText: {
         fontSize: 12,
-        fontWeight: '700',
+        fontWeight: '800',
         color: COLORS.primary,
     },
-    weightSection: {
-        gap: 12,
-    },
-    weightLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: COLORS.textSecondary,
-    },
-    weightButtons: {
+    productMetaContainer: {
         flexDirection: 'row',
-        gap: 12,
+        gap: 16,
+        marginBottom: 12,
     },
-    weightButton: {
-        flex: 1,
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 9999,
-        borderWidth: 1,
-        borderColor: '#d1d5db', // Hardcoded gray-300
+    metaItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
-    activeWeightButton: {
-        backgroundColor: 'rgba(135, 25, 198, 0.2)', // primary/20
-        borderColor: COLORS.primary,
-    },
-    activeWeightText: {
-        textAlign: 'center',
+    metaText: {
         fontSize: 14,
-        fontWeight: '700',
-        color: COLORS.primary,
-    },
-    inactiveWeightText: {
-        textAlign: 'center',
-        fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '800',
         color: COLORS.textSecondary,
     },
     stockText: {
         fontSize: 14,
-        fontWeight: '500',
-        color: '#16a34a', // Hardcoded green
-        marginTop: 12,
+        fontWeight: '800',
+        color: '#16a34a',
+    },
+    outOfStockText: {
+        color: '#ef4444',
     },
     freshnessGrid: {
         flexDirection: 'row',
         gap: 12,
+        marginBottom: 16,
     },
     freshnessItem: {
         flex: 1,
@@ -463,19 +460,20 @@ const styles = StyleSheet.create({
     },
     freshnessText: {
         fontSize: 12,
-        fontWeight: '500',
+        fontWeight: '800',
         color: COLORS.textSecondary,
         marginTop: 4,
         textAlign: 'center',
     },
     descriptionCard: {
-        backgroundColor: COLORS.secondary, // Soft pink
+        backgroundColor: COLORS.secondary,
         padding: 16,
         borderRadius: 12,
+        marginBottom: 16,
     },
     descriptionTitle: {
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '800',
         color: COLORS.textPrimary,
         marginBottom: 8,
     },
@@ -486,9 +484,10 @@ const styles = StyleSheet.create({
     },
     tipsSection: {
         gap: 16,
+        marginBottom: 16,
     },
     tipCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.6)', // Glassmorphic light
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
         padding: 16,
         borderRadius: 12,
         borderWidth: 1,
@@ -507,101 +506,13 @@ const styles = StyleSheet.create({
     },
     tipTitle: {
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '800',
         color: COLORS.textPrimary,
     },
     tipBody: {
         fontSize: 14,
         color: COLORS.textSecondary,
         marginTop: 4,
-    },
-    vendorCard: {
-        backgroundColor: COLORS.white,
-        padding: 16,
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 1,
-        elevation: 1,
-    },
-    vendorHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    vendorLogo: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-    },
-    vendorInfo: {
-        flex: 1,
-        marginLeft: 16,
-    },
-    vendorName: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    vendorRating: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    vendorRatingText: {
-        fontSize: 14,
-        color: COLORS.textSecondary,
-    },
-    reviewsSection: {
-        marginBottom: 24,
-    },
-    reviewsHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    reviewsTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    seeAllText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: COLORS.primary,
-    },
-    reviewsCard: {
-        backgroundColor: COLORS.white,
-        padding: 16,
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 1,
-        elevation: 1,
-        gap: 16,
-    },
-    ratingSummary: {
-        flexDirection: 'row',
-        gap: 16,
-    },
-    overallRating: {
-        alignItems: 'center',
-    },
-    overallScore: {
-        fontSize: 40,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    overallLabel: {
-        fontSize: 12,
-        color: COLORS.textSecondary,
-    },
-    ratingBars: {
-        flex: 1,
-        gap: 4,
     },
     barRow: {
         flexDirection: 'row',
@@ -615,7 +526,7 @@ const styles = StyleSheet.create({
     barContainer: {
         flex: 1,
         height: 6,
-        backgroundColor: '#e5e7eb', // Hardcoded gray-200
+        backgroundColor: '#e5e7eb',
         borderRadius: 3,
         overflow: 'hidden',
     },
@@ -625,7 +536,7 @@ const styles = StyleSheet.create({
     },
     barFill85: {
         width: '85%',
-        backgroundColor: '#22c55e', // Hardcoded green-500
+        backgroundColor: '#22c55e',
     },
     barFill10: {
         width: '10%',
@@ -633,15 +544,15 @@ const styles = StyleSheet.create({
     },
     barFill3: {
         width: '3%',
-        backgroundColor: '#eab308', // Hardcoded yellow-500
+        backgroundColor: '#eab308',
     },
     barFill1: {
         width: '1%',
-        backgroundColor: '#f97316', // Hardcoded orange-500 for 2*, red for 1* but simplified
+        backgroundColor: '#f97316',
     },
     reviewSample: {
         borderTopWidth: 1,
-        borderTopColor: '#e5e7eb', // gray-200
+        borderTopColor: '#e5e7eb',
         paddingTop: 16,
     },
     starsContainer: {
@@ -662,7 +573,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.white,
         padding: 16,
         borderTopWidth: 1,
-        borderTopColor: '#e5e7eb', // gray-200
+        borderTopColor: '#e5e7eb',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.05,
@@ -682,25 +593,25 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: '#e5e7eb', // gray-200
+        backgroundColor: '#e5e7eb',
         alignItems: 'center',
         justifyContent: 'center',
     },
     quantityText: {
         fontSize: 18,
-        fontWeight: '700',
+        fontWeight: '800',
         color: COLORS.textPrimary,
     },
     quantity: {
         fontSize: 18,
-        fontWeight: '700',
+        fontWeight: '800',
         color: COLORS.textPrimary,
         minWidth: 20,
         textAlign: 'center',
     },
     addToCartButton: {
         flex: 1,
-        backgroundColor: '#fb923c', // Hardcoded orange for gradient
+        backgroundColor: COLORS.primary,
         paddingVertical: 12,
         borderRadius: 9999,
         alignItems: 'center',
@@ -713,7 +624,7 @@ const styles = StyleSheet.create({
     },
     addToCartText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '800',
         color: 'white',
     },
 });

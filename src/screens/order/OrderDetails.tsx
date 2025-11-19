@@ -2,458 +2,558 @@ import React from 'react';
 import {
     View,
     Text,
-    ScrollView,
+    ImageBackground,
     TouchableOpacity,
-    Image,
+    ScrollView,
+    StatusBar,
     StyleSheet,
-    Platform,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { COLORS } from '../../theme/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppNavigation } from '../../types/type';
+import { COLORS } from '../../theme/theme';
 
-const OrderDetailsScreen = ({navigation}: AppNavigation) => {
+const OrderDetailsScreen: React.FC = () => {
+    const items = [
+        {
+            image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAx6CjlaJZw2ozZJVSdOSga0kc8N9AanrlYTGJmDuHYRpluStFwFDy_3S2fNkc_24V3C_AsGu-borZLlFJxeqXfDMIsrU_yqaBuJkZ8WVVRffLiCWQGGNcS40v45YSD8gxHQO20r0QuL8FQC4jq_HXc9l12ii_dASpLavAVQivQV1Ya0JPFrarS1uwJVFmCSxkm5KPPKeIy6apb8urD7Sk4_JXkeTjhpslu6m94FOMr78xGX9hMuVNzf1uoB8Y49panSpctdwoIhKwu',
+            title: 'Fresh Chicken Curry Cut',
+            quantity: '2 x 500g',
+            price: '₹250.00',
+        },
+        {
+            image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDt6hDPFQ1997HZGGPOhHCkDUz4uIUC5q_1dEYzZQ3AOq8-qV7uvuIs2xvQrXuNof0dyeH4Bytz9aeex573ONcq31NNAlioON2GHMrbV-DC53KD8XYVnjph5jpZg4TkVCd-Tv91uXOj85qt03al-wEfIYHg7qIhv8S5hmGC5JR_kFHI6NKsqqDiJyABbstZXaHzR-nnGt6mwQR0wS5sUPxK47KsJVIR3lfakRmyYPIsEQFDY_kbFKqZlabj2EK2SjnXYkfWOe6REp5j',
+            title: 'Mutton Keema',
+            quantity: '1 x 250g',
+            price: '₹180.00',
+        },
+    ];
+
+    const summaryItems = [
+        {
+            icon: 'calendar_today',
+            label: 'Ordered On',
+            value: '15 August 2024, 10:30 AM',
+        },
+        {
+            icon: 'storefront',
+            label: 'Vendor',
+            value: 'MintaFresh Meats',
+        },
+        {
+            icon: 'home',
+            label: 'Delivered To',
+            value: '123 Fresh St, Flavor Town, 54321',
+        },
+    ];
+
     return (
         <SafeAreaView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.headerButton}>
-                    <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Order Details</Text>
-                <TouchableOpacity style={styles.headerButton}>
-                    <Icon name="help-outline" size={24} color={COLORS.textPrimary} />
-                </TouchableOpacity>
-            </View>
-
-            {/* Scrollable Content */}
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
             <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 100 }}
             >
-                {/* Order Summary */}
-                <View style={styles.card}>
-                    <View style={styles.rowBetween}>
-                        <View>
-                            <Text style={styles.restaurantName}>Pizza Palace</Text>
-                            <Text style={styles.orderId}>Order ID: #123456789</Text>
-                        </View>
-                        <View style={styles.statusBadge}>
-                            <Text style={styles.statusText}>Preparing</Text>
+                {/* Gradient Header */}
+                <LinearGradient
+                    colors={[COLORS.primary, COLORS.accent]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.headerGradient}
+                >
+                    <View style={styles.headerBackButton}>
+                        <TouchableOpacity style={styles.backButton}>
+                            <Icon name="arrow-back" size={28} color="#ffffff" />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.orderIdText}>Order #ORD-2025-1084</Text>
+                    <Text style={styles.statusText}>Status: Out for Delivery 🚚</Text>
+                    <Text style={styles.estimatedText}>Estimated Arrival: 4:30 PM</Text>
+                </LinearGradient>
+
+                {/* Main Content */}
+                <View style={styles.mainContent}>
+                    {/* Order Summary Card */}
+                    <View style={styles.summaryCard}>
+                        <View style={styles.summaryGrid}>
+                            {summaryItems.map((item, index) => (
+                                <View key={index} style={styles.summaryRow}>
+                                    <View style={styles.iconContainer}>
+                                        <Icon name={item.icon as any} size={20} color={COLORS.primary} />
+                                    </View>
+                                    <View style={styles.summaryTextContainer}>
+                                        <Text style={styles.summaryLabel}>{item.label}</Text>
+                                        <Text style={styles.summaryValue}>{item.value}</Text>
+                                    </View>
+                                </View>
+                            ))}
                         </View>
                     </View>
 
-                    <Text style={styles.eta}>Estimated Arrival: 15-20 mins</Text>
-
-                    {/* Progress bar */}
-                    <View style={{ marginTop: 12 }}>
-                        <View style={styles.progressLabels}>
-                            <Text style={styles.progressLabel}>Placed</Text>
-                            <Text style={styles.progressLabel}>Preparing</Text>
-                            <Text style={styles.progressLabel}>On the Way</Text>
-                            <Text style={styles.progressLabel}>Delivered</Text>
-                        </View>
-                        <View style={styles.progressBarBackground}>
-                            <View style={[styles.progressBarFill, { width: '45%' }]} />
-                        </View>
-                    </View>
-                </View>
-
-                {/* Delivery Partner */}
-                <Text style={styles.sectionTitle}>Delivery Partner</Text>
-                <View style={styles.cardRow}>
-                    <Image
-                        source={{
-                            uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAcZnWp-I_cfQlf1AOoHjNy1jsA7r27A_p9J7ArKXJvLDDoo3-Lls8GWJStoqUqhPMT4CF-_Gv8WflGB3nGoovyk_2zTIPeMnWDGwD16O_AuJ0QaDxhjFpm45uGH8j0jIzV-iDfbKX2kOy_EvPX6l0le49uK5KBF09MFyiKGeaMXiKrhowl53SEllOa8GTSxJPDSfd7xbV6dXTz6SySwEZToqlP1nZmCB1b7G8hLSmIVzvYNMIZBEC_k-k6IaV0AEE64o8kZuB10TU',
-                        }}
-                        style={styles.profileImage}
-                    />
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.partnerName}>Ravi Kumar</Text>
-                        <Text style={styles.partnerStatus}>On the way to restaurant</Text>
-                    </View>
-                    <TouchableOpacity style={styles.chatButton}>
-                        <Icon name="chat-bubble" size={22} color={COLORS.primary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.callButton}>
-                        <Icon name="call" size={22} color={COLORS.white} />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Delivery & Order Details */}
-                <View style={styles.card}>
-                    <View>
-                        <Text style={styles.boldText}>Delivery Address</Text>
-                        <Text style={styles.subText}>
-                            123, Sunshine Apartments, Willow Creek, Bangalore - 560001
-                        </Text>
-                    </View>
-
-                    <View style={styles.divider} />
-
-                    <View>
-                        <Text style={styles.boldText}>Your Order</Text>
-                        <View style={styles.orderRow}>
-                            <Text style={styles.subText}>1 x Margherita Pizza</Text>
-                            <Text style={styles.boldText}>₹250</Text>
-                        </View>
-                        <View style={styles.orderRow}>
-                            <Text style={styles.subText}>2 x Coke (500ml)</Text>
-                            <Text style={styles.boldText}>₹80</Text>
-                        </View>
-                        <View style={styles.orderRow}>
-                            <Text style={styles.subText}>Subtotal</Text>
-                            <Text style={styles.boldText}>₹330</Text>
-                        </View>
-                        <View style={styles.orderRow}>
-                            <Text style={styles.subText}>Taxes & Charges</Text>
-                            <Text style={styles.boldText}>₹45</Text>
-                        </View>
-                        <View style={styles.orderRow}>
-                            <Text style={styles.subText}>Delivery Fee</Text>
-                            <Text style={styles.boldText}>₹30</Text>
-                        </View>
-
-                        <View style={styles.divider} />
-
-                        <View style={styles.orderRow}>
-                            <Text style={styles.boldText}>Total Paid</Text>
-                            <Text style={styles.boldText}>₹405</Text>
+                    {/* Items Ordered Card */}
+                    <View style={styles.itemsCard}>
+                        <Text style={styles.sectionTitle}>Items Ordered</Text>
+                        <View style={styles.itemsList}>
+                            {items.map((item, index) => (
+                                <View key={index}>
+                                    {index > 0 && <View style={styles.itemDivider} />}
+                                    <View style={[styles.itemRow, index === 0 && styles.firstItemRow]}>
+                                        <ImageBackground
+                                            source={{ uri: item.image }}
+                                            style={styles.itemImage}
+                                            resizeMode="cover"
+                                        />
+                                        <View style={styles.itemDetails}>
+                                            <Text style={styles.itemTitle}>{item.title}</Text>
+                                            <Text style={styles.itemQuantity}>{item.quantity}</Text>
+                                        </View>
+                                        <Text style={styles.itemPrice}>{item.price}</Text>
+                                    </View>
+                                </View>
+                            ))}
                         </View>
                     </View>
 
-                    <View style={styles.divider} />
-
-                    <View>
-                        <Text style={styles.boldText}>Payment Info</Text>
-                        <Text style={styles.subText}>Paid via Visa **** 1234</Text>
-                    </View>
-                </View>
-
-                {/* Order Timeline */}
-                <Text style={styles.sectionTitle}>Order Timeline</Text>
-                <View style={styles.card}>
-                    {[
-                        {
-                            icon: 'receipt-long',
-                            title: 'Order Placed',
-                            desc: 'We have received your order.',
-                            time: '10:30 AM',
-                            active: true,
-                        },
-                        {
-                            icon: 'restaurant',
-                            title: 'Order Confirmed',
-                            desc: 'The restaurant has confirmed your order.',
-                            time: '10:31 AM',
-                        },
-                        {
-                            icon: 'outdoor-grill',
-                            title: 'Preparing your order',
-                            desc: 'Your food is being prepared.',
-                            time: '10:35 AM',
-                        },
-                    ].map((item, index) => (
-                        <View
-                            key={index}
-                            style={[styles.timelineItem, !item.active && { opacity: 0.5 }]}
-                        >
-                            <View style={styles.timelineIcon}>
-                                <Icon name={item.icon} size={18} color={COLORS.primary} />
+                    {/* Delivery Information Card */}
+                    <View style={styles.deliveryCard}>
+                        <LinearGradient
+                            colors={['rgba(181,143,240,0.08)', 'rgba(249,234,233,0.08)']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.deliveryGradient}
+                        />
+                        <View style={styles.deliveryRow}>
+                            <View style={styles.deliveryIconContainer}>
+                                <Icon name="local-shipping" size={28} color={COLORS.primary} />
                             </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.timelineTitle}>{item.title}</Text>
-                                <Text style={styles.timelineDesc}>{item.desc}</Text>
+                            <View>
+                                <Text style={styles.deliveryLabel}>Delivery Partner</Text>
+                                <Text style={styles.deliveryName}>
+                                    Rohan Sharma{' '}
+                                    <Text style={styles.deliveryPhone}>(+91 9876543210)</Text>
+                                </Text>
                             </View>
-                            <Text style={styles.timelineTime}>{item.time}</Text>
                         </View>
-                    ))}
-                </View>
+                        <TouchableOpacity style={styles.trackButtonContainer}>
+                            <LinearGradient
+                                colors={[COLORS.primary, COLORS.accent]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.trackButton}
+                            >
+                                <Icon name="pin-drop" size={20} color="#ffffff" />
+                                <Text style={styles.trackButtonText}>Track Order</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
 
-                {/* Help Section */}
-                <View style={styles.helpCard}>
-                    <Text style={styles.helpTitle}>Need Help with your order?</Text>
-                    <TouchableOpacity style={styles.primaryButton}>
-                        <Text style={styles.primaryButtonText}>Chat with Support</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.outlineButton}>
-                        <Text style={styles.outlineButtonText}>Report an Issue</Text>
-                    </TouchableOpacity>
+                    {/* Payment Summary Card */}
+                    <View style={styles.paymentCard}>
+                        <Text style={styles.sectionTitle}>Payment Summary</Text>
+                        <View style={styles.paymentList}>
+                            <View style={styles.paymentRow}>
+                                <Text style={styles.paymentLabel}>Subtotal</Text>
+                                <Text style={styles.paymentValue}>₹430.00</Text>
+                            </View>
+                            <View style={styles.paymentRow}>
+                                <Text style={styles.paymentLabel}>Delivery Fee</Text>
+                                <Text style={styles.paymentValue}>₹40.00</Text>
+                            </View>
+                            <View style={styles.paymentRow}>
+                                <Text style={styles.paymentLabel}>Discount</Text>
+                                <Text style={styles.paymentDiscount}>- ₹20.00</Text>
+                            </View>
+                            <View style={styles.paymentDivider} />
+                            <View style={styles.paymentTotalRow}>
+                                <Text style={styles.paymentTotalLabel}>Total Paid</Text>
+                                <Text style={styles.paymentTotalValue}>₹450.00</Text>
+                            </View>
+                        </View>
+                        <View style={styles.paymentMethodContainer}>
+                            <Icon name="credit-card" size={20} color={COLORS.primary} />
+                            <Text style={styles.paymentMethodText}>Paid via Card ending in 1234</Text>
+                        </View>
+                    </View>
+
+                    {/* Action Buttons Section */}
+                    <View style={styles.actionsSection}>
+                        <TouchableOpacity style={styles.reorderButtonContainer}>
+                            <LinearGradient
+                                colors={[COLORS.primary, COLORS.accent]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.reorderButton}
+                            >
+                                <Icon name="replay" size={20} color="#ffffff" />
+                                <Text style={styles.reorderButtonText}>Reorder</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                        <View style={styles.actionButtonsRow}>
+                            <TouchableOpacity style={styles.secondaryButton}>
+                                <View style={styles.secondaryButtonContent}>
+                                    <Icon name="receipt-long" size={20} color={COLORS.primary} />
+                                    <Text style={styles.secondaryButtonText}>View Invoice</Text>
+                                </View>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.secondaryButton}>
+                                <View style={styles.secondaryButtonContent}>
+                                    <Icon name="help-outline" size={20} color={COLORS.primary} />
+                                    <Text style={styles.secondaryButtonText}>Help</Text>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
             </ScrollView>
-
-            {/* Bottom Bar */}
-            <View style={styles.bottomBar}>
-                <TouchableOpacity style={styles.outlineBarButton}>
-                    <Icon name="map" size={20} color={COLORS.primary} />
-                    <Text style={styles.outlineButtonText}>Track Order</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.primaryBarButton} onPress={() => navigation.navigate("ChatWithDelivery")} >
-                    <Icon name="chat-bubble" size={20} color={COLORS.white} />
-                    <Text style={styles.primaryButtonText}>Chat with Partner</Text>
-                </TouchableOpacity>
-            </View>
         </SafeAreaView>
     );
 };
-
-export default OrderDetailsScreen;
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.background,
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        borderBottomWidth: 0.5,
-        borderColor: '#ccc',
-        backgroundColor: COLORS.white,
-    },
-    headerButton: {
-        width: 40,
-        alignItems: 'center',
-    },
-    headerTitle: {
+    scrollView: {
         flex: 1,
-        textAlign: 'center',
-        fontSize: 18,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
     },
-    card: {
-        backgroundColor: COLORS.white,
-        borderRadius: 16,
-        marginHorizontal: 16,
-        marginVertical: 8,
-        padding: 16,
-        elevation: 2,
+    scrollContent: {
+        paddingBottom: 20,
     },
-    rowBetween: {
+    headerGradient: {
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        paddingHorizontal: 16,
+        paddingBottom: 24,
+        paddingTop: 16,
+    },
+    headerBackButton: {
+        height: 48,
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
     },
-    restaurantName: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    orderId: {
-        fontSize: 13,
-        color: COLORS.muted,
-    },
-    statusBadge: {
-        backgroundColor: '#F5B7B1',
-        borderRadius: 16,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+    orderIdText: {
+        marginTop: 8,
+        fontSize: 30,
+        fontWeight: '800',
+        letterSpacing: -0.75,
+        color: '#ffffff',
     },
     statusText: {
-        color: COLORS.primary,
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    eta: {
-        fontSize: 15,
-        fontWeight: '500',
         marginTop: 8,
+        fontSize: 16,
+        fontWeight: '800',
+        opacity: 0.9,
+        color: '#ffffff',
+    },
+    estimatedText: {
+        marginTop: 4,
+        fontSize: 14,
+        fontWeight: '800',
+        opacity: 0.8,
+        color: '#ffffff',
+    },
+    mainContent: {
+        padding: 16,
+        paddingTop: 20,
+        gap: 20,
+    },
+    summaryCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 18,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.04,
+        shadowRadius: 25,
+        elevation: 5,
+    },
+    summaryGrid: {
+        gap: 20,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+    },
+    iconContainer: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 9999,
+        backgroundColor: 'rgba(181,143,240,0.1)',
+    },
+    summaryTextContainer: {
+        flex: 1,
+    },
+    summaryLabel: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+    },
+    summaryValue: {
+        fontSize: 14,
+        fontWeight: '800',
         color: COLORS.textPrimary,
     },
-    progressLabels: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    progressLabel: {
-        fontSize: 11,
-        color: COLORS.muted,
-    },
-    progressBarBackground: {
-        backgroundColor: '#ddd',
-        height: 6,
-        borderRadius: 4,
-        marginTop: 6,
-    },
-    progressBarFill: {
-        backgroundColor: COLORS.primary,
-        height: 6,
-        borderRadius: 4,
+    itemsCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 18,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.04,
+        shadowRadius: 25,
+        elevation: 5,
     },
     sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginHorizontal: 16,
+        fontSize: 20,
+        fontWeight: '800',
+        letterSpacing: -0.5,
+        color: COLORS.textPrimary,
+    },
+    itemsList: {
         marginTop: 16,
-        color: COLORS.textPrimary,
+        gap: 12,
     },
-    cardRow: {
+    itemDivider: {
+        borderTopWidth: 1,
+        borderTopColor: '#f3f4f6',
+    },
+    itemRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.white,
-        borderRadius: 16,
-        marginHorizontal: 16,
-        marginVertical: 8,
-        padding: 12,
-        elevation: 2,
+        gap: 16,
+        paddingTop: 12,
     },
-    profileImage: {
-        width: 56,
-        height: 56,
-        borderRadius: 999,
-        marginRight: 12,
+    firstItemRow: {
+        paddingTop: 0,
     },
-    partnerName: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    partnerStatus: {
-        fontSize: 13,
-        color: COLORS.muted,
-    },
-    chatButton: {
-        width: 44,
-        height: 44,
-        borderWidth: 1,
-        borderColor: COLORS.primary,
-        borderRadius: 999,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 8,
-    },
-    callButton: {
-        width: 44,
-        height: 44,
-        backgroundColor: COLORS.primary,
-        borderRadius: 999,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    boldText: {
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    subText: {
-        color: COLORS.muted,
-        fontSize: 13,
-        marginTop: 4,
-    },
-    orderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginVertical: 4,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#eee',
-        marginVertical: 12,
-    },
-    timelineItem: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginVertical: 6,
-    },
-    timelineIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 999,
-        backgroundColor: COLORS.primary + '20',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-    },
-    timelineTitle: {
-        fontWeight: '600',
-        color: COLORS.textPrimary,
-    },
-    timelineDesc: {
-        fontSize: 13,
-        color: COLORS.muted,
-    },
-    timelineTime: {
-        fontSize: 12,
-        color: COLORS.muted,
-    },
-    helpCard: {
-        backgroundColor: '#FADBD8',
-        borderRadius: 16,
-        margin: 16,
-        padding: 16,
-        alignItems: 'center',
-    },
-    helpTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        marginBottom: 12,
-        color: COLORS.textPrimary,
-    },
-    primaryButton: {
-        backgroundColor: COLORS.primary,
+    itemImage: {
+        width: 64,
+        height: 64,
         borderRadius: 12,
-        paddingVertical: 12,
-        alignItems: 'center',
-        marginBottom: 8,
-        width: '100%',
     },
-    primaryButtonText: {
-        color: COLORS.white,
-        fontWeight: '700',
+    itemDetails: {
+        flex: 1,
     },
-    outlineButton: {
-        borderWidth: 1,
-        borderColor: COLORS.primary,
-        borderRadius: 12,
-        paddingVertical: 12,
-        alignItems: 'center',
-        width: '100%',
+    itemTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        lineHeight: 20,
     },
-    outlineButtonText: {
-        color: COLORS.primary,
-        fontWeight: '700',
+    itemQuantity: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+        lineHeight: 20,
     },
-    bottomBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 12,
-        borderTopWidth: 0.5,
-        borderColor: '#ccc',
+    itemPrice: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        lineHeight: 20,
+    },
+    deliveryCard: {
+        borderRadius: 18,
+        padding: 20,
         backgroundColor: COLORS.white,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.04,
+        shadowRadius: 25,
+        elevation: 5,
+    },
+    deliveryGradient: {
         position: 'absolute',
-        bottom: 0,
+        top: 0,
         left: 0,
         right: 0,
+        bottom: 0,
+        borderRadius: 18,
+    },
+    deliveryRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+    },
+    deliveryIconContainer: {
+        width: 48,
+        height: 48,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 9999,
+        backgroundColor: COLORS.white,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
+        shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    deliveryLabel: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+    },
+    deliveryName: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+    },
+    deliveryPhone: {
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+    },
+    trackButtonContainer: {
+        marginTop: 16,
+    },
+    trackButton: {
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 9999,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 5,
-        paddingBottom: 50,
     },
-    outlineBarButton: {
+    trackButtonText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#ffffff',
+    },
+    paymentCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 18,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.04,
+        shadowRadius: 25,
+        elevation: 5,
+    },
+    paymentList: {
+        marginTop: 16,
+        gap: 12,
+    },
+    paymentRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    paymentLabel: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+    },
+    paymentValue: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+    },
+    paymentDiscount: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: COLORS.highlight,
+    },
+    paymentDivider: {
+        marginVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#e5e7eb',
+        borderStyle: 'dashed',
+    },
+    paymentTotalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    paymentTotalLabel: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+    },
+    paymentTotalValue: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+    },
+    paymentMethodContainer: {
+        marginTop: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        borderRadius: 12,
+        backgroundColor: '#f9fafb',
+        padding: 12,
+    },
+    paymentMethodText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+    },
+    actionsSection: {
+        paddingTop: 16,
+        paddingBottom: 8,
+        gap: 12,
+    },
+    reorderButtonContainer: {
+        width: '100%',
+    },
+    reorderButton: {
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 9999,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    reorderButtonText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#ffffff',
+    },
+    actionButtonsRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    secondaryButton: {
         flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 9999,
         borderWidth: 1,
         borderColor: COLORS.primary,
-        borderRadius: 12,
-        paddingVertical: 10,
-        marginRight: 8,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 4,
+        backgroundColor: COLORS.white,
+        paddingVertical: 12,
     },
-    primaryBarButton: {
-        flex: 1,
-        backgroundColor: COLORS.primary,
-        borderRadius: 12,
-        paddingVertical: 10,
-        marginLeft: 8,
+    secondaryButtonContent: {
         flexDirection: 'row',
-        justifyContent: 'center',
+        gap: 8,
         alignItems: 'center',
-        gap: 4,
+    },
+    secondaryButtonText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.primary,
     },
 });
 
+export default OrderDetailsScreen;

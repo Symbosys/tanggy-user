@@ -1,78 +1,258 @@
-import React, { useState } from "react";
+import { useRoute } from "@react-navigation/native";
+import { useCallback, useEffect, useState } from "react";
 import {
-    View,
-    Text,
-    ScrollView,
-    TouchableOpacity,
-    StyleSheet,
     Dimensions,
     Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
     TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import LinearGradient from "react-native-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import LinearGradient from "react-native-linear-gradient";
+import { InlineLoading } from "../../components/ui/loader/InlineLoading";
+import { useAuth } from "../../context/AuthContext";
+import { getAllProducts, GetAllProductsParams } from "../../services/product.service";
+import { getAllSubCategories } from "../../services/subcategory.service";
+import { useLocationStore } from "../../store/location";
 import { COLORS } from "../../theme/theme";
+import { Product, SubCategory } from "../../types/product.type";
 import { AppNavigation } from "../../types/type";
+import { parseToDecimal } from "../../utils/utils";
 
 const BUTTON_GRADIENT = ["#6A0DAD", "#D8B4FF"];
 const { width: screenWidth } = Dimensions.get("window");
+const cardWidth = screenWidth / 2 - 24;
 
 /* Product Card */
 const ProductCard = ({
-    imageUri,
-    name,
-    note,
-    price,
-    originalPrice,
-    discount,
-    stock,
+    product,
+    navigation,
     isFavorite,
     onFavoritePress,
-}: any) => {
+    onAddToCart,
+}: {
+    product: Product;
+    navigation: AppNavigation["navigation"];
+    isFavorite: boolean;
+    onFavoritePress: () => void;
+    onAddToCart: () => void;
+}) => {
+    const marketPrice = product.marketPrice;
+    const sellingPrice = product.sellingPrice;
+    const discountPercent = marketPrice && marketPrice > sellingPrice
+        ? Math.round(((marketPrice - sellingPrice) / marketPrice) * 100)
+        : 0;
+    const piecesText = Number(product.pieces) === 1 ? "piece" : "pieces";
+    const details = `${product.weight}g • ${product.pieces} ${piecesText}`;
+
+    const handleNavigateToDetails = () => {
+        navigation.navigate("ProductDetails", { product });
+    };
+
+    const handleAddToCartPress = (e: any) => {
+        e.stopPropagation();
+        onAddToCart();
+    };
+
     return (
-        <View style={styles.productCard}>
-            <View style={styles.productImageContainer}>
-                <Image source={{ uri: imageUri }} style={styles.productImage} resizeMode="cover" />
-                <TouchableOpacity style={styles.favoriteButton} onPress={onFavoritePress}>
-                    <Icon name={isFavorite ? "favorite" : "favorite-border"} size={20} color={COLORS.textSecondary} />
-                </TouchableOpacity>
-                {discount && <Text style={styles.discountBadge}>{discount}</Text>}
-                {stock && <Text style={styles.stockBadge}>{stock}</Text>}
-            </View>
-            <View style={styles.productInfo}>
-                <Text style={styles.productName}>{name}</Text>
-                <Text style={styles.productNote}>{note}</Text>
-                <View style={styles.priceContainer}>
-                    <Text style={styles.price}>{price}</Text>
-                    {originalPrice && <Text style={styles.originalPrice}>{originalPrice}</Text>}
+        <View style={[styles.productCard, { width: cardWidth }]}>
+            {!product.isAvailable && (
+                <View style={styles.unavailableOverlay}>
+                    <Text style={styles.unavailableText}>Not Available</Text>
                 </View>
-                <TouchableOpacity>
-                    <LinearGradient
-                        colors={BUTTON_GRADIENT}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
+            )}
+            <TouchableOpacity
+                style={styles.cardContent}
+                onPress={handleNavigateToDetails}
+                activeOpacity={0.95}
+                disabled={!product.isAvailable}
+            >
+                <View style={styles.imageContainer}>
+                    <Image
+                        source={{ uri: product.images?.[0]?.image?.url || "" }}
+                        style={styles.productImage}
+                        resizeMode="cover"
+                    />
+                    <TouchableOpacity style={styles.favoriteButton} onPress={onFavoritePress}>
+                        <Icon
+                            name={isFavorite ? "favorite" : "favorite-border"}
+                            size={20}
+                            color={COLORS.textSecondary}
+                        />
+                    </TouchableOpacity>
+                    {discountPercent > 0 && (
+                        <Text style={styles.discountBadge}>{discountPercent}% OFF</Text>
+                    )}
+                </View>
+
+                <View style={styles.productInfo}>
+                    <Text style={styles.productName} numberOfLines={2}>
+                        {product.name}
+                    </Text>
+                    {discountPercent > 0 && (
+                        <Text style={styles.productDiscount}>{discountPercent}% off</Text>
+                    )}
+                    <Text style={styles.productDetails}>{details}</Text>
+                    <View style={styles.priceContainer}>
+                        {marketPrice && (
+                            <Text style={styles.oldPrice}>
+                                ₹{parseToDecimal(marketPrice).toFixed(2)}
+                            </Text>
+                        )}
+                        <Text style={styles.newPrice}>
+                            ₹{parseToDecimal(sellingPrice).toFixed(2)}
+                        </Text>
+                    </View>
+                </View>
+                <View style={styles.actionContainer}>
+                    <TouchableOpacity
                         style={styles.addToCartButton}
+                        onPress={handleAddToCartPress}
+                        disabled={!product.isAvailable}
                     >
-                        <Text style={styles.addToCartText}>Add to Cart</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
+                        <LinearGradient
+                            colors={BUTTON_GRADIENT}
+                            style={StyleSheet.absoluteFill}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                        />
+                        <Text style={styles.buttonText}>Add to Cart</Text>
+                    </TouchableOpacity>
+                </View>
+            </TouchableOpacity>
         </View>
     );
 };
 
 const CategoryResults = ({ navigation }: AppNavigation) => {
+    const route = useRoute();
+    const { categoryId, categoryName = "Products" } = (route.params as any) || {};
+
     const [selectedCategory, setSelectedCategory] = useState("All");
-    const categories = ["All", "Curry Cut", "Boneless", "Whole Chicken", "Drumsticks"];
-    const products = [
-        { id: 1, name: "Fresh Curry Cut Chicken", note: "500g Pack", price: "₹185", originalPrice: "₹230", discount: "20% OFF", stock: "In Stock", imageUri: "https://imgs.search.brave.com/WacsD5d59wBBbv2UHFSBQkQonv-jznnUdiEES9oD8n4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wMDgv/NTgzLzQzOC9zbWFs/bC9yYXctY2hpY2tl/bi1sZWctcGhvdG8u/anBn" },
-        { id: 2, name: "Boneless Chicken Breast", note: "450g Pack", price: "₹250", stock: "In Stock", isFavorite: true, imageUri: "https://imgs.search.brave.com/WacsD5d59wBBbv2UHFSBQkQonv-jznnUdiEES9oD8n4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wMDgv/NTgzLzQzOC9zbWFs/bC9yYXctY2hpY2tl/bi1sZWctcGhvdG8u/anBn" },
-        { id: 3, name: "Tender Drumsticks", note: "500g Pack", price: "₹199", stock: "In Stock", imageUri: "https://imgs.search.brave.com/WacsD5d59wBBbv2UHFSBQkQonv-jznnUdiEES9oD8n4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wMDgv/NTgzLzQzOC9zbWFs/bC9yYXctY2hpY2tl/bi1sZWctcGhvdG8u/anBn" },
-        { id: 4, name: "Whole Skinless Chicken", note: "1kg Pack", price: "₹420", stock: "In Stock", imageUri: "https://imgs.search.brave.com/WacsD5d59wBBbv2UHFSBQkQonv-jznnUdiEES9oD8n4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wMDgv/NTgzLzQzOC9zbWFs/bC9yYXctY2hpY2tl/bi1sZWctcGhvdG8u/anBn" },
-        { id: 5, name: "Chicken Lollipops", note: "10 pieces", price: "₹150", stock: "In Stock", imageUri: "https://imgs.search.brave.com/WacsD5d59wBBbv2UHFSBQkQonv-jznnUdiEES9oD8n4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wMDgv/NTgzLzQzOC9zbWFs/bC9yYXctY2hpY2tl/bi1sZWctcGhvdG8u/anBn" },
-        { id: 6, name: "Chicken Mince (Keema)", note: "400g Pack", price: "₹210", stock: "Only 3 Left", imageUri: "https://imgs.search.brave.com/WacsD5d59wBBbv2UHFSBQkQonv-jznnUdiEES9oD8n4/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wMDgv/NTgzLzQzOC9zbWFs/bC9yYXctY2hpY2tl/bi1sZWctcGhvdG8u/anBn" },
-    ];
+    const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [favorites, setFavorites] = useState<Set<string>>(new Set());
+    const [isBestSeller] = useState(categoryName === "Bestsellers");
+    const [isRecommended] = useState(categoryName === "Recommended For You");
+    const { latitude, longitude } = useLocationStore();
+    const { userId } = useAuth();
+
+    // Fetch subcategories on mount if categoryId exists
+    useEffect(() => {
+        const fetchSubCategories = async () => {
+            if (!categoryId) {
+                setLoading(false);
+                return;
+            }
+            try {
+                const response = await getAllSubCategories({ categoryId });
+                if (response.success) {
+                    setSubCategories(response.data);
+                }
+            } catch (error) {
+                console.error("Error fetching subcategories:", error);
+                // Optionally show toast/error message
+            }
+        };
+        fetchSubCategories();
+    }, [categoryId]);
+
+    // Dynamic categories for UI
+    const displayCategories = ["All", ...subCategories.map((sc) => sc.name)];
+
+    // Fetch products on category/subcategory change
+    const fetchProducts = useCallback(async () => {
+        const hasCategoryOrSpecial = categoryId || isBestSeller || isRecommended;
+        if (!hasCategoryOrSpecial) {
+            setLoading(false);
+            return;
+        }
+        setLoading(true);
+        try {
+            const params: GetAllProductsParams = {
+                isActive: true,
+                lat: latitude ?? undefined,
+                lng: longitude ?? undefined,
+                userId: userId ?? undefined,
+            };
+            if (categoryId) {
+                params.categoryId = categoryId;
+            }
+            if (selectedCategory !== "All") {
+                const selectedSub = subCategories.find((sc) => sc.name === selectedCategory);
+                if (selectedSub) {
+                    params.subCategoryId = selectedSub.id;
+                }
+            }
+            if (searchQuery.trim()) {
+                params.search = searchQuery.trim();
+            }
+            if (isBestSeller) {
+                params.isBestSeller = true;
+            }
+            if (isRecommended) {
+                params.isRecommended = true;
+            }
+            const response = await getAllProducts(params);
+            console.log('Response:', response);
+            if (response.success) {
+                setProducts(response.data.products);
+            }
+        } catch (error) {
+            console.error("Error fetching products:", error);
+            // Optionally show toast/error message
+            setProducts([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [categoryId, selectedCategory, subCategories, searchQuery, isBestSeller, isRecommended, latitude, longitude, userId]);
+
+    // Trigger fetch on category/subcategory change (non-search)
+    useEffect(() => {
+        fetchProducts();
+    }, [categoryId, selectedCategory, isBestSeller, isRecommended, latitude, longitude, userId]);
+
+    // Debounce search - skip initial empty query
+    useEffect(() => {
+        if (!searchQuery.trim()) return;
+        const timer = setTimeout(() => {
+            fetchProducts();
+        }, 800);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    const toggleFavorite = useCallback((productId: string) => {
+        setFavorites((prev) => {
+            const newFavorites = new Set(prev);
+            if (newFavorites.has(productId)) {
+                newFavorites.delete(productId);
+            } else {
+                newFavorites.add(productId);
+            }
+            return newFavorites;
+        });
+    }, []);
+
+    const handleAddToCart = useCallback((product: Product) => {
+        console.log("Add to cart:", product.id, product.name);
+        // Implement cart logic here (e.g., update cart API, local state)
+    }, []);
+
+    // if (!categoryId) {
+    //     return (
+    //         <SafeAreaView style={styles.container}>
+    //             <Text>No category selected</Text>
+    //         </SafeAreaView>
+    //     );
+    // }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -92,74 +272,87 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
                         <TouchableOpacity onPress={() => navigation.goBack()}>
                             <Icon name="arrow-back" size={24} color={COLORS.white} />
                         </TouchableOpacity>
-                        <Text style={styles.headerTitle}>Fresh Chicken</Text>
+                        <Text style={styles.headerTitle}>{categoryName}</Text>
                         <TouchableOpacity>
                             <Icon name="shopping-cart" size={24} color={COLORS.white} />
                         </TouchableOpacity>
                     </View>
-                    <View style={styles.searchInputContainer}>
-                        <Icon name="search" size={20} color="rgba(255,255,255,0.9)" />
-                        <TextInput
-                            placeholder="Search for chicken, pieces..."
-                            placeholderTextColor="rgba(255,255,255,0.85)"
-                            style={styles.searchInput}
-                        />
-                    </View>
+                    {
+                        !isBestSeller && !isRecommended && (
+                            <View style={styles.searchInputContainer}>
+                                <Icon name="search" size={20} color="rgba(255,255,255,0.9)" />
+                                <TextInput
+                                    placeholder="Search for chicken, pieces..."
+                                    placeholderTextColor="rgba(255,255,255,0.85)"
+                                    style={styles.searchInput}
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                />
+                            </View>
+                        )
+                    }
                 </LinearGradient>
 
                 {/* CATEGORY BAR - EACH CHIP IS NOW A LEFT-TO-RIGHT GRADIENT */}
-                <View style={styles.categoryWrapper}>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.categoryScroll}
-                    >
-                        {categories.map((cat) => {
-                            const isActive = selectedCategory === cat;
-                            return (
-                                <TouchableOpacity key={cat} onPress={() => setSelectedCategory(cat)}>
-                                    {isActive ? (
-                                        <LinearGradient
-                                            colors={BUTTON_GRADIENT}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 0 }}
-                                            style={[styles.categoryChip, styles.activeCategoryChip]}
-                                        >
-                                            <Text style={styles.activeCategoryChipText}>{cat}</Text>
-                                        </LinearGradient>
-                                    ) : (
-                                        <View style={styles.categoryChip}>
-                                            <Text style={styles.categoryChipText}>{cat}</Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-                </View>
-
-                {/* SORT + FILTER */}
-                <View style={styles.sortRow}>
-                    <View style={styles.sortLeft}>
-                        <Text style={styles.sortLabel}>Sort by:</Text>
-                        <TouchableOpacity style={styles.sortValue}>
-                            <Text style={styles.sortValueText}>Popularity</Text>
-                            <Icon name="expand-more" size={18} color={COLORS.primary} />
-                        </TouchableOpacity>
+                {categoryId && (
+                    <View style={styles.categoryWrapper}>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.categoryScroll}
+                        >
+                            {displayCategories.map((cat) => {
+                                const isActive = selectedCategory === cat;
+                                return (
+                                    <TouchableOpacity key={cat} onPress={() => setSelectedCategory(cat)}>
+                                        {isActive ? (
+                                            <LinearGradient
+                                                colors={BUTTON_GRADIENT}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
+                                                style={[styles.categoryChip, styles.activeCategoryChip]}
+                                            >
+                                                <Text style={styles.activeCategoryChipText}>{cat}</Text>
+                                            </LinearGradient>
+                                        ) : (
+                                            <View style={styles.categoryChip}>
+                                                <Text style={styles.categoryChipText}>{cat}</Text>
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
                     </View>
-                    <TouchableOpacity style={styles.filterButton}>
-                        <Icon name="filter-list" size={20} color={COLORS.textSecondary} />
-                        <Text style={styles.filterButtonText}>Filter</Text>
-                    </TouchableOpacity>
-                </View>
+                )}
 
                 {/* PRODUCTS */}
                 <View style={styles.mainContent}>
-                    <View style={styles.productGrid}>
-                        {products.map((p) => (
-                            <ProductCard key={p.id} {...p} onFavoritePress={() => { }} />
-                        ))}
-                    </View>
+                    {loading ? (
+                        <InlineLoading visible={loading} />
+                    ) : (
+                        <View style={styles.productGrid}>
+                            {products.length > 0 ? (
+                                products.map((p) => {
+                                    const isFavorite = favorites.has(p.id);
+                                    return (
+                                        <ProductCard
+                                            key={p.id}
+                                            product={p}
+                                            navigation={navigation}
+                                            isFavorite={isFavorite}
+                                            onFavoritePress={() => toggleFavorite(p.id)}
+                                            onAddToCart={() => handleAddToCart(p)}
+                                        />
+                                    );
+                                })
+                            ) : (
+                                <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 50 }}>
+                                    <Text style={{ fontSize: 16, color: COLORS.textSecondary }}>No products found</Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
                 </View>
             </ScrollView>
 
@@ -222,48 +415,149 @@ const styles = StyleSheet.create({
     activeCategoryChip: { borderWidth: 0 },
     activeCategoryChipText: { color: COLORS.white, fontWeight: "700" },
     /* FILTER ROW */
-    sortRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
-        borderColor: "#EAEAEA",
-    },
-    sortLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
-    sortLabel: { fontSize: 15, fontWeight: "700", color: COLORS.textPrimary },
-    sortValue: { flexDirection: "row", alignItems: "center" },
-    sortValueText: { fontSize: 15, fontWeight: "700", color: COLORS.primary },
-    filterButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: "#D9D9D9",
-        backgroundColor: COLORS.white,
-    },
     filterButtonText: { fontSize: 14, fontWeight: "600", color: COLORS.textSecondary, marginLeft: 4 },
     /* PRODUCTS */
-    mainContent: { paddingHorizontal: 16 },
+    mainContent: { paddingHorizontal: 16, flex: 1, marginTop: 10 },
     productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
-    productCard: { width: (screenWidth - 48) / 2, backgroundColor: COLORS.white, borderRadius: 12, overflow: "hidden" },
-    productImageContainer: { width: "100%", aspectRatio: 1, position: "relative" },
-    productImage: { width: "100%", height: "100%" },
-    favoriteButton: { position: "absolute", top: 8, right: 8, padding: 6, backgroundColor: "#ffffffcc", borderRadius: 16 },
-    discountBadge: { position: "absolute", top: 8, left: 0, backgroundColor: COLORS.highlight, color: COLORS.white, paddingHorizontal: 6, paddingVertical: 4, borderTopRightRadius: 12, borderBottomRightRadius: 12, fontWeight: "700", fontSize: 10 },
-    stockBadge: { position: "absolute", bottom: 8, left: 8, backgroundColor: "#E7F8ED", color: "#22C55E", paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, fontSize: 10, fontWeight: "600" },
-    productInfo: { padding: 12, flex: 1, justifyContent: "space-between" },
-    productName: { fontSize: 16, fontWeight: "700", color: COLORS.textPrimary },
-    productNote: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
-    priceContainer: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
-    price: { fontSize: 18, fontWeight: "800", color: COLORS.textPrimary },
-    originalPrice: { fontSize: 14, textDecorationLine: "line-through", color: COLORS.textSecondary },
-    addToCartButton: { marginTop: 12, height: 42, borderRadius: 50, justifyContent: "center", alignItems: "center" },
-    addToCartText: { color: COLORS.white, fontWeight: "700" },
+    /* ProductCard Styles */
+    productCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 12,
+        padding: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 5,
+        position: "relative",
+        gap: 12,
+        overflow: "hidden",
+    },
+    cardContent: {
+        flex: 1,
+        gap: 12,
+    },
+    imageContainer: {
+        width: "100%",
+        aspectRatio: 1,
+        borderRadius: 8,
+        overflow: "hidden",
+        position: "relative",
+        backgroundColor: COLORS.white,
+    },
+    productImage: {
+        width: "100%",
+        height: "100%",
+        ...Platform.select({
+            android: { elevation: 1 },
+            ios: {},
+        }),
+    },
+    favoriteButton: {
+        position: "absolute",
+        top: 8,
+        right: 8,
+        padding: 6,
+        backgroundColor: "#ffffffcc",
+        borderRadius: 16,
+        zIndex: 2,
+    },
+    discountBadge: {
+        position: "absolute",
+        top: 8,
+        left: 8,
+        backgroundColor: COLORS.highlight,
+        color: COLORS.white,
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+        borderTopRightRadius: 8,
+        borderBottomRightRadius: 8,
+        fontWeight: "700",
+        fontSize: 10,
+        zIndex: 2,
+    },
+    productInfo: {
+        flex: 1,
+        gap: 4,
+    },
+    productName: {
+        color: COLORS.textPrimary,
+        fontSize: 16,
+        fontWeight: "800",
+        lineHeight: 20,
+    },
+    productDiscount: {
+        color: "#F59E0B",
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    productDetails: {
+        color: COLORS.textSecondary,
+        fontSize: 14,
+        fontWeight: "400",
+        lineHeight: 18,
+    },
+    priceContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        marginTop: "auto",
+    },
+    oldPrice: {
+        color: COLORS.textSecondary,
+        fontSize: 14,
+        fontWeight: "400",
+        lineHeight: 18,
+        textDecorationLine: "line-through",
+    },
+    newPrice: {
+        color: COLORS.textPrimary,
+        fontSize: 18,
+        fontWeight: "800",
+        lineHeight: 20,
+    },
+    actionContainer: {
+        marginTop: 8,
+    },
+    addToCartButton: {
+        flex: 1,
+        height: 42,
+        borderRadius: 50,
+        overflow: "hidden",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    buttonText: {
+        color: COLORS.white,
+        fontSize: 14,
+        fontWeight: "700",
+        lineHeight: 18,
+        position: "relative",
+        zIndex: 1,
+    },
+    unavailableOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(250, 250, 250, 0.8)",
+        zIndex: 20,
+        borderRadius: 12,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    unavailableText: {
+        fontSize: 14,
+        fontWeight: "bold",
+        color: COLORS.primary,
+        backgroundColor: COLORS.white,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        overflow: "hidden",
+        elevation: 2,
+    },
     /* VIEW CART */
     viewCartBar: { position: "absolute", bottom: 12, left: 16, right: 16, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     viewCartItems: { color: COLORS.white, fontWeight: "700" },

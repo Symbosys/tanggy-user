@@ -11,6 +11,7 @@ import SearchScreen from '../screens/tabs/Search';
 import Discount from '../screens/tabs/Discount';
 import { COLORS } from '../theme/theme';
 import { AppNavigation } from '../types/type';
+import MyAccountScreen from '../screens/tabs/Accounts';
 
 export type RootTabParamList = {
   Home: undefined;
@@ -26,7 +27,9 @@ const BottomTab = ({ navigation }: AppNavigation) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <Tab.Navigator
+      
         screenOptions={({ route }) => ({
+          tabBarHideOnKeyboard: true,
           headerShown: false,
           tabBarIcon: ({ focused, color, size }) => {
             let iconName: string = '';
@@ -73,7 +76,7 @@ const BottomTab = ({ navigation }: AppNavigation) => {
         <Tab.Screen name="Category" component={CategoryScreen} />
         <Tab.Screen name="Discount" component={Discount} />
         <Tab.Screen name="Search" component={SearchScreen} />
-        <Tab.Screen name="Profile" component={ProfileScreen} />
+        <Tab.Screen name="Profile" component={MyAccountScreen} />
       </Tab.Navigator>
     </SafeAreaView>
   );

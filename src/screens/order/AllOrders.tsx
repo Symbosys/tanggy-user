@@ -1,62 +1,169 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     View,
     Text,
     TouchableOpacity,
     FlatList,
     Image,
+    RefreshControl,
+    ActivityIndicator,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { COLORS } from '../../theme/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS } from '../../theme/theme';
+import api from '../../api/api';
+import { Order, OrderStatus } from '../../types/order.type';
+import { LoadingOverlay } from '../../components/ui/loader/LoaderOverLay';
 
-const ongoingOrders = [
-    {
-        id: '1',
-        restaurant: 'Pizza Palace',
-        date: 'Oct 15, 2025',
-        amount: '$24.50',
-        status: 'Ongoing',
-        statusColor: COLORS.highlight,
-        items: [
-            { id: '1', name: '1x Margherita Pizza', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuATZ68ueEu2BQAGNeP5IugftSzCxpih_g7bkWDrSDGxODTTArnd5Qv0b21lFKb69RY176-WDkzVGpjB2dgNmR7C5EQcmmsT66HOxVROtQC5OPKpjcQy6bNsulg1phddu5WzdjwUUM5MYW_RsD25otiYSUnrvY4yDRcDhyyptShSxzBxB3S7jbQWvBwRNDd1SmLtiIZj1ouPKB3E9UebVIGh2w3VFOFxCupJEjZO-66ejQZx84eH77Wnbx1tuctnx3GaI9KZlUZ5Dq5J' },
-            { id: '2', name: '2x Garlic Breadsticks', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA7PXYwEJQS4auu-eDb2y98cuDVdIeds1wulIVzfoBEZTRs64idJp5sXGyjK-UGxYULdiD8ZViI_sfmn03Qr0nwPFlS-pkDWOCS1oEVKYv_uuQG3xT2un4hlONT4rxWiqNYPPpb5AANYoc1mAqF0CFWwmejWfu7N0vMdvQmasMVZVXvirTL3cGUkZflBSGNCs-XgSwYgZ9FM3u74OKzsDFYpyydE8FtTTShdL4xuNWPnbSVJ9XQG_9rmnuCCkbVfxUKvbt9swLNREaa' },
-        ],
-    },
+interface OrderItemUI {
+    id: string;
+    restaurant: string;
+    date: string;
+    amount: string;
+    status: OrderStatus;
+    statusColor: string;
+    items: Array<{
+        id: string;
+        name: string;
+        image: string;
+    }>;
+}
+
+const ONGOING_STATUSES: OrderStatus[] = [
+    OrderStatus.PLACED,
+    OrderStatus.VENDOR_PENDING,
+    OrderStatus.VENDOR_ACCEPTED,
+    OrderStatus.PREPARING,
+    OrderStatus.READY_FOR_PICKUP,
+    OrderStatus.DELIVERY_PENDING,
+    OrderStatus.OUT_FOR_DELIVERY,
 ];
 
-const pastOrders = [
-    {
-        id: '2',
-        restaurant: 'Sushi Express',
-        date: 'Oct 10, 2025',
-        amount: '$42.80',
-        status: 'Delivered',
-        statusColor: '#4CAF50',
-        items: [
-            { id: '1', name: '1x Assorted Sushi Platter', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB0a0JwY2-FPvvycLig5LjCe28xL8sigpZ52kMZ9XgKRFjqOSAK5hwEEW-uQTBFc-xLjtv9tUb1n5Y9FaWqt2721jh68KylgRsqyZS7O-LJWjy38_pM9G5ldhv0u72VHDtz77Qzwkb6QEhnaRF_w5viIbQtgR06AVu7ogc7dXzTSdW7uDXeiMWQ4RLojlQspmxUYpmJRBNjjK2wCzRNKckg74cwtpTsmCdWd7kb3izHOOh6_TYpAUpV-KmhQNpk3k9H4XZrLdiBn741' },
-            { id: '2', name: '2x Miso Soup', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBJ-JgzWepIU3bQaoAGLfilVGvpJM9oy-bfftsba4p20KuJ_UE394c5W-vCQCiZn9lprF-SflU5jBizcPPvayLI3N8XwGMG2fLTZJtbWziLLO9izbmS30ervcAvvChra8pMAIWjo2n1wKY-S0hFv4MP7h5kFfe_lXylkd4IFJieWhen3wmoHkDpeAelO5QRhu1y_HN9g6wh8PiNHLk34oRT5hEb_ywVYby8Z6o72FPA43uQCeNwPhZymOQjqlSP1E9TobKRQCkUDveb' },
-        ],
-    },
-    {
-        id: '3',
-        restaurant: 'The Burger Joint',
-        date: 'Oct 12, 2025',
-        amount: '$25.50',
-        status: 'Cancelled',
-        statusColor: '#EF5350',
-        items: [
-            { id: '1', name: '1x Classic Cheeseburger', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBWzygNQqChXPdulF65YeRSQFMbi6TL8_d22oZQQI8djMkCVhZk5xSuZDqjBo0FkekwaX8TTRFYka6QvGsOLV08VfQoJXlr2joyn8DbvqwzOHabBHXhlXO9Rq-DbYQSC7xg7QFLzpeFCJibihDekeQ5tR2vjIoF937IrWwuaUFIdGCloqRXS83KH4RfqXT7CU40FI5TMtMpbOmHswYjBi-tXuB_-GlTYBx5Hh0RhMfNoYV36pwcMchD5izP3ekhzQQsEZR6F07yOTlL' },
-            { id: '2', name: '1x Large French Fries', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCkdoNIOPJUu0Azdf4V2zhEZydrLEF91SmcV2KP2yyZG__48zf9H8b-VlfmM2pGnJgvbFkAvX33oIq5I-9ew9orvvg1C_bALuT5tFpR66P-0_qFUs58uyW72_soB8KV-4cnhJeFVSdlrFpgasypCJfLa4anKhkFCOMRSYWcV7WdmdJ84Aqiqw7eceDFgs7nND4i5TRR41pO-gZ67V5PCwnedpwBM9UZexKQSOIFHIKtDzc4dQEDaXGrHQjnnxHZcsMev9aTMgvrsmQ0' },
-        ],
-    },
+const PAST_STATUSES: OrderStatus[] = [
+    OrderStatus.DELIVERED,
+    OrderStatus.CANCELLED,
+    OrderStatus.REFUNDED,
+    OrderStatus.DISPUTED,
 ];
+
+const STATUS_COLORS: Record<OrderStatus, string> = {
+    [OrderStatus.PLACED]: COLORS.primary,
+    [OrderStatus.VENDOR_PENDING]: COLORS.warning,
+    [OrderStatus.VENDOR_ACCEPTED]: COLORS.accent,
+    [OrderStatus.PREPARING]: "#4CAF50",
+    [OrderStatus.READY_FOR_PICKUP]: COLORS.success,
+    [OrderStatus.DELIVERY_PENDING]: COLORS.warning,
+    [OrderStatus.OUT_FOR_DELIVERY]: COLORS.primary,
+    [OrderStatus.DELIVERED]: '#4CAF50',
+    [OrderStatus.CANCELLED]: '#EF5350',
+    [OrderStatus.REFUNDED]: '#4CAF50',
+    [OrderStatus.DISPUTED]: '#FF9800',
+};
 
 export default function AllOrdersScreen() {
-    const [selectedTab, setSelectedTab] = useState('Past Orders');
-    const data = selectedTab === 'Ongoing' ? ongoingOrders : pastOrders;
+    const [selectedTab, setSelectedTab] = useState<'Ongoing' | 'Past Orders'>('Past Orders');
+    const [ongoingOrders, setOngoingOrders] = useState<OrderItemUI[]>([]);
+    const [pastOrders, setPastOrders] = useState<OrderItemUI[]>([]);
+    const [ongoingPage, setOngoingPage] = useState(1);
+    const [pastPage, setPastPage] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [hasMoreOngoing, setHasMoreOngoing] = useState(true);
+    const [hasMorePast, setHasMorePast] = useState(true);
+    const LIMIT = 10;
+    const isMountedRef = useRef(true);
 
-    const renderOrderCard = ({ item }: any) => (
+    const fetchOrders = useCallback(async (page: number, isOngoing: boolean, isRefresh = false) => {
+        if (loading && !isRefresh) return;
+        setLoading(true);
+        if (isRefresh) setRefreshing(true);
+
+        try {
+            const response = await api.get('/user/order/all', {
+                params: {
+                    limit: LIMIT,
+                    page,
+                },
+            });
+
+            const backendOrders: Order[] = response.data.orders;
+            const totalOrder = response.data.totalOrder;
+
+            const uiOrders: OrderItemUI[] = backendOrders?.filter((order: Order) => {
+                    const status = order.status;
+                    if (isOngoing) {
+                        return ONGOING_STATUSES.includes(status);
+                    } else {
+                        return PAST_STATUSES.includes(status);
+                    }
+                })
+                .map((order: Order) => ({
+                    id: order.id.toString(),
+                    restaurant: order.vendorBroadcasts?.[0]?.vendor?.name || 'Unknown Vendor', // Assuming vendor included; adjust if needed
+                    date: new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    amount: `₹${order.paidAmount?.toFixed(2) || order.subtotal.toFixed(2)}`,
+                    status: order.status,
+                    statusColor: STATUS_COLORS[order.status] || COLORS.highlight,
+                    items: order.items?.map((item: any) => ({
+                        id: item.id.toString(),
+                        name: `${item.quantity}x ${item.product?.name || 'Unknown Item'}`,
+                        image: item.product?.images?.[0]?.image?.url || '',
+                    })) || [],
+                }));
+
+            if (isRefresh) {
+                if (isOngoing) {
+                    setOngoingOrders(uiOrders);
+                    setOngoingPage(1);
+                    setHasMoreOngoing(backendOrders.length === LIMIT);
+                } else {
+                    setPastOrders(uiOrders);
+                    setPastPage(1);
+                    setHasMorePast(backendOrders?.length === LIMIT);
+                }
+            } else {
+                if (isOngoing) {
+                    setOngoingOrders(prev => [...prev, ...uiOrders]);
+                    setHasMoreOngoing(backendOrders.length === LIMIT);
+                } else {
+                    setPastOrders(prev => [...prev, ...uiOrders]);
+                    setHasMorePast(backendOrders.length === LIMIT);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+        } finally {
+            if (isMountedRef.current) {
+                setLoading(false);
+                if (isRefresh) setRefreshing(false);
+            }
+        }
+    }, []); // Removed loading from deps to prevent recreation loop
+
+    const onRefresh = useCallback(() => {
+        fetchOrders(selectedTab === 'Ongoing' ? ongoingPage : pastPage, selectedTab === 'Ongoing', true);
+    }, [selectedTab, ongoingPage, pastPage, fetchOrders]);
+
+    const loadMore = useCallback(() => {
+        if (!loading && (selectedTab === 'Ongoing' ? hasMoreOngoing : hasMorePast)) {
+            const nextPage = selectedTab === 'Ongoing' ? ongoingPage + 1 : pastPage + 1;
+            fetchOrders(nextPage, selectedTab === 'Ongoing', false);
+            if (selectedTab === 'Ongoing') {
+                setOngoingPage(nextPage);
+            } else {
+                setPastPage(nextPage);
+            }
+        }
+    }, [loading, selectedTab, hasMoreOngoing, hasMorePast, ongoingPage, pastPage, fetchOrders]);
+
+    const handleTabChange = useCallback((tab: 'Ongoing' | 'Past Orders') => {
+        setSelectedTab(tab);
+    }, []);
+
+    const data = selectedTab === 'Ongoing' ? ongoingOrders : pastOrders;
+    const hasMore = selectedTab === 'Ongoing' ? hasMoreOngoing : hasMorePast;
+
+    const renderOrderCard = useCallback(({ item }: { item: OrderItemUI }) => (
         <View
             style={{
                 backgroundColor: COLORS.white,
@@ -141,7 +248,39 @@ export default function AllOrdersScreen() {
                 </TouchableOpacity>
             </View>
         </View>
-    );
+    ), []);
+
+    const renderFooter = useCallback(() => {
+        if (!loading) return null;
+        return null; // Removed ActivityIndicator as overlay handles loading
+    }, [loading]);
+
+    const renderEmpty = useCallback(() => (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50 }}>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, textAlign: 'center' }}>
+                No {selectedTab.toLowerCase().replace('past ', '')} orders yet
+            </Text>
+            <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginTop: 8 }}>
+                Make your first order to see it here
+            </Text>
+        </View>
+    ), [selectedTab]);
+
+    // Fixed useEffect to prevent infinite calls - only fetch if data is empty for the current tab
+    useEffect(() => {
+        if (selectedTab === 'Ongoing' && ongoingOrders.length === 0) {
+            fetchOrders(1, true, true);
+        } else if (selectedTab === 'Past Orders' && pastOrders.length === 0) {
+            fetchOrders(1, false, true);
+        }
+    }, [selectedTab]); // Only depend on selectedTab, and check if data is empty
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
@@ -159,7 +298,7 @@ export default function AllOrdersScreen() {
                 {['Ongoing', 'Past Orders'].map((tab) => (
                     <TouchableOpacity
                         key={tab}
-                        onPress={() => setSelectedTab(tab)}
+                        onPress={() => handleTabChange(tab as 'Ongoing' | 'Past Orders')}
                         style={{
                             flex: 1,
                             alignItems: 'center',
@@ -187,7 +326,17 @@ export default function AllOrdersScreen() {
                 renderItem={renderOrderCard}
                 contentContainerStyle={{ padding: 16, paddingBottom: 50 }}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
+                onEndReached={hasMore ? loadMore : undefined}
+                onEndReachedThreshold={0.1}
+                ListFooterComponent={renderFooter}
+                ListEmptyComponent={renderEmpty}
             />
+
+            {/* Loading Overlay */}
+            <LoadingOverlay visible={loading} />
         </SafeAreaView>
     );
 }

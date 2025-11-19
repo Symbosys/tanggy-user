@@ -1,0 +1,391 @@
+import {
+    Image,
+    ImageBackground,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../../context/AuthContext';
+import { AppNavigation } from '../../types/type';
+import { useAddressStore } from '../../store/address';
+
+const ProfileScreen = ({ navigation }: AppNavigation) => {
+    const { user, logout } = useAuth();
+    const { addresses } = useAddressStore();
+
+    const handleLogout = async () => {
+        await logout();
+        navigation.navigate('Login');
+    };
+
+    const userName = user?.name || 'Aarav Sharma';
+    const userPhone = user?.phone || '+91 98765 43210';
+    const userEmail = user?.email || 'user@example.com';
+    const profileImage = user?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuClxugtUhOT6wBRBzOvx60J2lF-buvzEq23lthDe0aQaTZ2NyHTPDRlwkrzwmNwQEwzId_ztFCpwVmleJhVkb7UF0s5Z3bh4o1HXP7OBxIiOBC8KA5KsRlEsTFPS_jXSx6D3Jk9UW-CwYc7mMQrNMIik_C_tMEDah4MnVTGxD9jz37Srm17FenGuGnULNvrVRV8euGpE7t9LddBH2qD5YCJmM5ZyIPN8EJx-EYlDivxkMh4TcEuHf4DD5mw2CLN9D25HqBJS1GqopZy';
+
+    const addressesCount = addresses?.length || 0;
+
+    return (
+        <SafeAreaView style={styles.container}>
+            {/* Header Gradient Background */}
+            <ImageBackground
+                source={{ uri: 'https://www.transparenttextures.com/patterns/subtle-zebra-3d.png' }}
+                style={styles.headerBackground}
+                imageStyle={styles.textureOverlay}>
+                <LinearGradient
+                    colors={['#8719C6', '#b58ff0']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.headerGradient}>
+                    <View style={styles.headerContent}>
+                        <View style={styles.profileImageContainer}>
+                            <Image
+                                source={{ uri: profileImage }}
+                                style={styles.profileImage}
+                            />
+                        </View>
+                        <View style={styles.profileInfo}>
+                            <Text style={styles.profileName}>{userName}</Text>
+                            <Text style={styles.profilePhone}>{userPhone}</Text>
+                            <Text style={styles.profileEmail}>{userEmail}</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.editProfileButton}
+                            // onPress={() => navigation.navigate('EditProfile')}
+                        >
+                            <Text style={styles.editProfileText}>Edit Profile</Text>
+                        </TouchableOpacity>
+                    </View>
+                </LinearGradient>
+            </ImageBackground>
+
+            {/* Grid Cards */}
+            <View style={styles.gridContainer}>
+                <TouchableOpacity
+                    style={styles.card}
+                    onPress={() => navigation.navigate('MyOrders')}
+                >
+                    <MaterialIcons name="receipt-long" size={24} color="#8719C6" />
+                    <View style={styles.cardText}>
+                        <Text style={styles.cardTitle}>My Orders</Text>
+                        <Text style={styles.cardSubtitle}>0 Active</Text>
+                    </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.card}
+                    onPress={() => navigation.navigate('Wallet')}
+                >
+                    <MaterialIcons name="account-balance-wallet" size={24} color="#8719C6" />
+                    <View style={styles.cardText}>
+                        <Text style={styles.cardTitle}>Wallet</Text>
+                        <Text style={styles.cardSubtitle}>₹0.0</Text>
+                    </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.card}
+                    onPress={() => navigation.navigate('Address')}
+                >
+                    <MaterialIcons name="location-on" size={24} color="#8719C6" />
+                    <View style={styles.cardText}>
+                        <Text style={styles.cardTitle}>Addresses</Text>
+                        <Text style={styles.cardSubtitle}>{addressesCount} Saved</Text>
+                    </View>
+                </TouchableOpacity>
+            </View>
+
+            {/* Menu List */}
+            <View style={styles.menuContainer}>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => navigation.navigate('HelpSupport')}
+                >
+                    <View style={styles.menuItemContent}>
+                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
+                            <MaterialIcons name="support-agent" size={24} color="#8719C6" />
+                        </View>
+                        <Text style={styles.menuItemTitle}>Help & Support</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => navigation.navigate('HowToTrackOrder')}
+                >
+                    <View style={styles.menuItemContent}>
+                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
+                            <MaterialIcons name="delivery-dining" size={24} color="#8719C6" />
+                        </View>
+                        <Text style={styles.menuItemTitle}>How to Track Order</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => navigation.navigate('TermsAndConditions')}
+                >
+                    <View style={styles.menuItemContent}>
+                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
+                            <MaterialIcons name="description" size={24} color="#8719C6" />
+                        </View>
+                        <Text style={styles.menuItemTitle}>Terms & Conditions</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => navigation.navigate('PrivacyPolicy')}
+                >
+                    <View style={styles.menuItemContent}>
+                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
+                            <MaterialIcons name="policy" size={24} color="#8719C6" />
+                        </View>
+                        <Text style={styles.menuItemTitle}>Privacy Policy</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuItemBottom}
+                    onPress={handleLogout}
+                >
+                    <View style={styles.menuItemContent}>
+                        <View style={styles.logoutIconContainer}>
+                            <MaterialIcons name="logout" size={24} color="#ef4444" />
+                        </View>
+                        <Text style={styles.logoutTitle}>Logout</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                </TouchableOpacity>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+                <Text style={styles.footerVersion}>Version 1.0.2</Text>
+                <Text style={styles.footerText}>Made with ❤️ in India</Text>
+            </View>
+        </SafeAreaView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#fafafa',
+    },
+    headerBackground: {
+        width: '100%',
+        height: 260,
+        justifyContent: 'flex-end',
+    },
+    textureOverlay: {
+        borderBottomLeftRadius: 48,
+        borderBottomRightRadius: 48,
+        opacity: 0.1,
+    },
+    headerGradient: {
+        flex: 1,
+        padding: 16,
+        paddingBottom: 48,
+        borderBottomLeftRadius: 48,
+        borderBottomRightRadius: 48,
+        justifyContent: 'flex-end',
+    },
+    headerContent: {
+        flex: 1,
+        alignItems: 'center',
+        gap: 16,
+    },
+    profileImageContainer: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        overflow: 'hidden',
+    },
+    profileImage: {
+        width: '100%',
+        height: '100%',
+    },
+    profileInfo: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    profileName: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: 'white',
+        lineHeight: 26,
+        letterSpacing: -0.33,
+    },
+    profilePhone: {
+        fontSize: 16,
+        fontWeight: '400',
+        color: 'rgba(255, 255, 255, 0.8)',
+        lineHeight: 24,
+    },
+    profileEmail: {
+        fontSize: 14,
+        fontWeight: '400',
+        color: 'rgba(255, 255, 255, 0.7)',
+        lineHeight: 20,
+    },
+    editProfileButton: {
+        minWidth: 84,
+        height: 36,
+        backgroundColor: 'white',
+        borderRadius: 9999,
+        paddingHorizontal: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    editProfileText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#8719C6',
+        lineHeight: 20,
+        letterSpacing: 0.21,
+    },
+    gridContainer: {
+        flexDirection: 'row',
+        gap: 12,
+        padding: 16,
+    },
+    card: {
+        flex: 1,
+        flexDirection: 'column',
+        gap: 12,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        backgroundColor: 'white',
+        padding: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 1,
+    },
+    cardText: {
+        flexDirection: 'column',
+        gap: 4,
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#1e293b',
+        lineHeight: 20,
+    },
+    cardSubtitle: {
+        fontSize: 14,
+        fontWeight: '400',
+        color: '#64748b',
+        lineHeight: 20,
+    },
+    menuContainer: {
+        flexDirection: 'column',
+        gap: 1,
+        padding: 16,
+    },
+    menuItemTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'white',
+        paddingHorizontal: 16,
+        minHeight: 56,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 1,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'white',
+        paddingHorizontal: 16,
+        minHeight: 56,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 1,
+    },
+    menuItemBottom: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'white',
+        paddingHorizontal: 16,
+        minHeight: 56,
+        borderBottomLeftRadius: 16,
+        borderBottomRightRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 1,
+    },
+    menuItemContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        flex: 1,
+    },
+    menuIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    logoutIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    },
+    menuItemTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1e293b',
+        lineHeight: 24,
+        flex: 1,
+    },
+    logoutTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#ef4444',
+        lineHeight: 24,
+        flex: 1,
+    },
+    footer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        padding: 32,
+    },
+    footerVersion: {
+        fontSize: 14,
+        fontWeight: '400',
+        color: '#64748b',
+        textAlign: 'center',
+    },
+    footerText: {
+        fontSize: 14,
+        fontWeight: '400',
+        color: '#9ca3af',
+        textAlign: 'center',
+    },
+});
+
+export default ProfileScreen;

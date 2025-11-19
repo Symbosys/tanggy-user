@@ -59,7 +59,7 @@ const PrivacyPolicy = ({ navigation }: AppNavigation) => {
     };
 
     const handleEmailPress = () => {
-        Linking.openURL("mailto:support@mintafresh.com");
+        Linking.openURL("mailto:customercare@mintaclub.com");
     };
 
     return (
@@ -118,67 +118,172 @@ const PrivacyPolicy = ({ navigation }: AppNavigation) => {
             >
                 {/* Sub-header */}
                 <View style={styles.subHeader}>
-                    <Text style={styles.subHeaderText}>Your privacy and data protection are our top priorities.</Text>
-                    <Text style={styles.lastUpdated}>Last updated on: 20 October 2025</Text>
+                    <Text style={styles.subHeaderText}>This privacy policy sets out how mintaclub.com uses and protects any information that you give mintaclub.com when you use this website. mintaclub.com is committed to ensuring that your privacy is protected. Should we ask you to provide certain information by which you can be identified when using this website, then you can be assured that it will only be used in accordance with this privacy statement. mintaclub.com may change this policy from time to time by updating this page. You should check this page from time to time to ensure that you are happy with any changes.</Text>
+                    <Text style={styles.lastUpdated}>Last Updated: November 09, 2025</Text>
                 </View>
 
                 {/* Content Card */}
                 <View style={styles.contentCard}>
-                    {/* Introduction */}
+                    {/* Consent & terms of this Privacy Policy */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="info" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>Introduction</Text>
+                            <Text style={styles.sectionTitle}>1. Consent & terms of this Privacy Policy</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            Welcome to MintaFresh. We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application. Please read this privacy policy carefully.
+                            By using our platform (website, application or services), you have voluntarily agreed to consent & abide with this privacy policy. You have the option to disagree to abide by our privacy policy; if you choose disagree, you will not be able to access any portion of our platform or gain access to services provided on this platform.
                         </Text>
                     </View>
 
-                    {/* Information We Collect */}
+                    {/* What we collect */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="storage" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>Information We Collect</Text>
+                            <Text style={styles.sectionTitle}>2. What we collect</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            We may collect information about you in a variety of ways. The information we may collect via the Application includes personal data, such as your name, shipping address, email address, and telephone number, and demographic information, such as your age, gender, and interests, that you voluntarily give to us when you register with the Application.
+                            We may collect the following information:
+                            • name
+                            • contact information including email address
+                            • demographic information such as postcode, preferences and interests
+                            • other information relevant to customer surveys and/or offers
+                            For the exhaustive list of cookies we collect see the List of cookies we collect section.
                         </Text>
                     </View>
 
-                    {/* How We Use Your Information */}
+                    {/* What we do with the information we gather */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="settings" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>How We Use Your Information</Text>
+                            <Text style={styles.sectionTitle}>3. What we do with the information we gather</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            Having accurate information about you permits us to provide you with a smooth, efficient, and customized experience. Specifically, we may use information collected about you via the Application to create and manage your account, process your orders, and deliver products to you.
+                            We require this information to understand your needs and provide you with a better service, and in particular for the following reasons:
+                            • Internal record keeping.
+                            • We may use the information to improve our products and services.
+                            • We may periodically send promotional emails about new products, special offers or other information which we think you may find interesting using the email address which you have provided.
+                            • From time to time, we may also use your information to contact you for market research purposes. We may contact you by email, phone, fax or mail. We may use the information to customise the website according to your interests.
+                            • Without identifying you personally we may use your information to provide updates on our service offerings and promotional schemes through third party advertising partners ('TPAP'). Our TPAP may use cookies on our website as well as third party websites and social media platforms to understand customer interests to provide updates on our latest service offerings and promotional schemes that are akin to your interests. Our TPAP provide you with complete control over ads experience and you can remove ads shown to you.
                         </Text>
                     </View>
 
-                    {/* Data Security */}
+                    {/* Security */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="security" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>Data Security</Text>
+                            <Text style={styles.sectionTitle}>4. Security</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            We use administrative, technical, and physical security measures to help protect your personal information. While we have taken reasonable steps to secure the personal information you provide to us, please be aware that despite our efforts, no security measures are perfect or impenetrable.
+                            We are committed to ensuring that your information is secure. In order to prevent unauthorised access or disclosure, we have put in place suitable physical, electronic and managerial procedures to safeguard and secure the information we collect online.
                         </Text>
                     </View>
 
-                    {/* Contact Us */}
+                    {/* How we use cookies */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="cookies" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>5. How we use cookies</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            A cookie is a small file which asks permission to be placed on your computer's hard drive. Once you agree, the file is added and the cookie helps analyse web traffic or lets you know when you visit a particular site. Cookies allow web applications to respond to you as an individual. The web application can tailor its operations to your needs, likes and dislikes by gathering and remembering information about your preferences.
+                            We use traffic log cookies to identify which pages are being used. This helps us analyse data about web page traffic and improve our website in order to tailor it to customer needs. We only use this information for statistical analysis purposes and then the data is removed from the system.
+                            Overall, cookies help us provide you with a better website, by enabling us to monitor which pages you find useful and which you do not. A cookie in no way gives us access to your computer or any information about you, other than the data you choose to share with us. You can choose to accept or decline cookies. Most web browsers automatically accept cookies, but you can usually modify your browser setting to decline cookies if you prefer. This may prevent you from taking full advantage of the website.
+                        </Text>
+                    </View>
+
+                    {/* Links to other websites */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="link" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>6. Links to other websites</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            Our website may contain links to other websites of interest. However, once you have used these links to leave our site, you should note that we do not have any control over that other website. Therefore, we cannot be responsible for the protection and privacy of any information which you provide whilst visiting such sites and such sites are not governed by this privacy statement. You should exercise caution and look at the privacy statement applicable to the website in question.
+                        </Text>
+                    </View>
+
+                    {/* Controlling your personal information */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="settings" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>7. Controlling your personal information</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            You may choose to restrict the collection or use of your personal information in the following ways:
+                            • whenever you are asked to fill in a form on the website, look for the box that you can click to indicate that you do not want the information to be used by anybody for direct marketing purposes
+                            • if you have previously agreed to us using your personal information for direct marketing purposes, you may change your mind at any time by writing to or emailing us at customercare@mintaclub.com
+                            We will not sell, distribute or lease your personal information to third parties unless we have your permission or are required by law to do so. We may use your personal information to send you promotional information about third parties which we think you may find interesting if you tell us that you wish this to happen.
+                            You may request details of personal information which we hold about you under the Data Protection Act 1998. A small fee will be payable. If you would like a copy of the information held on you please write to us at customercare@mintaclub.com. If you believe that any information we are holding on you is incorrect or incomplete, please write to or email us as soon as possible, at the above address. We will promptly correct any information found to be incorrect.
+                        </Text>
+                    </View>
+
+                    {/* How can a user opt not to disclose information with FTH? */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="block" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>8. How can a user opt not to disclose information with FTH?</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            You have the option of not disclosing Your Sensitive Personal Data or Information to Us. You can also ask us to remove your data from our database by sending a mail to us at customercare@mintaclub.com. In the event that You choose not to disclose Sensitive Personal Information, you may not be able to access multiple areas of the Platform or avail our e-commerce facility / services provided on the Platform.
+                        </Text>
+                    </View>
+
+                    {/* Marketing & promotional activity */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="campaign" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>9. Marketing & promotional activity</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            FTH may use your information to provide you with better platform user-experience, send information on products and services which may be of interest to you, send via Short Messaging Services (SMS) marketing promotions, and share such personal information to our business partners on a need-to-know basis to render effective services for better customer experience.
+                        </Text>
+                    </View>
+
+                    {/* What is NDNC Policy? */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="call" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>10. What is NDNC Policy?</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            By using the Platform, you hereby authorize Us to contact You via email, phone, or SMS (Short Message Service), other applications (android or apple) linked to phone number on the contact details so provided, to furnish You with information about Our Products, Services, product delivery, marketing promotions, & other allied services offered by FTH on its platform. This authorization is licit for the mentioned purposes irrespective of whether You are registered with the NDNC (National Do Not Call) registry.
+                        </Text>
+                    </View>
+
+                    {/* Indemnity */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="gavel" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>11. Indemnity</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            You agree to indemnify and hold FTH harmless from:(i) any actions, claims, demands, suits, damages, losses, penalties, interest and other charges and expenses (including legal fees and other dispute resolution costs) made by any third party due to or arising out of any violation of the terms of this Policy; (ii)any acts or deeds, including for any non-compliance or violation, of any applicable law, rules, regulations on Your part; or (iii) for violations committed by You.
+                        </Text>
+                    </View>
+
+                    {/* Governing Law & Severability */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Icon name="gavel" size={20} color={ACCENT_COLOR} />
+                            <Text style={styles.sectionTitle}>12. Governing Law & Severability</Text>
+                        </View>
+                        <Text style={styles.sectionText}>
+                            The invalidity or unenforceability of any part of this Policy shall not prejudice or affect the validity or enforceability of the remainder of this Policy. This Policy has been prepared under the provisions of the Indian Information Technology Act, 2000 ("IT Act") and its corresponding rules as enshrined under the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011 ("IT Rules") to monitor information (including sensitive personal data or information) collected, received, possessed, stored, dealt with, or handled by FTH.
+                        </Text>
+                    </View>
+
+                    {/* Grievances */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Icon name="mail" size={20} color={ACCENT_COLOR} />
-                            <Text style={styles.sectionTitle}>Contact Us</Text>
+                            <Text style={styles.sectionTitle}>13. Grievances</Text>
                         </View>
                         <Text style={styles.sectionText}>
-                            If you have questions or comments about this Privacy Policy, please contact us at:{" "}
-                            <TouchableOpacity onPress={handleEmailPress}>
-                                <Text style={styles.emailLink}>support@mintafresh.com</Text>
-                            </TouchableOpacity>
+                            Should you have any grievances about the processing of your personal information or the privacy policy, you may contact:
+
+                            Minta Club Private Limited
+                            HI-76, Harmu Colony, Ranchi - 834002
+                            Email: info@mintaclub.com
                         </Text>
                     </View>
                 </View>
