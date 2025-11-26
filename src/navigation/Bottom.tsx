@@ -1,17 +1,15 @@
-import React from 'react';
-import { Animated, StyleSheet, Text, View, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { Animated, Platform, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
+import MyAccountScreen from '../screens/tabs/Accounts';
 import CategoryScreen from '../screens/tabs/Category';
-import HomeScreen from '../screens/tabs/Home';
-import ProfileScreen from '../screens/tabs/Profile';
-import SearchScreen from '../screens/tabs/Search';
 import Discount from '../screens/tabs/Discount';
+import HomeScreen from '../screens/tabs/Home';
+import SearchScreen from '../screens/tabs/Search';
 import { COLORS } from '../theme/theme';
 import { AppNavigation } from '../types/type';
-import MyAccountScreen from '../screens/tabs/Accounts';
 
 export type RootTabParamList = {
   Home: undefined;

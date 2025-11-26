@@ -1,133 +1,49 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  Easing,
-} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { NavigationProp } from '@react-navigation/native';
-import { RootStackParamList } from '../../types/type';
-import { COLORS } from "../../theme/theme";
+import Video from 'react-native-video';
+import { AppNavigation } from '../../types/type';
 
-const { width, height } = Dimensions.get('window');
-
-const Splash = ({
-  navigation,
-}: {
-  navigation: NavigationProp<RootStackParamList>;
-}) => {
-  const letters = ['M', 'i', 'n', 't', 'a'];
-
-  const letterAnims = letters.map(() => useRef(new Animated.Value(0)).current);
-  const glowOpacity = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+const Splash = ({ navigation }: AppNavigation) => {
+  const [ready, setReady] = useState(false);
 
   const { isAuthenticated, hasSkippedLogin } = useAuth();
 
   useEffect(() => {
-    // Animate letters
-    const letterAnimations = letters.map((_, index) =>
-      Animated.timing(letterAnims[index], {
-        toValue: 1,
-        duration: 500,
-        delay: index * 200,
-        easing: Easing.out(Easing.bounce),
-        useNativeDriver: true,
-      }),
-    );
+    if (!ready) return;
 
-    // Glow animation
-    const glowAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowOpacity, {
-          toValue: 0.6,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowOpacity, {
-          toValue: 0.2,
-          duration: 1500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    // Scale animation
-    const scaleAnimation = Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: 1000,
-      easing: Easing.out(Easing.elastic(1)),
-      useNativeDriver: true,
-    });
-
-    Animated.sequence([
-      Animated.parallel([scaleAnimation, Animated.stagger(100, letterAnimations)]),
-      glowAnimation,
-    ]).start();
-
-    // Delay before routing
     const timeout = setTimeout(() => {
-      // Decide where to navigate
-      if (isAuthenticated) {
-        navigation.navigate('BottomTab'); // User logged in or skipped login
-      } else if (hasSkippedLogin) {
-        navigation.navigate('BottomTab'); // Guest flow
+      if (isAuthenticated || hasSkippedLogin) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "BottomTab" }],
+        });
       } else {
-        navigation.navigate('Login'); // Fresh user
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
       }
-    }, 3000);
+    }, 2000);
 
     return () => clearTimeout(timeout);
-  }, [isAuthenticated, hasSkippedLogin, letterAnims, glowOpacity, scaleAnim, navigation]);
+  }, [ready]);
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.glowOverlay, { opacity: glowOpacity }]} />
+      <Video
+        source={require('../../assets/video/splash.mp4')}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
 
-      {/* Animated Logo */}
-      <Animated.View
-        style={[
-          styles.textRow,
-          { transform: [{ scale: scaleAnim }] },
-        ]}
-      >
-        {letters.map((char, index) => (
-          <Animated.Text
-            key={index}
-            style={[
-              styles.letter,
-              {
-                opacity: letterAnims[index],
-                transform: [
-                  {
-                    translateY: letterAnims[index].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [50, 0],
-                    }),
-                  },
-                  {
-                    rotate: letterAnims[index].interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['10deg', '0deg'],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            {char}
-          </Animated.Text>
-        ))}
-      </Animated.View>
-
-      <Text style={styles.tagline}>Fresh Chicken, Delivered Fast!</Text>
-
-      <View style={styles.decorativeCircle} />
+        // KEY FIXES
+        onLoad={() => setReady(true)}      // ensures first frame is ready
+        poster={require('../../assets/video/splash.mp4')}  // first frame
+        posterResizeMode="cover"
+        // posterStyle={StyleSheet.absoluteFill}
+        muted
+        repeat
+      />
     </View>
   );
 };
@@ -137,46 +53,6 @@ export default Splash;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.secondary,
-  },
-  glowOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  textRow: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    zIndex: 2,
-  },
-  letter: {
-    fontSize: 60,
-    fontWeight: '700',
-    color: COLORS.highlight,
-    marginHorizontal: 6,
-    fontFamily: 'cursive',
-    textShadowColor: 'rgba(255, 159, 163, 0.7)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 10,
-  },
-  tagline: {
-    fontSize: 20,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-    marginBottom: 40,
-    fontStyle: 'italic',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 2 },
-    textShadowRadius: 6,
-  },
-  decorativeCircle: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    bottom: 100,
-    opacity: 0.6,
+    backgroundColor: '#000',  // prevents white flash
   },
 });

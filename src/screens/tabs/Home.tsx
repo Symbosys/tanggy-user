@@ -1,6 +1,7 @@
+import { AxiosError } from 'axios';
+import { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
-  Image,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -8,24 +9,26 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Alert,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { AxiosError } from 'axios';
-import { useEffect, useState, useRef } from 'react';
 import Toast from 'react-native-toast-message';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import Video, { VideoRef } from 'react-native-video';
 import api from '../../api/api';
-import { Category, Product } from '../../types/product.type';
-import { AppNavigation } from '../../types/type';
+import CategoryList from '../../components/ui/CategoryList';
+import ProductCard from '../../components/ui/products/Product';
 import { useAuth } from '../../context/AuthContext';
 import { getAllProducts } from '../../services/product.service';
+import { useAlertStore } from '../../store/alert.store';
 import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
-import { parseToDecimal, ErrorMessage } from '../../utils/utils';
 import { COLORS } from '../../theme/theme';
-import ProductCard from '../../components/ui/products/Product';
-import CategoryList from '../../components/ui/CategoryList';
-import Video, { VideoRef } from 'react-native-video';
+import { Category, Product } from '../../types/product.type';
+import { AppNavigation } from '../../types/type';
+import { ErrorMessage, parseToDecimal } from '../../utils/utils';
+import HomeLoading from '../../components/skeleton/HomeSkeleton';
+import { RefreshControl } from 'react-native-gesture-handler';
+import OverlayLoader from '../../components/skeleton/OverLayLoader';
+import LinearGradient from 'react-native-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -34,12 +37,25 @@ export default function HomeScreen({ navigation }: AppNavigation) {
   const [bestSellerProducts, setBestSellerProducts] = useState<Product[]>([]);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
-  const videoRef = useRef<VideoRef>(null);
-  const { latitude, longitude } = useLocationStore();
-  const { userId, isAuthenticated } = useAuth();
-  const { totalItems: totalCartItems, subtotal: subTotal, fetchCart, addToCart } = useCartStore();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  console.log("cartItems", totalCartItems, subTotal, isAuthenticated, userId);
+  const videoRef = useRef<VideoRef>(null);
+  const { latitude, longitude, primaryLocation, secondaryLocation } =
+    useLocationStore();
+  const { userId, isAuthenticated } = useAuth();
+  const {
+    totalItems: totalCartItems,
+    subtotal: subTotal,
+    fetchCart,
+    addToCart,
+  } = useCartStore();
+
+  console.log('isAuthenticated', isAuthenticated);
+
+  // Zustand Store Hook
+  const { showAlert } = useAlertStore();
+
+  console.log('cartItems', totalCartItems, subTotal, isAuthenticated, userId);
 
   const fetchCategories = async () => {
     try {
@@ -49,12 +65,12 @@ export default function HomeScreen({ navigation }: AppNavigation) {
       if (error instanceof AxiosError) {
         Toast.show({
           type: 'error',
-          text1: error.response?.data.message || "Something went wrong",
+          text1: error.response?.data.message || 'Something went wrong',
         });
       } else {
         Toast.show({
           type: 'error',
-          text1: "Something went wrong",
+          text1: 'Something went wrong',
         });
       }
     }
@@ -67,7 +83,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
         lng: longitude ?? undefined,
         isActive: true,
         userId: userId ?? undefined,
-        isBestSeller: true
+        isBestSeller: true,
       });
       console.log('Best seller products:', response.data);
       setBestSellerProducts(response.data.products);
@@ -83,20 +99,38 @@ export default function HomeScreen({ navigation }: AppNavigation) {
         lng: longitude ?? undefined,
         isActive: true,
         userId: userId ?? undefined,
-        isRecommended: true
+        isRecommended: true,
       });
       setRecommendedProducts(response.data.products);
       console.log('Recommended products:', response.data);
     } catch (error) {
       ErrorMessage(error as AxiosError | Error);
     }
-  }
+  };
 
+  // Unified Data Fetching with Loading State
   useEffect(() => {
-    fetchCategories();
-    fetchBestSellerProducts();
-    if (userId) fetchCart();
-    if (userId) fetchRecommendedProducts();
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        // We use Promise.allSettled so one failure doesn't stop others
+        await Promise.allSettled([
+          fetchCategories(),
+          fetchBestSellerProducts(),
+          userId ? fetchCart() : Promise.resolve(),
+          userId ? fetchRecommendedProducts() : Promise.resolve(),
+        ]);
+      } catch (error) {
+        console.error('Error loading home data', error);
+      } finally {
+        // Add a small delay for smoothness or set false immediately
+        setIsLoading(false);
+      }
+    };
+
+    setTimeout(() => {
+      loadData();
+    }, 500);
   }, [latitude, longitude, userId]);
 
   // Ensure video starts playing once ready
@@ -115,19 +149,20 @@ export default function HomeScreen({ navigation }: AppNavigation) {
   };
 
   const handleNavigateToDetails = (product: Product) => {
-    navigation.navigate("ProductDetails", { product });
+    navigation.navigate('ProductDetails', { product });
   };
 
   const handleAddToCart = async (productId: number, quantity: number = 1) => {
     if (!isAuthenticated) {
-      Alert.alert(
-        "Login Required",
-        "You need to log in to add this product to your cart.",
-        [
-          { text: "Login", onPress: () => navigation.navigate("Login") },
-          { text: "Cancel", style: "cancel" },
-        ]
-      );
+      // Trigger Global Alert via Zustand
+      showAlert({
+        title: 'Login Required',
+        message: 'You need to log in to add this product to your cart.',
+        confirmText: 'Login',
+        cancelText: 'Cancel',
+        onConfirm: () => navigation.navigate('Login'),
+        // onCancel defaults to just closing the modal
+      });
       return;
     }
 
@@ -155,6 +190,11 @@ export default function HomeScreen({ navigation }: AppNavigation) {
 
   const bestsellerProducts = bestSellerProducts;
 
+  // Render Loading State
+  if (isLoading) {
+    return <HomeLoading />;
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
@@ -162,6 +202,20 @@ export default function HomeScreen({ navigation }: AppNavigation) {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => {
+              setIsLoading(true);
+              setTimeout(() => {
+                fetchCategories();
+                fetchBestSellerProducts();
+                fetchRecommendedProducts();
+                setIsLoading(false);
+              }, 500);
+            }}
+          />
+        }
       >
         {/* Header with Gradient Background */}
         <View style={styles.headerContainer}>
@@ -180,17 +234,37 @@ export default function HomeScreen({ navigation }: AppNavigation) {
           />
           <View style={styles.videoOverlay} />
           <View style={styles.topBar}>
-            <View style={styles.locationContainer}>
-              <Icon name="location-on" size={24} color={COLORS.white} />
+            {/* --- LOCATION SECTION --- */}
+            <TouchableOpacity
+              style={styles.locationContainer}
+              onPress={() => navigation.navigate('select_your_location')}
+              activeOpacity={0.8}
+            >
+              <Icon name="location-on" size={28} color={COLORS.white} />
               <View style={styles.locationTextContainer}>
+                {/* Primary Location (Top) */}
                 <View style={styles.locationRow}>
-                  <Text style={styles.locationText}>
-                    Delivering to: Kanke, Ranchi
+                  <Text
+                    style={styles.primaryLocationText}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {primaryLocation || 'Select Location'}
                   </Text>
-                  <Icon name="expand-more" size={16} color={COLORS.white} />
+                  <Icon name="expand-more" size={20} color={COLORS.white} />
                 </View>
+                {/* Secondary Location (Bottom) */}
+                <Text
+                  style={styles.secondaryLocationText}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {secondaryLocation || 'Tap to set address'}
+                </Text>
               </View>
-            </View>
+            </TouchableOpacity>
+            {/* --------------------------------- */}
+
             <TouchableOpacity
               style={styles.profileButton}
               onPress={() => navigation.navigate('Profile')}
@@ -214,7 +288,12 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             onPress={handleSearchPress}
             activeOpacity={0.7}
           >
-            <Icon name="search" size={24} color={COLORS.muted} style={styles.searchIcon} />
+            <Icon
+              name="search"
+              size={24}
+              color={COLORS.muted}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="Search for chicken, meat, or dishes…"
@@ -235,7 +314,14 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Recommended For You</Text>
-                <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("CategoryResults", { categoryName: 'Recommended For You' })}>
+                <TouchableOpacity
+                  style={styles.seeAllButton}
+                  onPress={() =>
+                    navigation.navigate('CategoryResults', {
+                      categoryName: 'Recommended For You',
+                    })
+                  }
+                >
                   <Text style={styles.seeAllText}>See All</Text>
                   <Icon name="arrow-forward" size={16} color={COLORS.primary} />
                 </TouchableOpacity>
@@ -245,12 +331,12 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.productScroll}
               >
-                {recommendedProducts.map((product) => (
+                {recommendedProducts.map(product => (
                   <ProductCard
                     key={product.id}
                     product={product}
                     onPress={() => handleNavigateToDetails(product)}
-                    onAddToCart={(e) => {
+                    onAddToCart={e => {
                       e.stopPropagation();
                       handleAddToCart(Number(product.id), 1);
                     }}
@@ -259,14 +345,20 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 ))}
               </ScrollView>
             </View>
-
           )}
 
           {/* Bestsellers Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Bestsellers 🔥</Text>
-              <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("CategoryResults", { categoryName: 'Bestsellers' })}>
+              <TouchableOpacity
+                style={styles.seeAllButton}
+                onPress={() =>
+                  navigation.navigate('CategoryResults', {
+                    categoryName: 'Bestsellers',
+                  })
+                }
+              >
                 <Text style={styles.seeAllText}>See All</Text>
                 <Icon name="arrow-forward" size={16} color={COLORS.primary} />
               </TouchableOpacity>
@@ -276,12 +368,12 @@ export default function HomeScreen({ navigation }: AppNavigation) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.productScroll}
             >
-              {bestsellerProducts.map((product) => (
+              {bestsellerProducts.map(product => (
                 <ProductCard
                   key={product.id}
                   product={product}
                   onPress={() => handleNavigateToDetails(product)}
-                  onAddToCart={(e) => {
+                  onAddToCart={e => {
                     e.stopPropagation();
                     handleAddToCart(Number(product.id), 1);
                   }}
@@ -297,7 +389,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
       </ScrollView>
 
       {/* Floating Cart Button */}
-      {totalCartItems > 0 && isAuthenticated && (
+      {/* {totalCartItems > 0 && isAuthenticated && (
         <View style={styles.floatingCartContainer}>
           <TouchableOpacity
             style={styles.cartButton}
@@ -306,8 +398,12 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             <View style={styles.cartLeft}>
               <Icon name="shopping-cart" size={32} color={COLORS.white} />
               <View style={styles.cartDetails}>
-                <Text style={styles.cartItems}>{totalCartItems} {totalCartItems > 1 ? 'Items' : 'Item'}</Text>
-                <Text style={styles.cartTotal}>₹{parseToDecimal(subTotal).toFixed(2)}</Text>
+                <Text style={styles.cartItems}>
+                  {totalCartItems} {totalCartItems > 1 ? 'Items' : 'Item'}
+                </Text>
+                <Text style={styles.cartTotal}>
+                  ₹{parseToDecimal(subTotal).toFixed(2)}
+                </Text>
               </View>
             </View>
             <View style={styles.cartArrowButton}>
@@ -315,10 +411,37 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             </View>
           </TouchableOpacity>
         </View>
+      )} */}
+
+      {totalCartItems > 0 && isAuthenticated && (
+        <LinearGradient
+          colors={['#000000', '#000000']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.viewCartBar}
+        >
+          <View>
+            <Text style={styles.viewCartItems}>{totalCartItems} {totalCartItems > 1 ? 'Items' : 'Item' } | ₹{parseToDecimal(subTotal).toFixed(2)}</Text>
+            <Text style={styles.viewCartNote}>Extra charges may apply</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('Cart')} >
+            <LinearGradient
+              colors={BUTTON_GRADIENT}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.viewCartButton}
+            >
+              <Text style={styles.viewCartText}>View Cart</Text>
+              <Icon name="arrow-forward" size={20} color={COLORS.white} />
+            </LinearGradient>
+          </TouchableOpacity>
+        </LinearGradient>
       )}
     </View>
   );
 }
+
+const BUTTON_GRADIENT = ['#6A0DAD', '#D8B4FF'];
 
 const styles = StyleSheet.create({
   container: {
@@ -360,23 +483,38 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 10,
   },
+  // --- Location Styles ---
   locationContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginRight: 12,
   },
   locationTextContainer: {
+    flex: 1,
     flexDirection: 'column',
+    marginLeft: 8,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  locationText: {
+  primaryLocationText: {
     color: COLORS.white,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
+    marginRight: 4,
+    maxWidth: '80%',
   },
+  secondaryLocationText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    // Reduced font size so more text fits before truncating
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+    maxWidth: '90%',
+  },
+  // -------------------------------
   profileButton: {
     width: 40,
     height: 40,
@@ -512,20 +650,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  viewCartBar: {
+    position: 'absolute',
+    bottom: 12,
+    left: 16,
+    right: 16,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 70,
+  },
+  viewCartItems: { color: COLORS.white, fontWeight: '700' },
+  viewCartNote: { color: 'rgba(255,255,255,0.85)', fontSize: 12 },
+  viewCartButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 40,
+  },
+  viewCartText: { color: COLORS.white, fontWeight: '700', marginRight: 6 },
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // HomeScreen.tsx
 // import {
@@ -759,7 +907,7 @@ const styles = StyleSheet.create({
 //             </View>
 
 //           )}
-          
+
 //           {/* Bestsellers Section */}
 //           <View style={styles.section}>
 //             <View style={styles.sectionHeader}>

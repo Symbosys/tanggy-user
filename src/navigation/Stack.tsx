@@ -24,6 +24,8 @@ import TrackOrder from '../screens/support/TrackOrder';
 import AISupportAssistantScreen from '../screens/support/AiAssistant';
 import ReportProblemScreen from '../screens/support/ReportIssue';
 import CartScreen from '../screens/cart/TestCart';
+import GlobalAlert from '../components/alert/LoginAlert';
+import TestAddAddress from '../screens/address/TestAddress';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -31,7 +33,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        // initialRouteName='BottomTab'
+        // initialRouteName='AddAddress'
       
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />
@@ -45,7 +47,7 @@ export default function StackNavigation() {
         <Stack.Screen name='CategoryResults' component={CategoryResults} />
 
         <Stack.Screen name='Address' component={MyAddressesScreen} />
-        <Stack.Screen name='AddAddress' component={AddAddress} />
+        <Stack.Screen name='AddAddress' component={TestAddAddress} />
 
         
         <Stack.Screen name='OrderPlaced' component={OrderConfirmationScreen} />
@@ -69,6 +71,8 @@ export default function StackNavigation() {
         <Stack.Screen name='ReportIssue' component={ReportProblemScreen} />
         <Stack.Screen name='AiAssistant' component={AISupportAssistantScreen} />
       </Stack.Navigator>
+
+      <GlobalAlert />
     </NavigationContainer>
   );
 }

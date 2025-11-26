@@ -1,43 +1,130 @@
+import React from 'react';
 import {
     Image,
     ImageBackground,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
+    StatusBar,
+    Dimensions
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../context/AuthContext';
 import { AppNavigation } from '../../types/type';
 import { useAddressStore } from '../../store/address';
+import { useProfile } from '../../hooks/useProfile';
+import { COLORS } from '../../theme/theme';
+
+const { width } = Dimensions.get('window');
 
 const ProfileScreen = ({ navigation }: AppNavigation) => {
-    const { user, logout } = useAuth();
+    const { logout, isAuthenticated, hasSkippedLogin } = useAuth();
     const { addresses } = useAddressStore();
+    const { data: user } = useProfile();
+
+    const userName = user?.name || 'Aarav Sharma';
+    const userPhone = user?.mobile || '+91 98765 43210';
+    const userEmail = user?.email || 'user@example.com';
+    const profileImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuClxugtUhOT6wBRBzOvx60J2lF-buvzEq23lthDe0aQaTZ2NyHTPDRlwkrzwmNwQEwzId_ztFCpwVmleJhVkb7UF0s5Z3bh4o1HXP7OBxIiOBC8KA5KsRlEsTFPS_jXSx6D3Jk9UW-CwYc7mMQrNMIik_C_tMEDah4MnVTGxD9jz37Srm17FenGuGnULNvrVRV8euGpE7t9LddBH2qD5YCJmM5ZyIPN8EJx-EYlDivxkMh4TcEuHf4DD5mw2CLN9D25HqBJS1GqopZy';
+    const addressesCount = addresses?.length || 0;
 
     const handleLogout = async () => {
         await logout();
-        navigation.navigate('Login');
+        navigation.reset({
+            index: 0,
+            routes: [{ name: "Login" }],
+        });
     };
 
-    const userName = user?.name || 'Aarav Sharma';
-    const userPhone = user?.phone || '+91 98765 43210';
-    const userEmail = user?.email || 'user@example.com';
-    const profileImage = user?.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuClxugtUhOT6wBRBzOvx60J2lF-buvzEq23lthDe0aQaTZ2NyHTPDRlwkrzwmNwQEwzId_ztFCpwVmleJhVkb7UF0s5Z3bh4o1HXP7OBxIiOBC8KA5KsRlEsTFPS_jXSx6D3Jk9UW-CwYc7mMQrNMIik_C_tMEDah4MnVTGxD9jz37Srm17FenGuGnULNvrVRV8euGpE7t9LddBH2qD5YCJmM5ZyIPN8EJx-EYlDivxkMh4TcEuHf4DD5mw2CLN9D25HqBJS1GqopZy';
+    const handleLoginNavigation = async () => {
+        await logout();
+        navigation.reset({
+            index: 0,
+            routes: [{ name: "Login" }],
+        });
+    };
 
-    const addressesCount = addresses?.length || 0;
+    // ---------------------------------------------------------
+    // 1. GUEST UI (If !isAuthenticated)
+    // ---------------------------------------------------------
+    if (!isAuthenticated) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: '#FFF' }]}>
+                <StatusBar barStyle="dark-content" backgroundColor={COLORS.primary} />
+                <View style={styles.guestContainer}>
 
+                    {/* Aesthetic Icon */}
+                    <View style={styles.guestIconWrapper}>
+                        <View style={styles.guestIconCircle}>
+                            <MaterialCommunityIcons name="chef-hat" size={60} color="#8719C6" />
+                        </View>
+                        <View style={styles.guestIconDecor} />
+                    </View>
+
+                    {/* Typography */}
+                    <Text style={styles.guestTitle}>Unlock the Full Experience</Text>
+                    <Text style={styles.guestSubtitle}>
+                        Log in to track orders, save your favorite cuts, and enjoy exclusive member rewards.
+                    </Text>
+
+                    {/* Benefits List */}
+                    <View style={styles.benefitContainer}>
+                        <View style={styles.benefitItem}>
+                            <MaterialIcons name="local-offer" size={24} color="#666" />
+                            <Text style={styles.benefitText}>Exclusive Deals</Text>
+                        </View>
+                        <View style={styles.divider} />
+                        <View style={styles.benefitItem}>
+                            <MaterialIcons name="history" size={24} color="#666" />
+                            <Text style={styles.benefitText}>Order History</Text>
+                        </View>
+                        <View style={styles.divider} />
+                        <View style={styles.benefitItem}>
+                            <MaterialIcons name="location-on" size={24} color="#666" />
+                            <Text style={styles.benefitText}>Saved Addresses</Text>
+                        </View>
+                    </View>
+
+                    {/* Login Button */}
+                    <TouchableOpacity
+                        style={styles.loginButton}
+                        activeOpacity={0.8}
+                        onPress={handleLoginNavigation}
+                    >
+                        <LinearGradient
+                            colors={[COLORS.primary, "#b58ff0"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.loginGradient}
+                        >
+                            <Text style={styles.loginButtonText}>Login / Sign Up</Text>
+                            <MaterialIcons name="arrow-forward" size={20} color="#FFF" />
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 2. AUTHENTICATED UI (Gradient Header & Grid)
+    // ---------------------------------------------------------
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+
             {/* Header Gradient Background */}
             <ImageBackground
                 source={{ uri: 'https://www.transparenttextures.com/patterns/subtle-zebra-3d.png' }}
                 style={styles.headerBackground}
                 imageStyle={styles.textureOverlay}>
                 <LinearGradient
-                    colors={['#8719C6', '#b58ff0']}
+                    colors={[COLORS.primary, COLORS.secondary]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.headerGradient}>
@@ -55,7 +142,7 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
                         </View>
                         <TouchableOpacity
                             style={styles.editProfileButton}
-                            // onPress={() => navigation.navigate('EditProfile')}
+                        // onPress={() => navigation.navigate('EditProfile')}
                         >
                             <Text style={styles.editProfileText}>Edit Profile</Text>
                         </TouchableOpacity>
@@ -175,6 +262,107 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fafafa',
     },
+    // --- GUEST UI STYLES ---
+    guestContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 30,
+        backgroundColor: '#FFF'
+    },
+    guestIconWrapper: {
+        marginBottom: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    guestIconCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: 'rgba(135, 25, 198, 0.08)', // Light Purple
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 2,
+    },
+    guestIconDecor: {
+        position: 'absolute',
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: 'rgba(135, 25, 198, 0.05)',
+        top: 10,
+        left: 10,
+        zIndex: 1,
+    },
+    guestTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#1e293b',
+        textAlign: 'center',
+        marginBottom: 12,
+        letterSpacing: 0.5,
+    },
+    guestSubtitle: {
+        fontSize: 15,
+        color: '#64748b',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 30,
+        paddingHorizontal: 10,
+    },
+    benefitContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#F9F9F9',
+        borderRadius: 16,
+        paddingVertical: 20,
+        paddingHorizontal: 10,
+        width: '100%',
+        marginBottom: 40,
+        borderWidth: 1,
+        borderColor: '#EEE',
+    },
+    benefitItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    benefitText: {
+        fontSize: 11,
+        color: '#555',
+        marginTop: 8,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    divider: {
+        width: 1,
+        height: 30,
+        backgroundColor: '#DDD',
+    },
+    loginButton: {
+        width: '100%',
+        borderRadius: 30,
+        overflow: 'hidden',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 8,
+    },
+    loginGradient: {
+        paddingVertical: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    loginButtonText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '700',
+        marginRight: 8,
+    },
+
+    // --- EXISTING AUTHENTICATED STYLES ---
     headerBackground: {
         width: '100%',
         height: 260,
@@ -245,7 +433,7 @@ const styles = StyleSheet.create({
     editProfileText: {
         fontSize: 14,
         fontWeight: '800',
-        color: '#8719C6',
+        color: COLORS.primary,
         lineHeight: 20,
         letterSpacing: 0.21,
     },
@@ -289,21 +477,6 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         gap: 1,
         padding: 16,
-    },
-    menuItemTop: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: 'white',
-        paddingHorizontal: 16,
-        minHeight: 56,
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 1,
     },
     menuItem: {
         flexDirection: 'row',

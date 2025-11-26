@@ -16,6 +16,7 @@ import { AxiosError } from 'axios';
 import api from '../../api/api';
 import { Category } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
+import { useAuth } from '../../context/AuthContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 const itemWidth = (screenWidth - 32 - 16) / 2; // Adjust for gap-4 (16px total gap)
@@ -24,6 +25,9 @@ const cardMinHeight = 260;
 const ExploreCategories = ({ navigation }: AppNavigation) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { isAuthenticated } = useAuth();
+  console.log(isAuthenticated);
 
   const fetchCategories = async () => {
     try {

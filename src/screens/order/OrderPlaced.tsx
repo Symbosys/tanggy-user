@@ -1,9 +1,8 @@
-import React from 'react';
 import {
-    View,
+    StyleSheet,
     Text,
     TouchableOpacity,
-    StyleSheet,
+    View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -17,7 +16,7 @@ const OrderConfirmationScreen = ({navigation}: AppNavigation) => {
         <SafeAreaView
             style={[
                 styles.container,
-                { paddingTop: insets.top, backgroundColor: COLORS.background },
+                { paddingTop: insets.top, backgroundColor: COLORS.background, marginTop: insets.top },
             ]}
         >
             {/* Header */}
@@ -84,6 +83,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingBottom: 8,
         justifyContent: 'space-between',
+        marginTop: 20,
     },
     headerButton: {
         width: 40,

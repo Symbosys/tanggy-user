@@ -3,7 +3,6 @@ import {
     Dimensions,
     Image,
     Modal,
-    SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
@@ -24,6 +23,8 @@ import {
 } from '../../utils/permissions/location';
 import { useLocationStore } from '../../store/location'
 import { AppNavigation } from '../../types/type';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { COLORS } from '../../theme/theme';
 
 const { height, width } = Dimensions.get('window');
 const OLA_API_KEY = 'AbLgb9uuCk5EsknyN9nd1hol4dk85ehUH7izgU1e';
@@ -48,7 +49,7 @@ interface PlaceDetails {
     };
 }
 
-function SetLocation({navigation}: AppNavigation) {
+function SetLocation({ navigation }: AppNavigation) {
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [hasLocationPermission, setHasLocationPermission] = useState<boolean>(false);
     const [selectedCoords, setSelectedCoords] = useState<{
@@ -58,6 +59,7 @@ function SetLocation({navigation}: AppNavigation) {
     const [currentAddress, setCurrentAddress] = useState('');
     const [loadingLocation, setLoadingLocation] = useState(false);
     const [mapHeight, setMapHeight] = useState(0);
+    const [deliveryInfoHeight, setDeliveryInfoHeight] = useState(120);
 
     // Autocomplete states
     const [searchText, setSearchText] = useState('');
@@ -403,7 +405,7 @@ function SetLocation({navigation}: AppNavigation) {
             </View>
 
             {/* Use Current Location Button */}
-            <View style={styles.currentLocationContainer}>
+            <View style={[styles.currentLocationContainer, { bottom: deliveryInfoHeight + 20 }]}>
                 <TouchableOpacity
                     style={styles.currentLocationButton}
                     onPress={handleTurnOnLocation}>
@@ -413,7 +415,10 @@ function SetLocation({navigation}: AppNavigation) {
             </View>
 
             {/* Selected Location Info */}
-            <View style={styles.deliveryInfo}>
+            <View
+                style={styles.deliveryInfo}
+                onLayout={(event) => setDeliveryInfoHeight(event.nativeEvent.layout.height)}
+            >
                 <Text style={styles.deliveryLabel}>SELECTED LOCATION</Text>
                 <View style={styles.addressContainer}>
                     <Text style={styles.locationPin}>📍</Text>
@@ -598,7 +603,6 @@ const styles = StyleSheet.create({
     },
     currentLocationContainer: {
         position: 'absolute',
-        bottom: 200,
         left: 16,
         right: 16,
         alignItems: 'center',
@@ -661,7 +665,7 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     confirmButton: {
-        backgroundColor: '#e74c3c',
+        backgroundColor: COLORS.primary,
         paddingVertical: 16,
         borderRadius: 8,
         alignItems: 'center',
