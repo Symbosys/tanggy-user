@@ -29,26 +29,26 @@ const ExploreCategories = ({ navigation }: AppNavigation) => {
   const { isAuthenticated } = useAuth();
   console.log(isAuthenticated);
 
-  const fetchCategories = async () => {
-    try {
-      const res = await api.get('/category/all');
-      setCategories(res.data.data);
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        Toast.show({
-          type: 'error',
-          text1: error.response?.data.message || "Something went wrong",
-        });
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: "Something went wrong",
-        });
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get('/category/all');
+        setCategories(res.data.data);
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          Toast.show({
+            type: 'error',
+            text1: error.response?.data.message || "Something went wrong",
+          });
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: "Something went wrong",
+          });
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   useEffect(() => {
     fetchCategories();

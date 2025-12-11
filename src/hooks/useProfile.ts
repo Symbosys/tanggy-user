@@ -5,7 +5,9 @@ import { User } from "../types/user";
 export const useProfile = () => {
     return useQuery<User, Error>({
         queryKey: ['profile'],
-        queryFn: userProfile
+        queryFn: userProfile,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 30 * 60 * 1000, // 30 minutes
     })
 }
 

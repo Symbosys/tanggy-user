@@ -1,10 +1,6 @@
-// Updated API file (add this function to your existing API file, e.g., product.api.ts or api.ts)
 import api from "../api/api";
-import {  SubCategory } from "../types/product.type"; // Adjust path as needed
+import { SubCategory } from "../types/product.type"; 
 
-// ... (existing GetAllProductsParams interface and getAllProducts function remain unchanged)
-
-// Updated types file (add this interface to your existing product.type.ts)
 export interface GetAllSubCategoriesResponse {
   success: boolean;
   message: string;
