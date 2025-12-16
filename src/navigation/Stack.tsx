@@ -26,6 +26,7 @@ import ReportProblemScreen from '../screens/support/ReportIssue';
 import CartScreen from '../screens/cart/TestCart';
 import GlobalAlert from '../components/alert/LoginAlert';
 import TestAddAddress from '../screens/address/TestAddress';
+import UpdateProfile from '../screens/profile/UpdateProfile';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -34,12 +35,12 @@ export default function StackNavigation() {
     <NavigationContainer>
       <Stack.Navigator
         // initialRouteName='AddAddress'
-      
+
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Otp" component={Otp} />
-        <Stack.Screen name='select_your_location' component={SelectYourLocation} options={{headerShown: true}} />
+        <Stack.Screen name='select_your_location' component={SelectYourLocation} options={{ headerShown: true }} />
         <Stack.Screen name="BottomTab" component={BottomTab} />
         <Stack.Screen name='ProductDetails' component={ProductDetailsScreen} />
         <Stack.Screen name='Cart' component={CartScreen} />
@@ -49,7 +50,7 @@ export default function StackNavigation() {
         <Stack.Screen name='Address' component={MyAddressesScreen} />
         <Stack.Screen name='AddAddress' component={TestAddAddress} />
 
-        
+
         <Stack.Screen name='OrderPlaced' component={OrderConfirmationScreen} />
         <Stack.Screen name='OrderTracking' component={OrderTracking} />
         <Stack.Screen name='ChatWithDelivery' component={ChatScreen} />
@@ -58,6 +59,7 @@ export default function StackNavigation() {
         {/* User Profile  */}
         <Stack.Screen name='MyOrders' component={AllOrdersScreen} />
         <Stack.Screen name='Wallet' component={MyWalletScreen} />
+        <Stack.Screen name='UpdateProfile' component={UpdateProfile} />
 
 
         {/* Legal Screen  */}

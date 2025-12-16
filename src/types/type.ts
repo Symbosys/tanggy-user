@@ -31,6 +31,7 @@ export type RootStackParamList = {
 
   // User Profile
   Wallet: undefined;
+  UpdateProfile: undefined;
 
   // Legal screen
   TermsAndConditions: undefined;

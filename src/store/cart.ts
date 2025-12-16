@@ -4,13 +4,6 @@ import api from "../api/api";
 import { ErrorMessage, parseToDecimal } from "../utils/utils";
 import { Product } from "../types/product.type";
 
-// interface Product {
-//   id: number;
-//   name: string;
-//   sellingPrice: number;
-//   imageUrl?: string;
-// }
-
 interface CartItem {
   id: number;
   quantity: number;
@@ -26,8 +19,11 @@ interface CartState {
 
   // Actions
   fetchCart: () => Promise<void>;
-  addToCart: (productId: number, quantity: number) => Promise<void>;
+  addToCart: (productId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
+  getQuantity: (productId: string) => number;
+  incrementQuantity: (product: Product) => Promise<void>;
+  decrementQuantity: (product: Product) => Promise<void>;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
@@ -41,7 +37,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   fetchCart: async () => {
     set({ loading: true, error: null });
     try {
-        const res = await api.get("/user/cart/all");
+      const res = await api.get("/user/cart/all");
 
       const data = res.data.data;
 
@@ -57,24 +53,24 @@ export const useCartStore = create<CartState>((set, get) => ({
         totalItems,
         loading: false,
       });
-    } catch (err) {
-      throw err
+    } catch (err: any) {
+      ErrorMessage(err);  
     }
   },
 
   // Add or update an item in cart
-  addToCart: async (productId, quantity) => {
+  addToCart: async (productId: string, quantity: number) => {
     set({ loading: true, error: null });
     try {
       const res = await api.post(
         "/user/cart/add",
         { productId, quantity }
-        );
-        console.log("🚀 ~ file: cart.ts ~ line 39 ~ fetchCart ~ res", res.data)
+      );
+      console.log("🚀 ~ file: cart.ts ~ line 39 ~ fetchCart ~ res", res.data);
 
       // refresh cart
       await get().fetchCart();
-    } catch (err) {
+    } catch (err: any) {
       ErrorMessage(err as AxiosError | Error);
     }
   },
@@ -93,10 +89,26 @@ export const useCartStore = create<CartState>((set, get) => ({
         loading: false,
       });
     } catch (err: any) {
-      set({
-        loading: false,
-        error: err.response?.data?.message || "Failed to clear cart",
-      });
+      ErrorMessage(err);
+    }
+  },
+
+  // Get quantity for a specific product
+  getQuantity: (productId: string) => {
+    return get().cartItems.find(item => item.product.id === productId)?.quantity || 0;
+  },
+
+  // Increment quantity for a product
+  incrementQuantity: async (product: Product) => {
+    const currentQuantity = get().getQuantity(product.id);
+    await get().addToCart(product.id, currentQuantity + 1);
+  },
+
+  // Decrement quantity for a product
+  decrementQuantity: async (product: Product) => {
+    const currentQuantity = get().getQuantity(product.id);
+    if (currentQuantity > 0) {
+      await get().addToCart(product.id, currentQuantity - 1);
     }
   },
 }));

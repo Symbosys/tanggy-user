@@ -16,10 +16,10 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../../context/AuthContext';
 import { AppNavigation } from '../../types/type';
 import { useAddressStore } from '../../store/address';
-import { useProfile } from '../../hooks/useProfile';
+import { useProfile } from '../../api/hooks/useProfile';
 import { COLORS } from '../../theme/theme';
-
-const { width } = Dimensions.get('window');
+import { ScrollView } from 'react-native-gesture-handler';
+import { getInitials } from '../../utils/utils';
 
 const ProfileScreen = ({ navigation }: AppNavigation) => {
     const { logout, isAuthenticated, hasSkippedLogin } = useAuth();
@@ -27,10 +27,11 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
     const { data: user } = useProfile();
 
     const userName = user?.name || 'Aarav Sharma';
-    const userPhone = user?.mobile || '+91 98765 43210';
-    const userEmail = user?.email || 'user@example.com';
-    const profileImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuClxugtUhOT6wBRBzOvx60J2lF-buvzEq23lthDe0aQaTZ2NyHTPDRlwkrzwmNwQEwzId_ztFCpwVmleJhVkb7UF0s5Z3bh4o1HXP7OBxIiOBC8KA5KsRlEsTFPS_jXSx6D3Jk9UW-CwYc7mMQrNMIik_C_tMEDah4MnVTGxD9jz37Srm17FenGuGnULNvrVRV8euGpE7t9LddBH2qD5YCJmM5ZyIPN8EJx-EYlDivxkMh4TcEuHf4DD5mw2CLN9D25HqBJS1GqopZy';
+    const userPhone = user?.mobile || '';
+    const userEmail = user?.email || '';
     const addressesCount = addresses?.length || 0;
+
+    console.log({ user })
 
     const handleLogout = async () => {
         await logout();
@@ -115,145 +116,146 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
     // 2. AUTHENTICATED UI (Gradient Header & Grid)
     // ---------------------------------------------------------
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+        <ScrollView>
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-            {/* Header Gradient Background */}
-            <ImageBackground
-                source={{ uri: 'https://www.transparenttextures.com/patterns/subtle-zebra-3d.png' }}
-                style={styles.headerBackground}
-                imageStyle={styles.textureOverlay}>
-                <LinearGradient
-                    colors={[COLORS.primary, COLORS.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.headerGradient}>
-                    <View style={styles.headerContent}>
-                        <View style={styles.profileImageContainer}>
-                            <Image
-                                source={{ uri: profileImage }}
-                                style={styles.profileImage}
-                            />
+                {/* Header Gradient Background */}
+                <ImageBackground
+                    source={{ uri: 'https://www.transparenttextures.com/patterns/subtle-zebra-3d.png' }}
+                    style={styles.headerBackground}
+                    imageStyle={styles.textureOverlay}>
+                    <LinearGradient
+                        colors={[COLORS.primary, COLORS.secondary]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.headerGradient}>
+                        <View style={styles.headerContent}>
+                            <View style={styles.profileImageContainer}>
+                                <Text style={styles.profileInitialsText}>
+                                    {getInitials(userName)}
+                                </Text>
+                            </View>
+                            <View style={styles.profileInfo}>
+                                <Text style={styles.profileName}>{userName}</Text>
+                                <Text style={styles.profilePhone}>{userPhone}</Text>
+                                <Text style={styles.profileEmail}>{userEmail}</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.editProfileButton}
+                                onPress={() => navigation.navigate('UpdateProfile')}
+                            >
+                                <Text style={styles.editProfileText}>Edit Profile</Text>
+                            </TouchableOpacity>
                         </View>
-                        <View style={styles.profileInfo}>
-                            <Text style={styles.profileName}>{userName}</Text>
-                            <Text style={styles.profilePhone}>{userPhone}</Text>
-                            <Text style={styles.profileEmail}>{userEmail}</Text>
-                        </View>
-                        <TouchableOpacity
-                            style={styles.editProfileButton}
-                        // onPress={() => navigation.navigate('EditProfile')}
-                        >
-                            <Text style={styles.editProfileText}>Edit Profile</Text>
-                        </TouchableOpacity>
-                    </View>
-                </LinearGradient>
-            </ImageBackground>
+                    </LinearGradient>
+                </ImageBackground>
 
-            {/* Grid Cards */}
-            <View style={styles.gridContainer}>
-                <TouchableOpacity
-                    style={styles.card}
-                    onPress={() => navigation.navigate('MyOrders')}
-                >
-                    <MaterialIcons name="receipt-long" size={24} color="#8719C6" />
-                    <View style={styles.cardText}>
-                        <Text style={styles.cardTitle}>My Orders</Text>
-                        <Text style={styles.cardSubtitle}>0 Active</Text>
-                    </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.card}
-                    onPress={() => navigation.navigate('Wallet')}
-                >
-                    <MaterialIcons name="account-balance-wallet" size={24} color="#8719C6" />
-                    <View style={styles.cardText}>
-                        <Text style={styles.cardTitle}>Wallet</Text>
-                        <Text style={styles.cardSubtitle}>₹0.0</Text>
-                    </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.card}
-                    onPress={() => navigation.navigate('Address')}
-                >
-                    <MaterialIcons name="location-on" size={24} color="#8719C6" />
-                    <View style={styles.cardText}>
-                        <Text style={styles.cardTitle}>Addresses</Text>
-                        <Text style={styles.cardSubtitle}>{addressesCount} Saved</Text>
-                    </View>
-                </TouchableOpacity>
-            </View>
+                {/* Grid Cards */}
+                <View style={styles.gridContainer}>
+                    <TouchableOpacity
+                        style={styles.card}
+                        onPress={() => navigation.navigate('MyOrders')}
+                    >
+                        <MaterialIcons name="receipt-long" size={24} color="#8719C6" />
+                        <View style={styles.cardText}>
+                            <Text style={styles.cardTitle}>My Orders</Text>
+                            <Text style={styles.cardSubtitle}>0 Active</Text>
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.card}
+                        onPress={() => navigation.navigate('Wallet')}
+                    >
+                        <MaterialIcons name="account-balance-wallet" size={24} color="#8719C6" />
+                        <View style={styles.cardText}>
+                            <Text style={styles.cardTitle}>Wallet</Text>
+                            <Text style={styles.cardSubtitle}>₹0.0</Text>
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.card}
+                        onPress={() => navigation.navigate('Address')}
+                    >
+                        <MaterialIcons name="location-on" size={24} color="#8719C6" />
+                        <View style={styles.cardText}>
+                            <Text style={styles.cardTitle}>Addresses</Text>
+                            <Text style={styles.cardSubtitle}>{addressesCount} Saved</Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
 
-            {/* Menu List */}
-            <View style={styles.menuContainer}>
-                <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => navigation.navigate('HelpSupport')}
-                >
-                    <View style={styles.menuItemContent}>
-                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
-                            <MaterialIcons name="support-agent" size={24} color="#8719C6" />
+                {/* Menu List */}
+                <View style={styles.menuContainer}>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('HelpSupport')}
+                    >
+                        <View style={styles.menuItemContent}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
+                                <MaterialIcons name="support-agent" size={24} color="#8719C6" />
+                            </View>
+                            <Text style={styles.menuItemTitle}>Help & Support</Text>
                         </View>
-                        <Text style={styles.menuItemTitle}>Help & Support</Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => navigation.navigate('HowToTrackOrder')}
-                >
-                    <View style={styles.menuItemContent}>
-                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
-                            <MaterialIcons name="delivery-dining" size={24} color="#8719C6" />
+                        <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('HowToTrackOrder')}
+                    >
+                        <View style={styles.menuItemContent}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
+                                <MaterialIcons name="delivery-dining" size={24} color="#8719C6" />
+                            </View>
+                            <Text style={styles.menuItemTitle}>How to Track Order</Text>
                         </View>
-                        <Text style={styles.menuItemTitle}>How to Track Order</Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => navigation.navigate('TermsAndConditions')}
-                >
-                    <View style={styles.menuItemContent}>
-                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
-                            <MaterialIcons name="description" size={24} color="#8719C6" />
+                        <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('TermsAndConditions')}
+                    >
+                        <View style={styles.menuItemContent}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
+                                <MaterialIcons name="description" size={24} color="#8719C6" />
+                            </View>
+                            <Text style={styles.menuItemTitle}>Terms & Conditions</Text>
                         </View>
-                        <Text style={styles.menuItemTitle}>Terms & Conditions</Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => navigation.navigate('PrivacyPolicy')}
-                >
-                    <View style={styles.menuItemContent}>
-                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
-                            <MaterialIcons name="policy" size={24} color="#8719C6" />
+                        <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('PrivacyPolicy')}
+                    >
+                        <View style={styles.menuItemContent}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(135, 25, 198, 0.1)' }]}>
+                                <MaterialIcons name="policy" size={24} color="#8719C6" />
+                            </View>
+                            <Text style={styles.menuItemTitle}>Privacy Policy</Text>
                         </View>
-                        <Text style={styles.menuItemTitle}>Privacy Policy</Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.menuItemBottom}
-                    onPress={handleLogout}
-                >
-                    <View style={styles.menuItemContent}>
-                        <View style={styles.logoutIconContainer}>
-                            <MaterialIcons name="logout" size={24} color="#ef4444" />
+                        <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.menuItemBottom}
+                        onPress={handleLogout}
+                    >
+                        <View style={styles.menuItemContent}>
+                            <View style={styles.logoutIconContainer}>
+                                <MaterialIcons name="logout" size={24} color="#ef4444" />
+                            </View>
+                            <Text style={styles.logoutTitle}>Logout</Text>
                         </View>
-                        <Text style={styles.logoutTitle}>Logout</Text>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
-                </TouchableOpacity>
-            </View>
+                        <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+                    </TouchableOpacity>
+                </View>
 
-            {/* Footer */}
-            <View style={styles.footer}>
-                <Text style={styles.footerVersion}>Version 1.0.2</Text>
-                <Text style={styles.footerText}>Made with ❤️ in India</Text>
-            </View>
-        </SafeAreaView>
+                {/* Footer */}
+                <View style={[styles.footer, { marginBottom: 70 }]}>
+                    <Text style={styles.footerVersion}>Version 1.0.2</Text>
+                    <Text style={styles.footerText}>Made with ❤️ in India</Text>
+                </View>
+            </SafeAreaView>
+        </ScrollView>
     );
 };
 
@@ -268,7 +270,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 30,
-        backgroundColor: '#FFF'
+        backgroundColor: '#FFF',
     },
     guestIconWrapper: {
         marginBottom: 30,
@@ -393,10 +395,15 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: 'rgba(255, 255, 255, 0.5)',
         overflow: 'hidden',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    profileImage: {
-        width: '100%',
-        height: '100%',
+    profileInitialsText: {
+        fontSize: 32,
+        fontWeight: '800',
+        color: 'white',
+        letterSpacing: 2,
     },
     profileInfo: {
         alignItems: 'center',
@@ -417,7 +424,7 @@ const styles = StyleSheet.create({
     },
     profileEmail: {
         fontSize: 14,
-        fontWeight: '400',
+        fontWeight: '800',
         color: 'rgba(255, 255, 255, 0.7)',
         lineHeight: 20,
     },
@@ -555,7 +562,7 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        fontWeight: '400',
+        fontWeight: '800',
         color: '#9ca3af',
         textAlign: 'center',
     },

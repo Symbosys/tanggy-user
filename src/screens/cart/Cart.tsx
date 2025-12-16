@@ -18,6 +18,7 @@ import { parseToDecimal } from '../../utils/utils';
 import { COLORS } from '../../theme/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppNavigation } from '../../types/type';
+import { useAlertStore } from '../../store/alert.store';
 
 const Cart = ({ navigation }: AppNavigation) => {
   const { fetchCart, cartItems, addToCart, clearCart, totalItems, subtotal, loading } = useCartStore();
@@ -73,13 +74,13 @@ const Cart = ({ navigation }: AppNavigation) => {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            await addToCart(Number(item.productId), 0);
+            await addToCart(String(item.productId), 0);
           },
         },
       ]);
       return;
     }
-    await addToCart(Number(item.productId), newQuantity);
+    await addToCart(String(item.productId), newQuantity);
   };
   const increaseQty = (item: any) => {
     updateCartItem(item, item.quantity + 1);
@@ -123,18 +124,18 @@ const Cart = ({ navigation }: AppNavigation) => {
       { text: 'Checkout', onPress: () => navigation.navigate('OrderPlaced') },
     ]);
   };
+  const {showAlert} = useAlertStore()
   const handleClearCart = () => {
     if (cartItems.length === 0) return;
-    Alert.alert('Clear Cart', 'Are you sure you want to clear all items?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: async () => {
-          await clearCart();
-        },
+    showAlert({
+      title: 'Clear Carts',
+      message: 'Are you sure you want to clear all itemsss?',
+      confirmText: 'Clear',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        await clearCart();
       },
-    ]);
+    })
   };
   const handleSelectAddress = (addressId: number) => {
     setSelectedAddressId(addressId);

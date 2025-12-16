@@ -1,42 +1,45 @@
-// DealsScreen.tsx
-import React, { useRef, useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Dimensions,
-  TouchableOpacity,
-  StyleSheet,
-  ImageBackground,
-  ActivityIndicator,
-  Image,
-} from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { AxiosError } from 'axios';
-import Alert from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  Dimensions,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import ProductCard from '../../components/ui/products/DiscountProduct';
+import FloatingCart from '../../components/home/FloatingCart';
 import { useAuth } from '../../context/AuthContext';
 import { getAllProducts } from '../../services/product.service';
 import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
+import { useAlertStore } from '../../store/alert.store';
 import { COLORS } from '../../theme/theme';
 import { Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
 import { ErrorMessage } from '../../utils/utils';
-import ProductCard from '../../components/ui/products/DiscountProduct';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const initialVideoHeight = screenHeight * 0.4;
+const { height: screenHeight } = Dimensions.get('window');
+const headerHeight = screenHeight * 0.4;
 
 const DealsScreen = ({ navigation }: AppNavigation) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [videoHeight, setVideoHeight] = useState<number>(initialVideoHeight);
+
   const { latitude, longitude } = useLocationStore();
   const { userId, isAuthenticated } = useAuth();
-  const { addToCart } = useCartStore();
+  const { showAlert } = useAlertStore();
+  const {
+    getQuantity,
+    incrementQuantity,
+    decrementQuantity,
+    totalItems: totalCartItems,
+    subtotal: subTotal,
+  } = useCartStore();
 
   const fetchDiscountProducts = async () => {
     try {
@@ -46,10 +49,9 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
         lat: latitude ?? undefined,
         lng: longitude ?? undefined,
         userId: userId ?? undefined,
-        marketPrice: 1
+        marketPrice: 1, // Only products with marketPrice > sellingPrice
       });
       setProducts(res.data.products);
-      console.log(res.data);
     } catch (error) {
       ErrorMessage(error as AxiosError | Error);
     } finally {
@@ -62,54 +64,15 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
   }, [latitude, longitude, userId]);
 
   const handleNavigateToDetails = (product: Product) => {
-    navigation.navigate("ProductDetails", { product });
+    navigation.navigate('ProductDetails', { product });
   };
 
-  const handleAddToCart = async (productId: number, quantity: number = 1) => {
-    if (!isAuthenticated) {
-      Alert.Alert.alert(
-        "Login Required",
-        "You need to log in to add this product to your cart.",
-        [
-          { text: "Login", onPress: () => navigation.navigate("Login") },
-          { text: "Cancel", style: "cancel" },
-        ]
-      );
-      return;
+  const chunkArray = (array: Product[], size: number): Product[][] => {
+    const chunks: Product[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
     }
-
-    try {
-      await addToCart(productId, quantity);
-      Toast.show({
-        type: 'success',
-        text1: 'Added to cart!',
-      });
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        Toast.show({
-          type: 'error',
-          text1: error.response?.data?.message || 'Failed to add to cart',
-        });
-      } else {
-        ErrorMessage(error as AxiosError | Error);
-      }
-    }
-  };
-
-  // Video source
-  // const videoSource = {
-  //   uri: 'https://assets.mixkit.co/videos/preview/mixkit-hand-of-a-man-slicing-a-fresh-salmon-fillet-43405-large.mp4',
-  // };
-
-  const chunkArray = (array: Product[], chunkSize: number): Product[][] => {
-    return array.reduce((resultArray, item, index) => {
-      const chunkIndex = Math.floor(index / chunkSize);
-      if (!resultArray[chunkIndex]) {
-        resultArray[chunkIndex] = [];
-      }
-      resultArray[chunkIndex].push(item);
-      return resultArray;
-    }, [] as Product[][]);
+    return chunks;
   };
 
   const productChunks = chunkArray(products, 2);
@@ -131,43 +94,89 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Video Header */}
-        <View style={[styles.videoHeader, { height: videoHeight }]}>
+        {/* Header Image */}
+        <View style={[styles.header, { height: headerHeight }]}>
           <Image
-            source={require('../../assets/discount/discount.png')} // Replace with your image path, e.g., require('../../assets/images/discount-bg.jpg')
-            style={styles.video}
+            source={require('../../assets/discount/discount.png')}
+            style={styles.headerImage}
             resizeMode="cover"
           />
-          <View style={styles.videoOverlay} />
+          <View style={styles.overlay} />
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Exclusive Discounts</Text>
-            <Text style={styles.headerSubtitle}>Fresh Deals, Unbeatable Prices</Text>
+            <Text style={styles.title}>Exclusive Discounts</Text>
+            <Text style={styles.subtitle}>Fresh Deals, Unbeatable Prices</Text>
           </View>
         </View>
 
         {/* Products Grid */}
         <View style={styles.grid}>
-          {productChunks.map((rowProducts, rowIndex) => (
-            <View key={rowIndex} style={styles.gridRow}>
-              {rowProducts.map((product, colIndex) => {
-                const cardStyle = colIndex === 0 ? [styles.card, { marginRight: 16 }] : styles.card;
+          {productChunks.map((row, rowIndex) => (
+            <View key={rowIndex} style={styles.row}>
+              {row.map((product, colIndex) => {
+                const quantity = getQuantity(product.id);
+
+                const handleAdd = () => {
+                  if (!isAuthenticated) {
+                    showAlert({
+                      title: 'Login Required',
+                      message: 'You need to log in to add this product to your cart.',
+                      confirmText: 'Login',
+                      cancelText: 'Cancel',
+                      onConfirm: () => navigation.navigate('Login'),
+                    });
+                    return;
+                  }
+                  incrementQuantity(product);
+                };
+
+                const handleIncrement = () => {
+                  if (!isAuthenticated) {
+                    showAlert({
+                      title: 'Login Required',
+                      message: 'You need to log in to update your cart.',
+                      confirmText: 'Login',
+                      cancelText: 'Cancel',
+                      onConfirm: () => navigation.navigate('Login'),
+                    });
+                    return;
+                  }
+                  incrementQuantity(product);
+                };
+
+                const handleDecrement = () => {
+                  if (!isAuthenticated) return;
+                  decrementQuantity(product);
+                };
+
                 return (
                   <ProductCard
                     key={product.id}
                     product={product}
                     navigation={navigation}
                     handleNavigateToDetails={handleNavigateToDetails}
-                    handleAddToCart={handleAddToCart}
-                    isAuthenticated={isAuthenticated}
-                    style={cardStyle}
+                    quantity={quantity}
+                    onAdd={handleAdd}
+                    onIncrement={handleIncrement}
+                    onDecrement={handleDecrement}
+                    style={colIndex === 0 ? { marginRight: 16 } : undefined}
                   />
                 );
               })}
-              {rowProducts.length === 1 && <View style={{ flex: 1 }} />}
+              {row.length === 1 && <View style={styles.spacer} />}
             </View>
           ))}
         </View>
       </ScrollView>
+
+      {/* Floating Cart Bar */}
+      {totalCartItems > 0 && isAuthenticated && (
+        <FloatingCart
+          totalItems={totalCartItems}
+          subTotal={subTotal}
+          onPress={() => navigation.navigate('Cart')}
+          marginBottom={75}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -184,73 +193,56 @@ const styles = StyleSheet.create({
   },
   main: {
     flex: 1,
-    paddingBottom: 96, // Space for bottom nav
+    marginBottom: 40,
   },
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
-  videoHeader: {
+  header: {
     position: 'relative',
     overflow: 'hidden',
   },
-  video: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
+  headerImage: {
+    width: '100%',
+    height: '100%',
   },
-  videoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   headerContent: {
     position: 'absolute',
-    top: 40,
-    left: 16,
-    right: 16,
+    top: 0,
+    left: 0,
+    right: 0,
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
+    paddingHorizontal: 32,
   },
-  headerTitle: {
+  title: {
     color: COLORS.white,
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '800',
-    lineHeight: 36,
-    letterSpacing: -0.5,
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
     marginBottom: 8,
   },
-  headerSubtitle: {
+  subtitle: {
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 18,
     fontWeight: '600',
-    lineHeight: 24,
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
   grid: {
     padding: 16,
-    marginBottom: 25,
   },
-  gridRow: {
+  row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  card: {
-    // Base card style (overridden by ProductCard styles)
+  spacer: {
+    flex: 1,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -15,19 +15,32 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../../theme/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { calculateDiscount, parseToDecimal } from '../../utils/utils';
+import { useAuth } from '../../context/AuthContext';
+import { useAlertStore } from '../../store/alert.store';
+import { useCartStore } from '../../store/cart';
+import Toast from 'react-native-toast-message';
+import { ErrorMessage } from '../../utils/utils';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const HEADER_HEIGHT = 0.45 * screenHeight;
 const BOTTOM_BAR_HEIGHT = 80;
 
-interface ProductDetailsScreenProps { }
+interface ProductDetailsScreenProps {}
 
 const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navigation }: any) => {
-    const { product } = route.params;
+    const { product: initialProduct } = route.params;
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [quantity, setQuantity] = useState(1);
     const flatListRef = useRef<FlatList>(null);
+
+    console.log({initialProduct})
+
+    const { isAuthenticated } = useAuth();
+    const { showAlert } = useAlertStore();
+    const { addToCart, getQuantity, incrementQuantity, decrementQuantity } = useCartStore();
+
+    // Get current cart quantity from Zustand store
+    const cartQuantity = getQuantity(initialProduct.id);
 
     // Handle scroll event for image carousel
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -36,14 +49,67 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
         setCurrentImageIndex(currentIndex);
     };
 
-    const handleQuantityDecrease = () => {
-        if (quantity > 1) {
-            setQuantity(quantity - 1);
+    const handleAddToCart = async () => {
+        if (!isAuthenticated) {
+            showAlert({
+                title: 'Login Required',
+                message: 'You need to log in to add this product to your cart.',
+                confirmText: 'Login',
+                cancelText: 'Cancel',
+                onConfirm: () => navigation.navigate('Login'),
+            });
+            return;
+        }
+
+        try {
+            if (cartQuantity === 0) {
+                // First time adding: set to 1
+                await addToCart(initialProduct.id, 1);
+                Toast.show({
+                    type: 'success',
+                    text1: 'Added to cart!',
+                });
+            } else {
+                // Already in cart: increment by 1
+                await incrementQuantity(initialProduct);
+                Toast.show({
+                    type: 'success',
+                    text1: '1 more added to cart!',
+                });
+            }
+        } catch (error) {
+            ErrorMessage(error as any);
         }
     };
 
-    const handleQuantityIncrease = () => {
-        setQuantity(quantity + 1);
+    const handleIncrement = async () => {
+        if (!isAuthenticated) {
+            showAlert({
+                title: 'Login Required',
+                message: 'You need to log in to update your cart.',
+                confirmText: 'Login',
+                cancelText: 'Cancel',
+                onConfirm: () => navigation.navigate('Login'),
+            });
+            return;
+        }
+
+        try {
+            await incrementQuantity(initialProduct);
+        } catch (error) {
+            ErrorMessage(error as any);
+        }
+    };
+
+    const handleDecrement = async () => {
+        if (!isAuthenticated) return;
+
+        try {
+            await decrementQuantity(initialProduct);
+            // If quantity becomes 0 after decrement, the UI will automatically update
+        } catch (error) {
+            ErrorMessage(error as any);
+        }
     };
 
     const renderImageItem = ({ item }: any) => (
@@ -56,16 +122,18 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
         </View>
     );
 
+    const currentPrice = parseToDecimal(initialProduct.sellingPrice).toFixed(2);
+    const originalPrice = initialProduct.marketPrice ? parseToDecimal(initialProduct.marketPrice).toFixed(2) : null;
+    const hasDiscount = !!initialProduct.marketPrice && parseToDecimal(initialProduct.marketPrice) > parseToDecimal(initialProduct.sellingPrice);
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Top App Bar & Image Carousel Section */}
             <View style={styles.headerSection}>
-                {/* Header Image with Carousel */}
                 <View style={[styles.headerImage, { height: HEADER_HEIGHT }]}>
-                    {/* Image Carousel */}
                     <FlatList
                         ref={flatListRef}
-                        data={product.images}
+                        data={initialProduct.images}
                         renderItem={renderImageItem}
                         keyExtractor={(item) => item.id}
                         horizontal
@@ -75,10 +143,8 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                         scrollEventThrottle={16}
                     />
 
-                    {/* Overlay Gradient */}
                     <View style={styles.overlayGradient} />
 
-                    {/* Top App Bar */}
                     <View style={styles.topBar}>
                         <TouchableOpacity
                             style={styles.iconButton}
@@ -93,8 +159,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                         </View>
                     </View>
 
-                    {/* Bestseller Badge - Only show if product is active and available */}
-                    {product.isActive && product.isAvailable && (
+                    {initialProduct.isActive && initialProduct.isAvailable && (
                         <View style={styles.badgeContainer}>
                             <View style={styles.bestsellerBadge}>
                                 <Text style={styles.bestsellerText}>BESTSELLER</Text>
@@ -102,10 +167,9 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                         </View>
                     )}
 
-                    {/* Carousel Dots */}
-                    {product.images.length > 1 && (
+                    {initialProduct.images.length > 1 && (
                         <View style={styles.carouselDots}>
-                            {product.images.map((_: any, index: any) => (
+                            {initialProduct.images.map((_: any, index: any) => (
                                 <View
                                     key={index}
                                     style={
@@ -126,56 +190,57 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                 contentContainerStyle={styles.detailsContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Headline & Meta Text */}
                 <View style={styles.headlineSection}>
-                    <Text style={styles.title}>{product.name}</Text>
-                    <Text style={styles.description}>{product.description}</Text>
+                    <Text style={styles.title}>{initialProduct.name}</Text>
+                    <Text style={styles.description}>{initialProduct.description}</Text>
                     <Text style={styles.category}>
-                        Category: {product.category?.name || 'N/A'}
-                        {product.subCategory?.name && ` • ${product.subCategory.name}`}
+                        Category: {initialProduct.category?.name || 'N/A'}
+                        {initialProduct.subCategory?.name && ` • ${initialProduct.subCategory.name}`}
                     </Text>
                 </View>
 
-                {/* Price & Weight Selection Card */}
                 <View style={styles.priceCard}>
                     <View style={styles.priceHeader}>
-                        <View style={styles.priceContainer}>
-                            <Text style={styles.currentPrice}>{parseToDecimal(product.sellingPrice).toFixed(2)}</Text>
-                            <Text style={styles.originalPrice}>{parseToDecimal(product.marketPrice).toFixed(3)}</Text>
-                        </View>
-                        {product.marketPrice && (
+                        {originalPrice ? (
+                            <View style={styles.priceContainer}>
+                                <Text style={styles.currentPrice}>₹{currentPrice}</Text>
+                                <Text style={styles.originalPrice}>₹{originalPrice}</Text>
+                            </View>
+                        ) : (
+                            <Text style={styles.currentPrice}>₹{currentPrice}</Text>
+                        )}
+                        {hasDiscount && (
                             <View style={styles.discountBadgeCard}>
-                                <Text style={styles.discountText}>{calculateDiscount(product.marketPrice, product.sellingPrice)}% OFF</Text>
+                                <Text style={styles.discountText}>
+                                    {calculateDiscount(initialProduct.marketPrice, initialProduct.sellingPrice)}% OFF
+                                </Text>
                             </View>
                         )}
                     </View>
 
-                    {/* Weight and Pieces Info */}
                     <View style={styles.productMetaContainer}>
-                        {product.weight && (
+                        {initialProduct.weight && (
                             <View style={styles.metaItem}>
                                 <Icon name="scale" size={16} color={COLORS.textSecondary} />
-                                <Text style={styles.metaText}>Weight: {product.weight}</Text>
+                                <Text style={styles.metaText}>Weight: {initialProduct.weight}</Text>
                             </View>
                         )}
-                        {product.pieces && (
+                        {initialProduct.pieces && (
                             <View style={styles.metaItem}>
                                 <Icon name="inventory" size={16} color={COLORS.textSecondary} />
-                                <Text style={styles.metaText}>Pieces: {product.pieces}</Text>
+                                <Text style={styles.metaText}>Pieces: {initialProduct.pieces}</Text>
                             </View>
                         )}
                     </View>
 
-                    {/* Stock Status */}
                     <Text style={[
                         styles.stockText,
-                        !product.isAvailable && styles.outOfStockText
+                        !initialProduct.isAvailable && styles.outOfStockText
                     ]}>
-                        {product.isAvailable ? 'In Stock' : 'Out of Stock'}
+                        {initialProduct.isAvailable ? 'In Stock' : 'Out of Stock'}
                     </Text>
                 </View>
 
-                {/* Freshness Tags */}
                 <View style={styles.freshnessGrid}>
                     <View style={styles.freshnessItem}>
                         <Icon name="ac-unit" size={24} color={COLORS.primary} />
@@ -191,15 +256,13 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                     </View>
                 </View>
 
-                {/* Product Description */}
                 <View style={styles.descriptionCard}>
                     <Text style={styles.descriptionTitle}>Product Description</Text>
                     <Text style={styles.descriptionBody}>
-                        {product.description || 'Our premium quality product is sourced from local farms and processed with the highest hygiene standards. Perfect for all your cooking needs.'}
+                        {initialProduct.description || 'Our premium quality product is sourced from local farms and processed with the highest hygiene standards. Perfect for all your cooking needs.'}
                     </Text>
                 </View>
 
-                {/* Preparation & Storage */}
                 <View style={styles.tipsSection}>
                     <View style={styles.tipCard}>
                         <View style={styles.tipHeader}>
@@ -220,30 +283,32 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                         </View>
                     </View>
                 </View>
-            
             </ScrollView>
 
             {/* Sticky Bottom Bar */}
-            {product.isAvailable && (
+            {initialProduct.isAvailable && (
                 <View style={styles.bottomBar}>
-                    <View style={styles.quantityContainer}>
-                        <TouchableOpacity
-                            style={styles.quantityButton}
-                            onPress={handleQuantityDecrease}
-                        >
-                            <Text style={styles.quantityText}>-</Text>
+                    {cartQuantity === 0 ? (
+                        <TouchableOpacity style={styles.addToCartButtonFull} onPress={handleAddToCart}>
+                            <Text style={styles.addToCartText}>Add to Cart</Text>
                         </TouchableOpacity>
-                        <Text style={styles.quantity}>{quantity}</Text>
-                        <TouchableOpacity
-                            style={styles.quantityButton}
-                            onPress={handleQuantityIncrease}
-                        >
-                            <Text style={styles.quantityText}>+</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <TouchableOpacity style={styles.addToCartButton}>
-                        <Text style={styles.addToCartText}>Add to Cart</Text>
-                    </TouchableOpacity>
+                    ) : (
+                        <View style={styles.quantityControlContainer}>
+                            <TouchableOpacity
+                                style={styles.quantityButtonLarge}
+                                onPress={handleDecrement}
+                            >
+                                <Icon name="remove" size={20} color={COLORS.white} />
+                            </TouchableOpacity>
+                            <Text style={styles.quantityLarge}>{cartQuantity}</Text>
+                            <TouchableOpacity
+                                style={styles.quantityButtonLarge}
+                                onPress={handleIncrement}
+                            >
+                                <Icon name="add" size={20} color={COLORS.white} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
             )}
         </SafeAreaView>
@@ -514,57 +579,6 @@ const styles = StyleSheet.create({
         color: COLORS.textSecondary,
         marginTop: 4,
     },
-    barRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    starLabel: {
-        width: 16,
-        fontSize: 12,
-    },
-    barContainer: {
-        flex: 1,
-        height: 6,
-        backgroundColor: '#e5e7eb',
-        borderRadius: 3,
-        overflow: 'hidden',
-    },
-    bar: {
-        height: '100%',
-        borderRadius: 3,
-    },
-    barFill85: {
-        width: '85%',
-        backgroundColor: '#22c55e',
-    },
-    barFill10: {
-        width: '10%',
-        backgroundColor: '#22c55e',
-    },
-    barFill3: {
-        width: '3%',
-        backgroundColor: '#eab308',
-    },
-    barFill1: {
-        width: '1%',
-        backgroundColor: '#f97316',
-    },
-    reviewSample: {
-        borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-        paddingTop: 16,
-    },
-    starsContainer: {
-        flexDirection: 'row',
-        gap: 2,
-    },
-    reviewText: {
-        fontSize: 14,
-        color: COLORS.textPrimary,
-        marginTop: 4,
-        lineHeight: 20,
-    },
     bottomBar: {
         position: 'absolute',
         bottom: 0,
@@ -579,40 +593,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 20,
         elevation: 5,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16,
     },
-    quantityContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    quantityButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#e5e7eb',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    quantityText: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: COLORS.textPrimary,
-    },
-    quantity: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: COLORS.textPrimary,
-        minWidth: 20,
-        textAlign: 'center',
-    },
-    addToCartButton: {
-        flex: 1,
+    addToCartButtonFull: {
         backgroundColor: COLORS.primary,
-        paddingVertical: 12,
+        paddingVertical: 16,
         borderRadius: 9999,
         alignItems: 'center',
         justifyContent: 'center',
@@ -626,5 +610,26 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '800',
         color: 'white',
+    },
+    quantityControlContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 24,
+    },
+    quantityButtonLarge: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: COLORS.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    quantityLarge: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        minWidth: 30,
+        textAlign: 'center',
     },
 });

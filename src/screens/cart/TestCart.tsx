@@ -20,16 +20,20 @@ import { useCartStore } from '../../store/cart';
 import { useAddressStore } from '../../store/address';
 import { AppNavigation } from '../../types/type';
 import { parseToDecimal } from '../../utils/utils';
+import { useAlertStore } from '../../store/alert.store';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const CartScreen = ({ navigation }: AppNavigation) => {
   const { fetchCart, cartItems, addToCart, clearCart, totalItems, loading } = useCartStore();
   const { fetchAddresses, addresses } = useAddressStore();
+  const { showAlert } = useAlertStore();
+
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
 
+  // All hooks at the top (before any early returns)
   useEffect(() => {
     fetchCart();
     fetchAddresses();
@@ -42,12 +46,28 @@ const CartScreen = ({ navigation }: AppNavigation) => {
     }
   }, [addresses, selectedAddressId]);
 
+  // Early return for loading state
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Early return for empty cart
+  if (cartItems.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.main} contentContainerStyle={styles.emptyContent}>
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="shopping-cart" size={64} color={COLORS.textSecondary} />
+            <Text style={styles.emptyTitle}>Your cart is empty</Text>
+            <Text style={styles.emptySubtitle}>Add items to get started</Text>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -78,13 +98,13 @@ const CartScreen = ({ navigation }: AppNavigation) => {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            await addToCart(Number(item.productId), 0);
+            await addToCart(String(item.productId), 0);
           },
         },
       ]);
       return;
     }
-    await addToCart(Number(item.productId), newQuantity);
+    await addToCart(String(item.productId), newQuantity);
   };
 
   const increaseQty = (item: any) => {
@@ -98,17 +118,15 @@ const CartScreen = ({ navigation }: AppNavigation) => {
   };
 
   const handleClearCart = () => {
-    if (cartItems.length === 0) return;
-    Alert.alert('Clear Cart', 'Are you sure you want to clear all items?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: async () => {
-          await clearCart();
-        },
+    showAlert({
+      title: 'Clear Cart',
+      message: 'Are you sure you want to clear all items?',
+      confirmText: 'Clear',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        await clearCart();
       },
-    ]);
+    });
   };
 
   const handleTipSelect = (tip: number) => {
@@ -117,18 +135,33 @@ const CartScreen = ({ navigation }: AppNavigation) => {
 
   const handleCheckout = () => {
     if (cartItems.length === 0) {
-      Alert.alert('Empty Cart', 'Your cart is empty. Add some items to proceed.');
+      showAlert({
+        title: 'Empty Cart',
+        message: 'Your cart is empty. Add some items to proceed.',
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        onConfirm: () => {},
+      });
       return;
     }
     if (!hasDefaultAddress) {
-      Alert.alert('No Address', 'Please select a delivery address to proceed.');
+      showAlert({
+        title: 'No Address',
+        message: 'Please select a delivery address to proceed.',
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        onConfirm: () => {},
+      });
       setShowAddressModal(true);
       return;
     }
-    Alert.alert('Checkout', `Proceed to checkout for ₹${calculateTotal().toFixed(2)}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Checkout', onPress: () => navigation.navigate('OrderPlaced') },
-    ]);
+    showAlert({
+      title: 'Checkout',
+      message: `Proceed to checkout for ₹${calculateTotal().toFixed(2)}?`,
+      confirmText: 'Checkout',
+      cancelText: 'Cancel',
+      onConfirm: () => navigation.navigate('OrderPlaced'),
+    });
   };
 
   const handleSelectAddress = (addressId: number) => {
@@ -144,20 +177,6 @@ const CartScreen = ({ navigation }: AppNavigation) => {
   const getAddressDisplay = (addr: any): string => {
     return `${addr.completeAddress || ''}${addr.city ? `, ${addr.city}` : ''}${addr.landMark ? `, ${addr.landMark}` : ''}`;
   };
-
-  if (cartItems.length === 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView style={styles.main} contentContainerStyle={styles.emptyContent}>
-          <View style={styles.emptyContainer}>
-            <MaterialIcons name="shopping-cart" size={64} color={COLORS.textSecondary} />
-            <Text style={styles.emptyTitle}>Your cart is empty</Text>
-            <Text style={styles.emptySubtitle}>Add items to get started</Text>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -202,9 +221,6 @@ const CartScreen = ({ navigation }: AppNavigation) => {
                   <Text style={styles.itemName} numberOfLines={1}>
                     {item.product.name}
                   </Text>
-                  {/* <Text style={styles.itemDesc} numberOfLines={2}>
-                    {item.product.description || 'Standard pack'}
-                  </Text> */}
                   <Text style={styles.itemPrice}>₹{getSellingPrice(item).toFixed(2)}</Text>
                 </View>
               </View>
@@ -479,11 +495,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: COLORS.textPrimary,
-  },
-  itemDesc: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 4,
   },
   itemPrice: {
     fontSize: 16,

@@ -10,10 +10,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { RefreshControl } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video, { VideoRef } from 'react-native-video';
 import api from '../../api/api';
+import FloatingCart from '../../components/home/FloatingCart';
+import HomeLoading from '../../components/skeleton/HomeSkeleton';
 import CategoryList from '../../components/ui/CategoryList';
 import ProductCard from '../../components/ui/products/Product';
 import { useAuth } from '../../context/AuthContext';
@@ -24,11 +27,8 @@ import { useLocationStore } from '../../store/location';
 import { COLORS } from '../../theme/theme';
 import { Category, Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
-import { ErrorMessage, parseToDecimal } from '../../utils/utils';
-import HomeLoading from '../../components/skeleton/HomeSkeleton';
-import { RefreshControl } from 'react-native-gesture-handler';
-import OverlayLoader from '../../components/skeleton/OverLayLoader';
-import LinearGradient from 'react-native-linear-gradient';
+import { ErrorMessage } from '../../utils/utils';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -47,13 +47,9 @@ export default function HomeScreen({ navigation }: AppNavigation) {
     totalItems: totalCartItems,
     subtotal: subTotal,
     fetchCart,
-    addToCart,
   } = useCartStore();
 
-  console.log('isAuthenticated', isAuthenticated);
-
-  // Zustand Store Hook
-  const { showAlert } = useAlertStore();
+  console.log('isAuthenticated', isAuthenticated)
 
   console.log('cartItems', totalCartItems, subTotal, isAuthenticated, userId);
 
@@ -123,14 +119,11 @@ export default function HomeScreen({ navigation }: AppNavigation) {
       } catch (error) {
         console.error('Error loading home data', error);
       } finally {
-        // Add a small delay for smoothness or set false immediately
         setIsLoading(false);
       }
     };
 
-    setTimeout(() => {
-      loadData();
-    }, 500);
+    loadData();
   }, [latitude, longitude, userId]);
 
   // Ensure video starts playing once ready
@@ -152,38 +145,6 @@ export default function HomeScreen({ navigation }: AppNavigation) {
     navigation.navigate('ProductDetails', { product });
   };
 
-  const handleAddToCart = async (productId: number, quantity: number = 1) => {
-    if (!isAuthenticated) {
-      // Trigger Global Alert via Zustand
-      showAlert({
-        title: 'Login Required',
-        message: 'You need to log in to add this product to your cart.',
-        confirmText: 'Login',
-        cancelText: 'Cancel',
-        onConfirm: () => navigation.navigate('Login'),
-        // onCancel defaults to just closing the modal
-      });
-      return;
-    }
-
-    try {
-      await addToCart(productId, quantity);
-      Toast.show({
-        type: 'success',
-        text1: 'Added to cart!',
-      });
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        Toast.show({
-          type: 'error',
-          text1: error.response?.data?.message || 'Failed to add to cart',
-        });
-      } else {
-        ErrorMessage(error as AxiosError | Error);
-      }
-    }
-  };
-
   const handleSearchPress = () => {
     navigation.navigate('Search');
   };
@@ -196,129 +157,169 @@ export default function HomeScreen({ navigation }: AppNavigation) {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+    <SafeAreaView style={{flex: 1}}>
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={() => {
-              setIsLoading(true);
-              setTimeout(() => {
-                fetchCategories();
-                fetchBestSellerProducts();
-                fetchRecommendedProducts();
-                setIsLoading(false);
-              }, 500);
-            }}
-          />
-        }
-      >
-        {/* Header with Gradient Background */}
-        <View style={styles.headerContainer}>
-          <Video
-            ref={videoRef}
-            source={require('../../assets/video/home.mp4')}
-            style={styles.video}
-            resizeMode="cover"
-            repeat={true}
-            paused={!isVideoReady}
-            ignoreSilentSwitch="ignore"
-            playInBackground={false}
-            onLoad={onVideoLoad}
-            onError={onVideoError}
-            muted
-          />
-          <View style={styles.videoOverlay} />
-          <View style={styles.topBar}>
-            {/* --- LOCATION SECTION --- */}
-            <TouchableOpacity
-              style={styles.locationContainer}
-              onPress={() => navigation.navigate('select_your_location')}
-              activeOpacity={0.8}
-            >
-              <Icon name="location-on" size={28} color={COLORS.white} />
-              <View style={styles.locationTextContainer}>
-                {/* Primary Location (Top) */}
-                <View style={styles.locationRow}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={async () => {
+                setIsLoading(true);
+                try {
+                  await Promise.allSettled([
+                    fetchCategories(),
+                    fetchBestSellerProducts(),
+                    userId ? fetchCart() : Promise.resolve(),
+                    userId ? fetchRecommendedProducts() : Promise.resolve(),
+                  ]);
+                } catch (error) {
+                  console.error('Error refreshing home data', error);
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            />
+          }
+        >
+          {/* Header with Gradient Background */}
+          <View style={styles.headerContainer}>
+            <Video
+              ref={videoRef}
+              source={require('../../assets/video/home.mp4')}
+              style={styles.video}
+              resizeMode="cover"
+              repeat={true}
+              paused={!isVideoReady}
+              ignoreSilentSwitch="ignore"
+              playInBackground={false}
+              onLoad={onVideoLoad}
+              onError={onVideoError}
+              muted
+            />
+            <View style={styles.videoOverlay} />
+            <View style={styles.topBar}>
+              {/* --- LOCATION SECTION --- */}
+              <TouchableOpacity
+                style={styles.locationContainer}
+                onPress={() => navigation.navigate('select_your_location')}
+                activeOpacity={0.8}
+              >
+                <Icon name="location-on" size={28} color={COLORS.white} />
+                <View style={styles.locationTextContainer}>
+                  {/* Primary Location (Top) */}
+                  <View style={styles.locationRow}>
+                    <Text
+                      style={styles.primaryLocationText}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {primaryLocation || 'Select Location'}
+                    </Text>
+                    <Icon name="expand-more" size={20} color={COLORS.white} />
+                  </View>
+                  {/* Secondary Location (Bottom) */}
                   <Text
-                    style={styles.primaryLocationText}
+                    style={styles.secondaryLocationText}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
-                    {primaryLocation || 'Select Location'}
+                    {secondaryLocation || 'Tap to set address'}
                   </Text>
-                  <Icon name="expand-more" size={20} color={COLORS.white} />
                 </View>
-                {/* Secondary Location (Bottom) */}
-                <Text
-                  style={styles.secondaryLocationText}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {secondaryLocation || 'Tap to set address'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-            {/* --------------------------------- */}
+              </TouchableOpacity>
+              {/* --------------------------------- */}
 
-            <TouchableOpacity
-              style={styles.profileButton}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <Icon name="person" size={24} color={COLORS.white} />
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => navigation.navigate('Profile')}
+              >
+                <Icon name="person" size={24} color={COLORS.white} />
+              </TouchableOpacity>
+            </View>
 
-          <View style={styles.heroSection}>
-            {/* <Text style={styles.heroTitle}>Fresh, Fast & Delivered</Text>
+            <View style={styles.heroSection}>
+              {/* <Text style={styles.heroTitle}>Fresh, Fast & Delivered</Text>
             <Text style={styles.heroSubtitle}>
               The best quality meat, delivered to your doorstep.
             </Text> */}
+            </View>
           </View>
-        </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <TouchableOpacity
-            style={styles.searchBar}
-            onPress={handleSearchPress}
-            activeOpacity={0.7}
-          >
-            <Icon
-              name="search"
-              size={24}
-              color={COLORS.muted}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search for chicken, meat, or dishes…"
-              placeholderTextColor={COLORS.muted}
-              editable={false}
-              pointerEvents="none"
-            />
-          </TouchableOpacity>
-        </View>
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <TouchableOpacity
+              style={styles.searchBar}
+              onPress={handleSearchPress}
+              activeOpacity={0.7}
+            >
+              <Icon
+                name="search"
+                size={24}
+                color={COLORS.muted}
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search for chicken, meat, or dishes…"
+                placeholderTextColor={COLORS.muted}
+                editable={false}
+                pointerEvents="none"
+              />
+            </TouchableOpacity>
+          </View>
 
-        {/* Main Content */}
-        <View style={styles.mainContent}>
-          {/* Categories Section */}
-          <CategoryList categories={category} navigation={navigation} />
+          {/* Main Content */}
+          <View style={styles.mainContent}>
+            {/* Categories Section */}
+            <CategoryList categories={category} navigation={navigation} />
 
-          {/* Recommended Section */}
-          {isAuthenticated && (
+            {/* Recommended Section */}
+            {isAuthenticated && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Recommended For You</Text>
+                  <TouchableOpacity
+                    style={styles.seeAllButton}
+                    onPress={() =>
+                      navigation.navigate('CategoryResults', {
+                        categoryName: 'Recommended For You',
+                      })
+                    }
+                  >
+                    <Text style={styles.seeAllText}>See All</Text>
+                    <Icon name="arrow-forward" size={16} color={COLORS.primary} />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.productScroll}
+                >
+                  {recommendedProducts.map(product => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onPress={() => handleNavigateToDetails(product)}
+                      showBestsellerBadge={false}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Bestsellers Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recommended For You</Text>
+                <Text style={styles.sectionTitle}>Bestsellers 🔥</Text>
                 <TouchableOpacity
                   style={styles.seeAllButton}
                   onPress={() =>
                     navigation.navigate('CategoryResults', {
-                      categoryName: 'Recommended For You',
+                      categoryName: 'Bestsellers',
                     })
                   }
                 >
@@ -331,117 +332,35 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.productScroll}
               >
-                {recommendedProducts.map(product => (
+                {bestsellerProducts.map(product => (
                   <ProductCard
                     key={product.id}
                     product={product}
                     onPress={() => handleNavigateToDetails(product)}
-                    onAddToCart={e => {
-                      e.stopPropagation();
-                      handleAddToCart(Number(product.id), 1);
-                    }}
-                    showBestsellerBadge={false}
+                    showBestsellerBadge={true}
                   />
                 ))}
               </ScrollView>
             </View>
-          )}
 
-          {/* Bestsellers Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Bestsellers 🔥</Text>
-              <TouchableOpacity
-                style={styles.seeAllButton}
-                onPress={() =>
-                  navigation.navigate('CategoryResults', {
-                    categoryName: 'Bestsellers',
-                  })
-                }
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-                <Icon name="arrow-forward" size={16} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.productScroll}
-            >
-              {bestsellerProducts.map(product => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onPress={() => handleNavigateToDetails(product)}
-                  onAddToCart={e => {
-                    e.stopPropagation();
-                    handleAddToCart(Number(product.id), 1);
-                  }}
-                  showBestsellerBadge={true}
-                />
-              ))}
-            </ScrollView>
+            {/* Bottom Spacer */}
+            <View style={{ height: 200 }} />
           </View>
+        </ScrollView>
 
-          {/* Bottom Spacer */}
-          <View style={{ height: 200 }} />
-        </View>
-      </ScrollView>
-
-      {/* Floating Cart Button */}
-      {/* {totalCartItems > 0 && isAuthenticated && (
-        <View style={styles.floatingCartContainer}>
-          <TouchableOpacity
-            style={styles.cartButton}
+        {/* Floating Cart Bar */}
+        {totalCartItems > 0 && isAuthenticated && (
+          <FloatingCart
+            totalItems={totalCartItems}
+            subTotal={subTotal}
             onPress={() => navigation.navigate('Cart')}
-          >
-            <View style={styles.cartLeft}>
-              <Icon name="shopping-cart" size={32} color={COLORS.white} />
-              <View style={styles.cartDetails}>
-                <Text style={styles.cartItems}>
-                  {totalCartItems} {totalCartItems > 1 ? 'Items' : 'Item'}
-                </Text>
-                <Text style={styles.cartTotal}>
-                  ₹{parseToDecimal(subTotal).toFixed(2)}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.cartArrowButton}>
-              <Icon name="arrow-forward" size={32} color={COLORS.primary} />
-            </View>
-          </TouchableOpacity>
-        </View>
-      )} */}
-
-      {totalCartItems > 0 && isAuthenticated && (
-        <LinearGradient
-          colors={['#000000', '#000000']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.viewCartBar}
-        >
-          <View>
-            <Text style={styles.viewCartItems}>{totalCartItems} {totalCartItems > 1 ? 'Items' : 'Item' } | ₹{parseToDecimal(subTotal).toFixed(2)}</Text>
-            <Text style={styles.viewCartNote}>Extra charges may apply</Text>
-          </View>
-          <TouchableOpacity onPress={() => navigation.navigate('Cart')} >
-            <LinearGradient
-              colors={BUTTON_GRADIENT}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.viewCartButton}
-            >
-              <Text style={styles.viewCartText}>View Cart</Text>
-              <Icon name="arrow-forward" size={20} color={COLORS.white} />
-            </LinearGradient>
-          </TouchableOpacity>
-        </LinearGradient>
-      )}
-    </View>
+            marginBottom={75}
+          />
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
-
-const BUTTON_GRADIENT = ['#6A0DAD', '#D8B4FF'];
 
 const styles = StyleSheet.create({
   container: {
@@ -602,538 +521,4 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingBottom: 8,
   },
-  floatingCartContainer: {
-    position: 'absolute',
-    bottom: 96,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-  },
-  cartButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    borderRadius: 32,
-    height: 64,
-    paddingLeft: 24,
-    paddingRight: 8,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  cartLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  cartDetails: {
-    flexDirection: 'column',
-  },
-  cartItems: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  cartTotal: {
-    color: COLORS.white,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  cartArrowButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  viewCartBar: {
-    position: 'absolute',
-    bottom: 12,
-    left: 16,
-    right: 16,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 70,
-  },
-  viewCartItems: { color: COLORS.white, fontWeight: '700' },
-  viewCartNote: { color: 'rgba(255,255,255,0.85)', fontSize: 12 },
-  viewCartButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 40,
-  },
-  viewCartText: { color: COLORS.white, fontWeight: '700', marginRight: 6 },
 });
-
-// HomeScreen.tsx
-// import {
-//   Dimensions,
-//   Image,
-//   ScrollView,
-//   StatusBar,
-//   StyleSheet,
-//   Text,
-//   TextInput,
-//   TouchableOpacity,
-//   View,
-//   Alert,
-// } from 'react-native';
-// import Icon from 'react-native-vector-icons/MaterialIcons';
-// import { AxiosError } from 'axios';
-// import { useEffect, useState } from 'react';
-// import Toast from 'react-native-toast-message';
-// import api from '../../api/api';
-// import { Category, Product } from '../../types/product.type';
-// import { AppNavigation } from '../../types/type';
-// import { useAuth } from '../../context/AuthContext';
-// import { getAllProducts } from '../../services/product.service';
-// import { useCartStore } from '../../store/cart';
-// import { useLocationStore } from '../../store/location';
-// import { parseToDecimal, ErrorMessage } from '../../utils/utils';
-// import { COLORS } from '../../theme/theme';
-// import ProductCard from '../../components/ui/products/Product';
-// import CategoryList from '../../components/ui/CategoryList';
-
-// const { width } = Dimensions.get('window');
-
-// export default function HomeScreen({ navigation }: AppNavigation) {
-//   const [category, setCategory] = useState<Category[]>([]);
-//   const [bestSellerProducts, setBestSellerProducts] = useState<Product[]>([]);
-//   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
-//   const { latitude, longitude } = useLocationStore();
-//   const { userId, isAuthenticated } = useAuth();
-//   const { totalItems: totalCartItems, subtotal: subTotal, fetchCart, addToCart } = useCartStore();
-
-//   console.log("cartItems", totalCartItems, subTotal, isAuthenticated, userId);
-
-//   const fetchCategories = async () => {
-//     try {
-//       const res = await api.get('/category/all');
-//       setCategory(res.data.data);
-//     } catch (error) {
-//       if (error instanceof AxiosError) {
-//         Toast.show({
-//           type: 'error',
-//           text1: error.response?.data.message || "Something went wrong",
-//         });
-//       } else {
-//         Toast.show({
-//           type: 'error',
-//           text1: "Something went wrong",
-//         });
-//       }
-//     }
-//   };
-
-//   const fetchBestSellerProducts = async () => {
-//     try {
-//       const response = await getAllProducts({
-//         lat: latitude ?? undefined,
-//         lng: longitude ?? undefined,
-//         isActive: true,
-//         userId: userId ?? undefined,
-//         isBestSeller: true
-//       });
-//       console.log('Best seller products:', response.data);
-//       setBestSellerProducts(response.data.products);
-//     } catch (error) {
-//       ErrorMessage(error as AxiosError | Error);
-//     }
-//   };
-
-//   const fetchRecommendedProducts = async () => {
-//     try {
-//       const response = await getAllProducts({
-//         lat: latitude ?? undefined,
-//         lng: longitude ?? undefined,
-//         isActive: true,
-//         userId: userId ?? undefined,
-//         isRecommended: true
-//       });
-//       setRecommendedProducts(response.data.products);
-//       console.log('Recommended products:', response.data);
-//     } catch (error) {
-//       ErrorMessage(error as AxiosError | Error);
-//     }
-//   }
-
-//   useEffect(() => {
-//     fetchCategories();
-//     fetchBestSellerProducts();
-//     if (userId) fetchCart();
-//     if (userId) fetchRecommendedProducts();
-//   }, [latitude, longitude, userId]);
-
-//   const handleNavigateToDetails = (product: Product) => {
-//     navigation.navigate("ProductDetails", { product });
-//   };
-
-//   const handleAddToCart = async (productId: number, quantity: number = 1) => {
-//     if (!isAuthenticated) {
-//       Alert.alert(
-//         "Login Required",
-//         "You need to log in to add this product to your cart.",
-//         [
-//           { text: "Login", onPress: () => navigation.navigate("Login") },
-//           { text: "Cancel", style: "cancel" },
-//         ]
-//       );
-//       return;
-//     }
-
-//     try {
-//       await addToCart(productId, quantity);
-//       Toast.show({
-//         type: 'success',
-//         text1: 'Added to cart!',
-//       });
-//     } catch (error) {
-//       if (error instanceof AxiosError) {
-//         Toast.show({
-//           type: 'error',
-//           text1: error.response?.data?.message || 'Failed to add to cart',
-//         });
-//       } else {
-//         ErrorMessage(error as AxiosError | Error);
-//       }
-//     }
-//   };
-
-//   const handleSearchPress = () => {
-//     navigation.navigate('Search');
-//   };
-
-//   const bestsellerProducts = bestSellerProducts;
-
-//   return (
-//     <View style={styles.container}>
-//       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-
-//       <ScrollView
-//         style={styles.scrollView}
-//         showsVerticalScrollIndicator={false}
-//       >
-//         {/* Header with Gradient Background */}
-//         <View style={styles.headerContainer}>
-//           <View style={styles.topBar}>
-//             <View style={styles.locationContainer}>
-//               <Icon name="location-on" size={24} color={COLORS.white} />
-//               <View style={styles.locationTextContainer}>
-//                 <View style={styles.locationRow}>
-//                   <Text style={styles.locationText}>
-//                     Delivering to: Kanke, Ranchi
-//                   </Text>
-//                   <Icon name="expand-more" size={16} color={COLORS.white} />
-//                 </View>
-//               </View>
-//             </View>
-//             <TouchableOpacity
-//               style={styles.profileButton}
-//               onPress={() => navigation.navigate('Profile')}
-//             >
-//               <Icon name="person" size={24} color={COLORS.white} />
-//             </TouchableOpacity>
-//           </View>
-
-//           <View style={styles.heroSection}>
-//             <Text style={styles.heroTitle}>Fresh, Fast & Delivered</Text>
-//             <Text style={styles.heroSubtitle}>
-//               The best quality meat, delivered to your doorstep.
-//             </Text>
-//           </View>
-//         </View>
-
-//         {/* Search Bar */}
-//         <View style={styles.searchContainer}>
-//           <TouchableOpacity
-//             style={styles.searchBar}
-//             onPress={handleSearchPress}
-//             activeOpacity={0.7}
-//           >
-//             <Icon name="search" size={24} color={COLORS.muted} style={styles.searchIcon} />
-//             <TextInput
-//               style={styles.searchInput}
-//               placeholder="Search for chicken, meat, or dishes…"
-//               placeholderTextColor={COLORS.muted}
-//               editable={false}
-//               pointerEvents="none"
-//             />
-//           </TouchableOpacity>
-//         </View>
-
-//         {/* Main Content */}
-//         <View style={styles.mainContent}>
-//           {/* Categories Section */}
-//           <CategoryList categories={category} navigation={navigation} />
-
-//           {/* Recommended Section */}
-//           {isAuthenticated && (
-//             <View style={styles.section}>
-//               <View style={styles.sectionHeader}>
-//                 <Text style={styles.sectionTitle}>Recommended For You</Text>
-//                 <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("CategoryResults",{categoryName: 'Recommended For You'})}>
-//                   <Text style={styles.seeAllText}>See All</Text>
-//                   <Icon name="arrow-forward" size={16} color={COLORS.primary} />
-//                 </TouchableOpacity>
-//               </View>
-//               <ScrollView
-//                 horizontal
-//                 showsHorizontalScrollIndicator={false}
-//                 contentContainerStyle={styles.productScroll}
-//               >
-//                 {recommendedProducts.map((product) => (
-//                   <ProductCard
-//                     key={product.id}
-//                     product={product}
-//                     onPress={() => handleNavigateToDetails(product)}
-//                     onAddToCart={(e) => {
-//                       e.stopPropagation();
-//                       handleAddToCart(Number(product.id), 1);
-//                     }}
-//                     showBestsellerBadge={false}
-//                   />
-//                 ))}
-//               </ScrollView>
-//             </View>
-
-//           )}
-
-//           {/* Bestsellers Section */}
-//           <View style={styles.section}>
-//             <View style={styles.sectionHeader}>
-//               <Text style={styles.sectionTitle}>Bestsellers 🔥</Text>
-//               <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("CategoryResults", {categoryName: 'Bestsellers'})}>
-//                 <Text style={styles.seeAllText}>See All</Text>
-//                 <Icon name="arrow-forward" size={16} color={COLORS.primary} />
-//               </TouchableOpacity>
-//             </View>
-//             <ScrollView
-//               horizontal
-//               showsHorizontalScrollIndicator={false}
-//               contentContainerStyle={styles.productScroll}
-//             >
-//               {bestsellerProducts.map((product) => (
-//                 <ProductCard
-//                   key={product.id}
-//                   product={product}
-//                   onPress={() => handleNavigateToDetails(product)}
-//                   onAddToCart={(e) => {
-//                     e.stopPropagation();
-//                     handleAddToCart(Number(product.id), 1);
-//                   }}
-//                   showBestsellerBadge={true}
-//                 />
-//               ))}
-//             </ScrollView>
-//           </View>
-
-//           {/* Bottom Spacer */}
-//           <View style={{ height: 200 }} />
-//         </View>
-//       </ScrollView>
-
-//       {/* Floating Cart Button */}
-//       {totalCartItems > 0 && isAuthenticated && (
-//         <View style={styles.floatingCartContainer}>
-//           <TouchableOpacity
-//             style={styles.cartButton}
-//             onPress={() => navigation.navigate('Cart')}
-//           >
-//             <View style={styles.cartLeft}>
-//               <Icon name="shopping-cart" size={32} color={COLORS.white} />
-//               <View style={styles.cartDetails}>
-//                 <Text style={styles.cartItems}>{totalCartItems} {totalCartItems > 1 ? 'Items' : 'Item'}</Text>
-//                 <Text style={styles.cartTotal}>₹{parseToDecimal(subTotal).toFixed(2)}</Text>
-//               </View>
-//             </View>
-//             <View style={styles.cartArrowButton}>
-//               <Icon name="arrow-forward" size={32} color={COLORS.primary} />
-//             </View>
-//           </TouchableOpacity>
-//         </View>
-//       )}
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: COLORS.background,
-//   },
-//   scrollView: {
-//     flex: 1,
-//   },
-//   headerContainer: {
-//     backgroundColor: COLORS.primary,
-//     paddingTop: 16,
-//     paddingBottom: 48,
-//   },
-//   topBar: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     paddingHorizontal: 16,
-//     paddingBottom: 8,
-//   },
-//   locationContainer: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     gap: 8,
-//   },
-//   locationTextContainer: {
-//     flexDirection: 'column',
-//   },
-//   locationRow: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//   },
-//   locationText: {
-//     color: COLORS.white,
-//     fontSize: 14,
-//     fontWeight: '800',
-//   },
-//   profileButton: {
-//     width: 40,
-//     height: 40,
-//     borderRadius: 20,
-//     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-//   heroSection: {
-//     paddingHorizontal: 16,
-//     paddingTop: 100,
-//     alignItems: 'center',
-//   },
-//   heroTitle: {
-//     color: COLORS.white,
-//     fontSize: 30,
-//     fontWeight: '900',
-//     textAlign: 'center',
-//     marginBottom: 16,
-//   },
-//   heroSubtitle: {
-//     color: 'rgba(255, 255, 255, 0.8)',
-//     fontSize: 16,
-//     textAlign: 'center',
-//   },
-//   searchContainer: {
-//     paddingHorizontal: 16,
-//     marginTop: -24,
-//     zIndex: 10,
-//   },
-//   searchBar: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     backgroundColor: COLORS.white,
-//     borderRadius: 28,
-//     height: 56,
-//     shadowColor: '#000',
-//     shadowOffset: { width: 0, height: 4 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 8,
-//     elevation: 5,
-//     paddingHorizontal: 8,
-//   },
-//   searchIcon: {
-//     paddingLeft: 12,
-//   },
-//   searchInput: {
-//     flex: 1,
-//     fontSize: 16,
-//     color: COLORS.textPrimary,
-//     paddingHorizontal: 8,
-//   },
-//   mainContent: {
-//     paddingTop: 32,
-//   },
-//   section: {
-//     marginBottom: 32,
-//   },
-//   sectionHeader: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     paddingHorizontal: 16,
-//     marginBottom: 16,
-//   },
-//   sectionTitle: {
-//     fontSize: 20,
-//     fontWeight: '800',
-//     color: COLORS.textPrimary,
-//   },
-//   seeAllButton: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     gap: 4,
-//   },
-//   seeAllText: {
-//     fontSize: 14,
-//     fontWeight: '800',
-//     color: COLORS.primary,
-//   },
-//   productScroll: {
-//     paddingHorizontal: 16,
-//     gap: 16,
-//     paddingBottom: 8,
-//   },
-//   floatingCartContainer: {
-//     position: 'absolute',
-//     bottom: 96,
-//     left: 0,
-//     right: 0,
-//     paddingHorizontal: 16,
-//   },
-//   cartButton: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     backgroundColor: COLORS.primary,
-//     borderRadius: 32,
-//     height: 64,
-//     paddingLeft: 24,
-//     paddingRight: 8,
-//     shadowColor: COLORS.primary,
-//     shadowOffset: { width: 0, height: 8 },
-//     shadowOpacity: 0.3,
-//     shadowRadius: 16,
-//     elevation: 8,
-//   },
-//   cartLeft: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     gap: 16,
-//   },
-//   cartDetails: {
-//     flexDirection: 'column',
-//   },
-//   cartItems: {
-//     color: 'rgba(255, 255, 255, 0.8)',
-//     fontSize: 14,
-//     fontWeight: '800',
-//   },
-//   cartTotal: {
-//     color: COLORS.white,
-//     fontSize: 20,
-//     fontWeight: '800',
-//   },
-//   cartArrowButton: {
-//     width: 48,
-//     height: 48,
-//     borderRadius: 24,
-//     backgroundColor: COLORS.white,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-// });

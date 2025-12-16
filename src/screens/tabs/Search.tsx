@@ -47,6 +47,7 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
     setError(null);
     try {
       const response = await getAllProducts({ search: query });
+      console.log("search data", response.data.products)
       if (response.success) {
         setProducts(response.data.products);
       } else {
@@ -61,7 +62,7 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
   }, []);
 
   // Proper debounce implementation using useRef
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<any | null>(null);
   const debouncedFetch = useCallback((query: string) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);

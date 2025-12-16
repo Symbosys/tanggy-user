@@ -46,3 +46,21 @@ export const ErrorMessage = (error: AxiosError | Error) => {
 export const SuccessMessage = (message: string) => {
   ToastAndroid.show(message, ToastAndroid.LONG);
 }
+
+/**
+ * Generates initials from a full name.
+ * Takes the first letter of the first word and the first letter of the last word.
+ * Example: "Amit Kumar" -> "AK", "John" -> "J"
+ * @param name - The full name string
+ * @returns string - The generated initials
+ */
+export const getInitials = (name: string): string => {
+  if (!name) return "";
+  const words = name.trim().split(" ");
+  if (words.length === 0) return "";
+  
+  const firstInitial = words[0][0].toUpperCase();
+  const lastInitial = words.length > 1 ? words[words.length - 1][0].toUpperCase() : "";
+  
+  return firstInitial + lastInitial;
+};

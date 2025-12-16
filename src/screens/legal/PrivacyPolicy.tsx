@@ -9,7 +9,7 @@ import {
     NativeSyntheticEvent,
     NativeScrollEvent,
 } from "react-native";
-import { SafeAreaView as SafeAreaViewBase } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import LinearGradient from "react-native-linear-gradient";
 import { Linking } from "react-native";
@@ -37,6 +37,7 @@ const PrivacyPolicy = ({ navigation }: AppNavigation) => {
     const [headerHeight, setHeaderHeight] = useState(72);
     const [progress, setProgress] = useState(0);
     const scrollRef = useRef<ScrollView>(null);
+    const insets = useSafeAreaInsets();
 
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
@@ -50,9 +51,7 @@ const PrivacyPolicy = ({ navigation }: AppNavigation) => {
         navigation.goBack();
     };
 
-    const handleDownloadPress = () => {
-        // Handle download
-    };
+
 
     const handleAcceptPress = () => {
         // Handle accept and continue
@@ -78,16 +77,14 @@ const PrivacyPolicy = ({ navigation }: AppNavigation) => {
                     colors={GRADIENT_HEADER}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={styles.headerGradient}
+                    style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
                 >
                     <View style={styles.headerContent}>
                         <TouchableOpacity style={styles.headerButton} onPress={handleBackPress}>
                             <Icon name="arrow-back" size={24} color={COLORS.white} />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Privacy Policy</Text>
-                        <TouchableOpacity style={styles.headerButton} onPress={handleDownloadPress}>
-                            <Icon name="download" size={24} color={COLORS.white} />
-                        </TouchableOpacity>
+                        <View style={styles.headerButton} />
                     </View>
                 </LinearGradient>
             </View>
@@ -110,7 +107,7 @@ const PrivacyPolicy = ({ navigation }: AppNavigation) => {
             {/* Main Content */}
             <ScrollView
                 ref={scrollRef}
-                style={styles.main}
+                style={[styles.main, { marginTop: headerHeight }]}
                 contentContainerStyle={styles.mainContent}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
