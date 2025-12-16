@@ -21,6 +21,7 @@ import { useAddressStore } from '../../store/address';
 import { AppNavigation } from '../../types/type';
 import { parseToDecimal } from '../../utils/utils';
 import { useAlertStore } from '../../store/alert.store';
+import BottomCartPopup from '../../components/ui/popup/BottonCart';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -32,6 +33,7 @@ const CartScreen = ({ navigation }: AppNavigation) => {
   const [selectedTip, setSelectedTip] = useState<number | null>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [showCheckoutPopup, setShowCheckoutPopup] = useState(false);
 
   // All hooks at the top (before any early returns)
   useEffect(() => {
@@ -140,7 +142,7 @@ const CartScreen = ({ navigation }: AppNavigation) => {
         message: 'Your cart is empty. Add some items to proceed.',
         confirmText: 'OK',
         cancelText: 'Cancel',
-        onConfirm: () => {},
+        onConfirm: () => { },
       });
       return;
     }
@@ -150,18 +152,12 @@ const CartScreen = ({ navigation }: AppNavigation) => {
         message: 'Please select a delivery address to proceed.',
         confirmText: 'OK',
         cancelText: 'Cancel',
-        onConfirm: () => {},
+        onConfirm: () => { },
       });
       setShowAddressModal(true);
       return;
     }
-    showAlert({
-      title: 'Checkout',
-      message: `Proceed to checkout for ₹${calculateTotal().toFixed(2)}?`,
-      confirmText: 'Checkout',
-      cancelText: 'Cancel',
-      onConfirm: () => navigation.navigate('OrderPlaced'),
-    });
+    setShowCheckoutPopup(true);
   };
 
   const handleSelectAddress = (addressId: number) => {
@@ -375,6 +371,16 @@ const CartScreen = ({ navigation }: AppNavigation) => {
         </SafeAreaView>
       </Modal>
 
+      <BottomCartPopup
+        visible={showCheckoutPopup}
+        onClose={() => setShowCheckoutPopup(false)}
+        onConfirm={() => {
+          setShowCheckoutPopup(false);
+          navigation.navigate('OrderPlaced');
+        }}
+        price={calculateTotal()}
+      />
+
       {/* Sticky Footer Checkout Button */}
       <View style={styles.footer}>
         <LinearGradient
@@ -392,6 +398,8 @@ const CartScreen = ({ navigation }: AppNavigation) => {
     </SafeAreaView>
   );
 };
+
+export default CartScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -840,4 +848,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CartScreen;

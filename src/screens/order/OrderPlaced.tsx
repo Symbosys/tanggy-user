@@ -1,15 +1,18 @@
+import React, { useEffect, useRef } from 'react';
 import {
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
+    Animated,
+    Easing,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { COLORS } from '../../theme/theme'; // make sure this file exports your color palette
+import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
 
-const OrderConfirmationScreen = ({navigation}: AppNavigation) => {
+const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
     const insets = useSafeAreaInsets();
 
     return (
@@ -34,7 +37,8 @@ const OrderConfirmationScreen = ({navigation}: AppNavigation) => {
                 <View style={styles.successOuter}>
                     <View style={styles.successMid}>
                         <View style={styles.successInner}>
-                            <Icon name="done" size={48} color={COLORS.white} />
+                            {/* <Icon name="done" size={48} color={COLORS.white} /> */}
+                            <AnimatedCheckmark size={48} color={COLORS.white} />
                         </View>
                     </View>
                 </View>
@@ -71,6 +75,77 @@ const OrderConfirmationScreen = ({navigation}: AppNavigation) => {
 };
 
 export default OrderConfirmationScreen;
+
+const AnimatedCheckmark = ({ size = 48, color = 'white' }) => {
+    const stroke1Width = useRef(new Animated.Value(0)).current;
+    const stroke2Width = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.sequence([
+            // Delay slightly
+            Animated.delay(300),
+            // Stroke 1
+            Animated.timing(stroke1Width, {
+                toValue: 18, // Length of short stroke
+                duration: 200,
+                useNativeDriver: false,
+                easing: Easing.out(Easing.quad),
+            }),
+            // Stroke 2
+            Animated.timing(stroke2Width, {
+                toValue: 36, // Length of long stroke
+                duration: 300,
+                useNativeDriver: false,
+                easing: Easing.out(Easing.quad),
+            }),
+        ]).start();
+    }, []);
+
+    const thickness = 5;
+
+    return (
+        <View style={{ width: size, height: size }}>
+            {/* Stroke 1: Down-Right */}
+            {/* Position carefully calibrated for 48px size */}
+            <View style={{
+                position: 'absolute',
+                left: 4,
+                top: 27,
+                width: 18,
+                height: thickness,
+                transform: [{ rotate: '45deg' }],
+                justifyContent: 'center',
+                alignItems: 'flex-start', // Grow from left
+            }}>
+                <Animated.View style={{
+                    height: '100%',
+                    width: stroke1Width,
+                    backgroundColor: color,
+                    borderRadius: thickness / 2,
+                }} />
+            </View>
+
+            {/* Stroke 2: Up-Right */}
+            <View style={{
+                position: 'absolute',
+                left: 12,
+                top: 22,
+                width: 36,
+                height: thickness,
+                transform: [{ rotate: '-48deg' }], // Slight angle tweak
+                justifyContent: 'center',
+                alignItems: 'flex-start', // Grow from left
+            }}>
+                <Animated.View style={{
+                    height: '100%',
+                    width: stroke2Width,
+                    backgroundColor: color,
+                    borderRadius: thickness / 2,
+                }} />
+            </View>
+        </View>
+    );
+};
 
 const styles = StyleSheet.create({
     container: {
