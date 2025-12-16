@@ -19,7 +19,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useCartStore } from '../../store/cart';
 import { useAddressStore } from '../../store/address';
 import { AppNavigation } from '../../types/type';
-import { parseToDecimal } from '../../utils/utils';
+import { handlePayment, parseToDecimal } from '../../utils/utils';
 import { useAlertStore } from '../../store/alert.store';
 import BottomCartPopup from '../../components/ui/popup/BottonCart';
 
@@ -374,8 +374,9 @@ const CartScreen = ({ navigation }: AppNavigation) => {
       <BottomCartPopup
         visible={showCheckoutPopup}
         onClose={() => setShowCheckoutPopup(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setShowCheckoutPopup(false);
+          await handlePayment(calculateTotal().toString());
           navigation.navigate('OrderPlaced');
         }}
         price={calculateTotal()}

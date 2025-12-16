@@ -1,7 +1,7 @@
-import { AxiosError } from "axios";
-import { ToastAndroid } from "react-native";
+import { AxiosError } from 'axios';
+import { Alert, Linking, ToastAndroid } from 'react-native';
 
-type DecimalObj = {s: number; e: number; d: number[]};
+type DecimalObj = { s: number; e: number; d: number[] };
 
 export function parseToDecimal(
   price: number | DecimalObj | null | undefined,
@@ -22,7 +22,7 @@ export function parseToDecimal(
  */
 export function calculateDiscount(
   marketPrice: number | DecimalObj | null | undefined,
-  sellingPrice: number | DecimalObj | null | undefined
+  sellingPrice: number | DecimalObj | null | undefined,
 ): number {
   const market = parseToDecimal(marketPrice);
   const selling = parseToDecimal(sellingPrice);
@@ -33,19 +33,20 @@ export function calculateDiscount(
   return Math.round(discount); // round to nearest integer (e.g., 25%)
 }
 
-
-
 export const ErrorMessage = (error: AxiosError | Error) => {
   if (error instanceof AxiosError) {
-    ToastAndroid.show(error.response?.data?.message || 'An error occurred', ToastAndroid.LONG);
+    ToastAndroid.show(
+      error.response?.data?.message || 'An error occurred',
+      ToastAndroid.LONG,
+    );
   } else {
     ToastAndroid.show('An error occurred', ToastAndroid.LONG);
   }
-}
+};
 
 export const SuccessMessage = (message: string) => {
   ToastAndroid.show(message, ToastAndroid.LONG);
-}
+};
 
 /**
  * Generates initials from a full name.
@@ -55,12 +56,43 @@ export const SuccessMessage = (message: string) => {
  * @returns string - The generated initials
  */
 export const getInitials = (name: string): string => {
-  if (!name) return "";
-  const words = name.trim().split(" ");
-  if (words.length === 0) return "";
-  
+  if (!name) return '';
+  const words = name.trim().split(' ');
+  if (words.length === 0) return '';
+
   const firstInitial = words[0][0].toUpperCase();
-  const lastInitial = words.length > 1 ? words[words.length - 1][0].toUpperCase() : "";
-  
+  const lastInitial =
+    words.length > 1 ? words[words.length - 1][0].toUpperCase() : '';
+
   return firstInitial + lastInitial;
+};
+
+const upiId = 'amitkumardss2892@okaxis'; // Replace with your VPA
+const payeeName = 'Fresh'; // Replace with your Name
+const note = 'Fresh Order Payment';
+
+export const handlePayment = async (totalAmount: string) => {
+  // 1. Construct the URL (Same as Web)
+  const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(
+    payeeName,
+  )}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(note)}`;
+
+  try {
+    // 2. Check if the device can handle this link
+    // (This checks if any UPI app is installed)
+    const supported = await Linking.canOpenURL(upiUrl);
+
+    if (supported) {
+      // 3. Open the App Chooser
+      await Linking.openURL(upiUrl);
+    } else {
+      Alert.alert(
+        'Error',
+        'No UPI apps found on this phone (PhonePe, GPay, etc).',
+      );
+    }
+  } catch (err) {
+    console.error('An error occurred', err);
+    Alert.alert('Error', 'Could not open payment app.');
+  }
 };

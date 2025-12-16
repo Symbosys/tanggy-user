@@ -27,6 +27,7 @@ import CartScreen from '../screens/cart/TestCart';
 import GlobalAlert from '../components/alert/LoginAlert';
 import TestAddAddress from '../screens/address/TestAddress';
 import UpdateProfile from '../screens/profile/UpdateProfile';
+import PaymentButton from '../screens/payment/Payment';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -34,7 +35,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        // initialRouteName='AddAddress'
+        initialRouteName='OrderTracking'
 
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />
@@ -50,7 +51,7 @@ export default function StackNavigation() {
         <Stack.Screen name='Address' component={MyAddressesScreen} />
         <Stack.Screen name='AddAddress' component={TestAddAddress} />
 
-
+        <Stack.Screen name='Payment' component={PaymentButton} />
         <Stack.Screen name='OrderPlaced' component={OrderConfirmationScreen} />
         <Stack.Screen name='OrderTracking' component={OrderTracking} />
         <Stack.Screen name='ChatWithDelivery' component={ChatScreen} />

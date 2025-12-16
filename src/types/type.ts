@@ -26,6 +26,9 @@ export type RootStackParamList = {
   OrderDetails: undefined;
   MyOrders: undefined;
 
+  // Payment
+  Payment: undefined;
+
   ProductDetails: { product: Product };
   CategoryResults: { categoryId?: string; categoryName: string };
 
