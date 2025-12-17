@@ -35,7 +35,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName='OrderTracking'
+        // initialRouteName='OrderTracking'
 
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />

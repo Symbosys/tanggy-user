@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Animated, Platform, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-
+import LottieView from 'lottie-react-native';
 import MyAccountScreen from '../screens/tabs/Accounts';
 import CategoryScreen from '../screens/tabs/Category';
 import Discount from '../screens/tabs/Discount';
@@ -25,11 +25,36 @@ const BottomTab = ({ navigation }: AppNavigation) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <Tab.Navigator
-      
         screenOptions={({ route }) => ({
           tabBarHideOnKeyboard: true,
           headerShown: false,
+
           tabBarIcon: ({ focused, color, size }) => {
+
+            if (route.name === 'Discount') {
+              return (
+                <Animated.View
+                  style={[
+                    styles.iconContainer,
+                    { transform: [{ scale: focused ? 1.2 : 1 }] },
+                  ]}
+                >
+                  <LottieView
+                    key={focused ? 'active' : 'inactive'}
+                    source={require('../assets/lottie/Discount.json')}
+                    autoPlay
+                    loop
+                    resizeMode="contain"
+                    renderMode="HARDWARE"
+                    style={{
+                      width: 100,
+                      height: 100,
+                    }}
+                  />
+                </Animated.View>
+              );
+            }
+
             let iconName: string = '';
 
             switch (route.name) {
@@ -45,9 +70,6 @@ const BottomTab = ({ navigation }: AppNavigation) => {
               case 'Profile':
                 iconName = 'person';
                 break;
-              case 'Discount':
-                iconName = 'local-offer';
-                break;
               default:
                 iconName = 'circle';
             }
@@ -57,19 +79,24 @@ const BottomTab = ({ navigation }: AppNavigation) => {
                 style={[
                   styles.iconContainer,
                   { transform: [{ scale: focused ? 1.2 : 1 }] },
-                ]}>
+                ]}
+              >
                 <MaterialIcons name={iconName} size={size} color={color} />
               </Animated.View>
             );
           },
-          tabBarLabel: ({ color }) => (
-            <Text style={[styles.tabLabel, { color }]}>{route.name}</Text>
-          ),
+
+          tabBarLabel: ({ color }) =>
+            route.name === 'Discount' ? null : (
+              <Text style={[styles.tabLabel, { color }]}>{route.name}</Text>
+            ),
+
           tabBarActiveTintColor: COLORS.primary,
           tabBarInactiveTintColor: COLORS.muted,
           tabBarStyle: styles.tabBar,
           tabBarItemStyle: styles.tabBarItem,
-        })}>
+        })}
+      >
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Category" component={CategoryScreen} />
         <Tab.Screen name="Discount" component={Discount} />
@@ -90,7 +117,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingVertical: 8,
-    // ✅ Add safe bottom padding for iOS gesture area
     paddingBottom: Platform.OS === 'ios' ? 25 : 10,
     height: Platform.OS === 'ios' ? 85 : 70,
     shadowColor: COLORS.textPrimary,
@@ -99,7 +125,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     borderTopWidth: 0,
-    position: 'absolute', // ✅ keeps it floating above gestures
+    position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,

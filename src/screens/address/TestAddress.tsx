@@ -327,6 +327,7 @@ import {
 } from '../../utils/permissions/location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/theme';
+import { AppNavigation } from '../../types/type';
 
 const { height, width } = Dimensions.get('window');
 
@@ -352,7 +353,7 @@ interface PlaceDetails {
     };
 }
 
-function TestAddAddress() {
+function TestAddAddress({ navigation }: AppNavigation) {
     const [showBottomSheet, setShowBottomSheet] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [selectedTag, setSelectedTag] = useState('Home');
@@ -962,6 +963,7 @@ function TestAddAddress() {
                                                 `${res.data.message || 'Address added successfully'}`,
                                                 ToastAndroid.LONG,
                                             );
+                                            navigation.goBack();
                                         }
                                     } catch (error) {
                                         if (error instanceof AxiosError) {

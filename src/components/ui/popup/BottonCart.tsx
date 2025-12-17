@@ -15,7 +15,7 @@ interface BottomCartPopupProps {
 }
 
 const BottomCartPopup: React.FC<BottomCartPopupProps> = ({ visible, onClose, onConfirm, price }) => {
-    const [timeLeft, setTimeLeft] = useState(10);
+    const [timeLeft, setTimeLeft] = useState(3);
     const progress = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -45,7 +45,7 @@ const BottomCartPopup: React.FC<BottomCartPopupProps> = ({ visible, onClose, onC
 
     useEffect(() => {
         if (visible) {
-            setTimeLeft(10);
+            setTimeLeft(3);
             progress.setValue(0);
 
             // Start the countdown
@@ -65,7 +65,7 @@ const BottomCartPopup: React.FC<BottomCartPopupProps> = ({ visible, onClose, onC
             // Let's make it shrink: widthInterpolated maps 0->100% and 1->0%.
             Animated.timing(progress, {
                 toValue: 1,
-                duration: 10000,
+                duration: 3000,
                 easing: Easing.linear,
                 useNativeDriver: false,
             }).start();
