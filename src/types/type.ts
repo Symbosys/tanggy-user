@@ -6,6 +6,9 @@ export type RootStackParamList = {
   Login: undefined;
   Otp: { mobile: string };
   select_your_location: undefined;
+
+  EliteMembership: undefined;
+
   BottomTab: undefined;
   Cart: undefined;
 
@@ -27,7 +30,7 @@ export type RootStackParamList = {
   MyOrders: undefined;
 
   // Payment
-  Payment: undefined;
+  PaymentCallback: undefined;
 
   ProductDetails: { product: Product };
   CategoryResults: { categoryId?: string; categoryName: string };

@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { RefreshControl } from 'react-native-gesture-handler';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video, { VideoRef } from 'react-native-video';
@@ -21,14 +22,13 @@ import CategoryList from '../../components/ui/CategoryList';
 import ProductCard from '../../components/ui/products/Product';
 import { useAuth } from '../../context/AuthContext';
 import { getAllProducts } from '../../services/product.service';
-import { useAlertStore } from '../../store/alert.store';
 import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
 import { COLORS } from '../../theme/theme';
 import { Category, Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
 import { ErrorMessage } from '../../utils/utils';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EliteMemberShipCard, FloatingEliteMembership } from '../../components/common/EliteMembership';
 
 const { width } = Dimensions.get('window');
 
@@ -344,10 +344,14 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             </View>
 
             {/* Bottom Spacer */}
-            <View style={{ height: 200 }} />
+          {!isAuthenticated && <EliteMemberShipCard />}
+            <View style={{ height: 190 }} />
           </View>
         </ScrollView>
 
+
+
+        {!isAuthenticated && <FloatingEliteMembership />}
         {/* Floating Cart Bar */}
         {totalCartItems > 0 && isAuthenticated && (
           <FloatingCart
@@ -357,6 +361,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             marginBottom={75}
           />
         )}
+
       </View>
     </SafeAreaView>
   );
