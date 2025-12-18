@@ -29,6 +29,7 @@ import { Category, Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
 import { ErrorMessage } from '../../utils/utils';
 import { EliteMemberShipCard, FloatingEliteMembership } from '../../components/common/EliteMembership';
+import LottieView from 'lottie-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -187,7 +188,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
         >
           {/* Header with Gradient Background */}
           <View style={styles.headerContainer}>
-            <Video
+            {/* <Video
               ref={videoRef}
               source={require('../../assets/video/home.mp4')}
               style={styles.video}
@@ -199,8 +200,15 @@ export default function HomeScreen({ navigation }: AppNavigation) {
               onLoad={onVideoLoad}
               onError={onVideoError}
               muted
+            /> */}
+            <LottieView
+              source={require('../../assets/lottie/hero/Christmas_Tree.json')}
+              autoPlay
+              loop={true}
+              style={styles.video}
+              resizeMode="cover"
             />
-            <View style={styles.videoOverlay} />
+            {/* <View style={styles.videoOverlay} /> */}
             <View style={styles.topBar}>
               {/* --- LOCATION SECTION --- */}
               <TouchableOpacity
@@ -235,9 +243,9 @@ export default function HomeScreen({ navigation }: AppNavigation) {
 
               <TouchableOpacity
                 style={styles.profileButton}
-                onPress={() => navigation.navigate('Profile')}
+                onPress={() => navigation.navigate('EliteMembership')}
               >
-                <Icon name="person" size={24} color={COLORS.white} />
+                <Icon name="workspace-premium" size={24} color={COLORS.white} />
               </TouchableOpacity>
             </View>
 
@@ -376,7 +384,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerContainer: {
-    backgroundColor: COLORS.primary,
+    // backgroundColor: COLORS.primary,
     paddingTop: 16,
     paddingBottom: 48,
     position: 'relative',

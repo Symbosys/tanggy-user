@@ -1,12 +1,12 @@
-import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, Animated, Easing, Dimensions } from 'react-native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
+import LottieView from 'lottie-react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import LottieView from 'lottie-react-native';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
-import { RootStackParamList } from '../../types/type';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS } from '../../theme/theme';
+import { RootStackParamList } from '../../types/type';
 
 const { width } = Dimensions.get('window');
 

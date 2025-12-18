@@ -4,12 +4,13 @@ import {
     Dimensions,
     Image,
     Platform,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
+    FlatList,
+    ScrollView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,7 +33,8 @@ import { useAlertStore } from '../../store/alert.store';
 
 const BUTTON_GRADIENT = ['#6A0DAD', '#D8B4FF'];
 const { width: screenWidth } = Dimensions.get('window');
-const cardWidth = screenWidth / 2 - 24;
+const gap = 16;
+const cardWidth = (screenWidth - (gap * 2) - gap) / 2; // (Screen - paddingHorizontal*2 - middle gap) / 2
 
 /* Product Card */
 const ProductCard = ({
@@ -59,7 +61,7 @@ const ProductCard = ({
             ? Math.round(
                 ((parseToDecimal(marketPrice) - parseToDecimal(sellingPrice)) /
                     parseToDecimal(marketPrice)) *
-                100
+                100,
             )
             : 0;
     const piecesText = Number(product.pieces) === 1 ? 'piece' : 'pieces';
@@ -117,20 +119,14 @@ const ProductCard = ({
             >
                 <View style={styles.imageContainer}>
                     <Image
-                        source={{ uri: product.images?.[0]?.image?.url || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTdGtO6CtXQzXjIOl0f-UI7upTYW9Bw58orLQ&s' }}
+                        source={{
+                            uri:
+                                product.images?.[0]?.image?.url ||
+                                'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTdGtO6CtXQzXjIOl0f-UI7upTYW9Bw58orLQ&s',
+                        }}
                         style={styles.productImage}
                         resizeMode="cover"
                     />
-                    <TouchableOpacity
-                        style={styles.favoriteButton}
-                        onPress={onFavoritePress}
-                    >
-                        <Icon
-                            name={isFavorite ? 'favorite' : 'favorite-border'}
-                            size={20}
-                            color={COLORS.textSecondary}
-                        />
-                    </TouchableOpacity>
                     {discountPercent > 0 && (
                         <Text style={styles.discountBadge}>{discountPercent}% OFF</Text>
                     )}
@@ -209,10 +205,7 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
     const [isRecommended] = useState(categoryName === 'Recommended For You');
     const { latitude, longitude } = useLocationStore();
     const { userId, isAuthenticated } = useAuth();
-    const {
-        totalItems: totalCartItems,
-        subtotal: subTotal,
-    } = useCartStore();
+    const { totalItems: totalCartItems, subtotal: subTotal } = useCartStore();
 
     // Fetch subcategories on mount if categoryId exists
     useEffect(() => {
@@ -325,116 +318,133 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
         });
     }, []);
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-                stickyHeaderIndices={[1]}
+    const renderHeader = () => (
+        <View>
+            <LinearGradient
+                colors={[COLORS.primary, COLORS.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.header}
             >
-                {/* HEADER */}
-                <LinearGradient
-                    colors={[COLORS.primary, COLORS.primary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={styles.header}
-                >
-                    <View style={styles.headerContent}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
-                            <Icon name="arrow-back" size={24} color={COLORS.white} />
-                        </TouchableOpacity>
-                        <Text style={styles.headerTitle}>{categoryName}</Text>
-                        <TouchableOpacity>
+                <View style={styles.headerContent}>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <Icon name="arrow-back" size={24} color={COLORS.white} />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>{categoryName}</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
+                        <View>
                             <Icon name="shopping-cart" size={24} color={COLORS.white} />
-                        </TouchableOpacity>
-                    </View>
-                    {!isBestSeller && !isRecommended && (
-                        <View style={styles.searchInputContainer}>
-                            <Icon name="search" size={20} color="rgba(255,255,255,0.9)" />
-                            <TextInput
-                                placeholder="Search for chicken, pieces..."
-                                placeholderTextColor="rgba(255,255,255,0.85)"
-                                style={styles.searchInput}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                            />
-                        </View>
-                    )}
-                </LinearGradient>
-
-                {/* CATEGORY BAR */}
-                {categoryId && (
-                    <View style={styles.categoryWrapper}>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.categoryScroll}
-                        >
-                            {displayCategories.map(cat => {
-                                const isActive = selectedCategory === cat;
-                                return (
-                                    <TouchableOpacity
-                                        key={cat}
-                                        onPress={() => setSelectedCategory(cat)}
-                                    >
-                                        {isActive ? (
-                                            <LinearGradient
-                                                colors={BUTTON_GRADIENT}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 0 }}
-                                                style={[styles.categoryChip, styles.activeCategoryChip]}
-                                            >
-                                                <Text style={styles.activeCategoryChipText}>{cat}</Text>
-                                            </LinearGradient>
-                                        ) : (
-                                            <View style={styles.categoryChip}>
-                                                <Text style={styles.categoryChipText}>{cat}</Text>
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </ScrollView>
-                    </View>
-                )}
-
-                {/* PRODUCTS */}
-                <View style={styles.mainContent}>
-                    {loading ? (
-                        <InlineLoading visible={loading} />
-                    ) : (
-                        <View style={styles.productGrid}>
-                            {products.length > 0 ? (
-                                products.map(p => {
-                                    const isFavorite = favorites.has(p.id);
-                                    return (
-                                        <ProductCard
-                                            key={p.id}
-                                            product={p}
-                                            navigation={navigation}
-                                            isFavorite={isFavorite}
-                                            onFavoritePress={() => toggleFavorite(p.id)}
-                                        />
-                                    );
-                                })
-                            ) : (
-                                <View
-                                    style={{
-                                        flex: 1,
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        paddingVertical: 50,
-                                    }}
-                                >
-                                    <Text style={{ fontSize: 16, color: COLORS.textSecondary }}>
-                                        No products found
+                            {totalCartItems > 0 && (
+                                <View style={styles.cartBadge}>
+                                    <Text style={styles.cartBadgeText}>
+                                        {totalCartItems > 99 ? '99+' : totalCartItems}
                                     </Text>
                                 </View>
                             )}
                         </View>
-                    )}
+                    </TouchableOpacity>
                 </View>
-            </ScrollView>
+                {!isBestSeller && !isRecommended && (
+                    <View style={styles.searchInputContainer}>
+                        <Icon name="search" size={20} color="rgba(255,255,255,0.9)" />
+                        <TextInput
+                            placeholder="Search for chicken, pieces..."
+                            placeholderTextColor="rgba(255,255,255,0.85)"
+                            style={styles.searchInput}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                    </View>
+                )}
+            </LinearGradient>
+
+            {/* CATEGORY BAR */}
+            {categoryId && (
+                <View style={styles.categoryWrapper}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.categoryScroll}
+                    >
+                        {displayCategories.map(cat => {
+                            const isActive = selectedCategory === cat;
+                            return (
+                                <TouchableOpacity
+                                    key={cat}
+                                    onPress={() => setSelectedCategory(cat)}
+                                >
+                                    {isActive ? (
+                                        <LinearGradient
+                                            colors={BUTTON_GRADIENT}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={[styles.categoryChip, styles.activeCategoryChip]}
+                                        >
+                                            <Text style={styles.activeCategoryChipText}>{cat}</Text>
+                                        </LinearGradient>
+                                    ) : (
+                                        <View style={styles.categoryChip}>
+                                            <Text style={styles.categoryChipText}>{cat}</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
+            )}
+        </View>
+    );
+
+    const renderFooter = () => (
+        loading ? <InlineLoading visible={loading} /> : null
+    );
+
+    const renderEmpty = () => (
+        !loading ? (
+            <View
+                style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingVertical: 50,
+                }}
+            >
+                <Text style={{ fontSize: 16, color: COLORS.textSecondary }}>
+                    No products found
+                </Text>
+            </View>
+        ) : null
+    );
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <FlatList
+                data={products}
+                renderItem={({ item }) => {
+                    const isFavorite = favorites.has(item.id);
+                    return (
+                        <ProductCard
+                            product={item}
+                            navigation={navigation}
+                            isFavorite={isFavorite}
+                            onFavoritePress={() => toggleFavorite(item.id)}
+                        />
+                    );
+                }}
+                keyExtractor={(item) => item.id}
+                numColumns={2}
+                contentContainerStyle={styles.scrollContent}
+                columnWrapperStyle={styles.columnWrapper}
+                showsVerticalScrollIndicator={false}
+                ListHeaderComponent={renderHeader}
+                ListFooterComponent={renderFooter}
+                ListEmptyComponent={renderEmpty}
+                initialNumToRender={6}
+                maxToRenderPerBatch={6}
+                windowSize={5}
+                removeClippedSubviews={true}
+            />
 
             {/* Floating Cart Bar */}
             {totalCartItems > 0 && isAuthenticated && (
@@ -450,8 +460,16 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
-    scrollContent: { paddingBottom: 100 },
-    header: { paddingTop: 18, paddingBottom: 18, paddingHorizontal: 16 },
+    scrollContent: {
+        paddingBottom: 150, // Increased padding to avoid cart conflict
+        paddingHorizontal: 16,
+        marginTop: 0
+    },
+    columnWrapper: {
+        gap: 16,
+        marginBottom: 16,
+    },
+    header: { paddingTop: 18, paddingBottom: 18, paddingHorizontal: 16, marginHorizontal: -16, marginBottom: 16 }, // Adjusted margin to pull header to full width
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -477,9 +495,10 @@ const styles = StyleSheet.create({
     categoryWrapper: {
         backgroundColor: COLORS.white,
         paddingVertical: 12,
-        paddingHorizontal: 12,
+        marginHorizontal: -16, // Pull to full width
+        marginBottom: 16,
     },
-    categoryScroll: { flexDirection: 'row', gap: 12 },
+    categoryScroll: { flexDirection: 'row', gap: 12, paddingHorizontal: 16 },
     categoryChip: {
         paddingHorizontal: 18,
         paddingVertical: 9,
@@ -497,8 +516,6 @@ const styles = StyleSheet.create({
     },
     activeCategoryChip: { borderWidth: 0 },
     activeCategoryChipText: { color: COLORS.white, fontWeight: '700' },
-    mainContent: { paddingHorizontal: 16, flex: 1, marginTop: 10 },
-    productGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
     productCard: {
         backgroundColor: COLORS.white,
         borderRadius: 12,
@@ -659,6 +676,26 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         elevation: 2,
     },
-});
+    cartBadge: {
+        position: 'absolute',
+        top: -8,
+        right: -8,
+        backgroundColor: '#FF3B30',
+        borderRadius: 10,
+        minWidth: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: COLORS.primary,
+        paddingHorizontal: 2,
+    },
+    cartBadgeText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+},
+);
 
 export default CategoryResults;
