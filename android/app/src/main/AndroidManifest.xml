@@ -29,13 +29,39 @@
         android:launchMode="singleTask"
         android:windowSoftInputMode="adjustResize"
         android:exported="true">
+
+        <!-- 🔹 APP LAUNCH -->
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+
+        <!-- 🔥 DEEP LINK: mintarestro:// -->
+        <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="mintafresh" />
+        </intent-filter>
+
+        <!-- 🔥 UNIVERSAL LINK (OPTIONAL but recommended) -->
+        <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="mintafresh" />
+
+                <data
+                    android:scheme="https"
+                    android:host="mintafresh.com" />
+        </intent-filter>
       </activity>
+
       <meta-data
-  android:name="com.google.android.geo.API_KEY"
-  android:value="AIzaSyDp1m24jCv0artNLvNYGiRemEEjwAduk20"/>
+         android:name="com.google.android.geo.API_KEY"
+         android:value="AIzaSyDp1m24jCv0artNLvNYGiRemEEjwAduk20"/>
     </application>
 </manifest>
