@@ -188,24 +188,11 @@ export default function HomeScreen({ navigation }: AppNavigation) {
         >
           {/* Header with Gradient Background */}
           <View style={styles.headerContainer}>
-            {/* <Video
-              ref={videoRef}
-              source={require('../../assets/video/home.mp4')}
-              style={styles.video}
-              resizeMode="cover"
-              repeat={true}
-              paused={!isVideoReady}
-              ignoreSilentSwitch="ignore"
-              playInBackground={false}
-              onLoad={onVideoLoad}
-              onError={onVideoError}
-              muted
-            /> */}
             <LottieView
               source={require('../../assets/lottie/hero/Christmas_Tree.json')}
               autoPlay
               loop={true}
-              style={styles.video}
+              style={styles.lottie}
               resizeMode="cover"
             />
             {/* <View style={styles.videoOverlay} /> */}
@@ -216,7 +203,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 onPress={() => navigation.navigate('select_your_location')}
                 activeOpacity={0.8}
               >
-                <Icon name="location-on" size={28} color={COLORS.white} />
+                <Icon name="location-on" size={28} color={COLORS.primary} />
                 <View style={styles.locationTextContainer}>
                   {/* Primary Location (Top) */}
                   <View style={styles.locationRow}>
@@ -227,7 +214,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                     >
                       {primaryLocation || 'Select Location'}
                     </Text>
-                    <Icon name="expand-more" size={20} color={COLORS.white} />
+                    <Icon name="expand-more" size={20} color={COLORS.primary} />
                   </View>
                   {/* Secondary Location (Bottom) */}
                   <Text
@@ -245,7 +232,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 style={styles.profileButton}
                 onPress={() => navigation.navigate('EliteMembership')}
               >
-                <Icon name="workspace-premium" size={24} color={COLORS.white} />
+                <Icon name="workspace-premium" size={24} color={COLORS.primary} />
               </TouchableOpacity>
             </View>
 
@@ -391,7 +378,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     height: 350,
   },
-  video: {
+  lottie: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -432,14 +419,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryLocationText: {
-    color: COLORS.white,
+    color: COLORS.primary,
     fontSize: 16,
     fontWeight: '800',
     marginRight: 4,
     maxWidth: '80%',
   },
   secondaryLocationText: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: COLORS.primary,
     // Reduced font size so more text fits before truncating
     fontSize: 11,
     fontWeight: '500',
@@ -463,7 +450,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   heroTitle: {
-    color: COLORS.white,
+    color: COLORS.background,
     fontSize: 30,
     fontWeight: '900',
     textAlign: 'center',

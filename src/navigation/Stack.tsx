@@ -27,12 +27,13 @@ import MyWalletScreen from '../screens/wallet/Wallet';
 import { RootStackParamList } from '../types/type';
 import BottomTab from './Bottom';
 import EliteMembershipScreen from '../screens/elite-membership/EliteMember';
+import { deeplink } from './deeplink';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function StackNavigation() {
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={deeplink}>
       <Stack.Navigator
         // initialRouteName='OrderTracking'
 

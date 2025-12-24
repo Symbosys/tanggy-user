@@ -2,7 +2,7 @@ import { LinkingOptions } from '@react-navigation/native';
 import { RootStackParamList } from '../types/type';
 
 export const deeplink: LinkingOptions<RootStackParamList> = {
-  prefixes: ['https://user.mintafresh.com', 'mintafresh-user://'],
+  prefixes: ['https://mintafresh.com', 'mintafresh://'],
   config: {
     screens: {
       Splash: 'splash',
@@ -14,8 +14,10 @@ export const deeplink: LinkingOptions<RootStackParamList> = {
       BottomTab: {
         screens: {
           Home: 'home',
-          Orders: 'orders',
+          Category: 'category',
+          Search: 'search',
           Profile: 'profile',
+          Discount: 'discount',
         },
       },
 
