@@ -1,39 +1,37 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    ScrollView,
-    Image,
     Dimensions,
     FlatList,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
+import Carousel from 'react-native-reanimated-carousel';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { COLORS } from '../../theme/theme';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { calculateDiscount, parseToDecimal } from '../../utils/utils';
 import { useAuth } from '../../context/AuthContext';
 import { useAlertStore } from '../../store/alert.store';
 import { useCartStore } from '../../store/cart';
-import Toast from 'react-native-toast-message';
-import { ErrorMessage } from '../../utils/utils';
+import { COLORS } from '../../theme/theme';
+import { calculateDiscount, ErrorMessage, parseToDecimal } from '../../utils/utils';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const HEADER_HEIGHT = 0.45 * screenHeight;
 const BOTTOM_BAR_HEIGHT = 80;
 
-interface ProductDetailsScreenProps {}
+interface ProductDetailsScreenProps { }
 
 const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navigation }: any) => {
     const { product: initialProduct } = route.params;
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
 
-    console.log({initialProduct})
+    console.log({ initialProduct })
 
     const { isAuthenticated } = useAuth();
     const { showAlert } = useAlertStore();
@@ -41,13 +39,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
 
     // Get current cart quantity from Zustand store
     const cartQuantity = getQuantity(initialProduct.id);
-
-    // Handle scroll event for image carousel
-    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const contentOffsetX = event.nativeEvent.contentOffset.x;
-        const currentIndex = Math.round(contentOffsetX / screenWidth);
-        setCurrentImageIndex(currentIndex);
-    };
+    const insets = useSafeAreaInsets();
 
     const handleAddToCart = async () => {
         if (!isAuthenticated) {
@@ -127,24 +119,28 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
     const hasDiscount = !!initialProduct.marketPrice && parseToDecimal(initialProduct.marketPrice) > parseToDecimal(initialProduct.sellingPrice);
 
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Top App Bar & Image Carousel Section */}
-            <View style={styles.headerSection}>
-                <View style={[styles.headerImage, { height: HEADER_HEIGHT }]}>
-                    <FlatList
-                        ref={flatListRef}
-                        data={initialProduct.images}
-                        renderItem={renderImageItem}
-                        keyExtractor={(item) => item.id}
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        onScroll={handleScroll}
-                        scrollEventThrottle={16}
-                    />
+        <View style={styles.container}>
+            {/* Fixed Image Carousel at Top */}
+            <View style={styles.fixedImageContainer}>
+                <Carousel
+                    width={screenWidth}
+                    height={HEADER_HEIGHT}
+                    data={initialProduct.images}
+                    autoPlay={initialProduct.images.length > 1}
+                    autoPlayInterval={3000}
+                    scrollAnimationDuration={800}
+                    onSnapToItem={(index) => setCurrentImageIndex(index)}
+                    renderItem={({ item }: any) => (
+                        <Image
+                            source={{ uri: item.image.url }}
+                            style={styles.productImage}
+                            resizeMode="cover"
+                        />
+                    )}
+                />
 
-                    <View style={styles.overlayGradient} />
-
+                {/* Top Navigation Bar */}
+                <SafeAreaView style={styles.topBarSafe}>
                     <View style={styles.topBar}>
                         <TouchableOpacity
                             style={styles.iconButton}
@@ -152,142 +148,149 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                         >
                             <Icon name="arrow-back" size={24} color="white" />
                         </TouchableOpacity>
-                        <View style={styles.rightIcons}>
-                            <TouchableOpacity style={styles.iconButton}>
-                                <Icon name="share" size={24} color="white" />
-                            </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
+
+                {initialProduct.isActive && initialProduct.isAvailable && (
+                    <View style={[styles.badgeContainer, { top: insets.top + 60 }]}>
+                        <View style={styles.bestsellerBadge}>
+                            <Text style={styles.bestsellerText}>BESTSELLER</Text>
                         </View>
                     </View>
+                )}
 
-                    {initialProduct.isActive && initialProduct.isAvailable && (
-                        <View style={styles.badgeContainer}>
-                            <View style={styles.bestsellerBadge}>
-                                <Text style={styles.bestsellerText}>BESTSELLER</Text>
-                            </View>
-                        </View>
-                    )}
-
-                    {initialProduct.images.length > 1 && (
-                        <View style={styles.carouselDots}>
-                            {initialProduct.images.map((_: any, index: any) => (
-                                <View
-                                    key={index}
-                                    style={
-                                        index === currentImageIndex
-                                            ? styles.activeDot
-                                            : styles.inactiveDot
-                                    }
-                                />
-                            ))}
-                        </View>
-                    )}
-                </View>
+                {initialProduct.images.length > 1 && (
+                    <View style={styles.carouselDots}>
+                        {initialProduct.images.map((_: any, index: any) => (
+                            <View
+                                key={index}
+                                style={
+                                    index === currentImageIndex
+                                        ? styles.activeDot
+                                        : styles.inactiveDot
+                                }
+                            />
+                        ))}
+                    </View>
+                )}
             </View>
 
-            {/* Product Details Section */}
+            {/* Scrollable Content Sheet */}
             <ScrollView
-                style={styles.detailsSection}
-                contentContainerStyle={styles.detailsContent}
+                style={styles.scrollContainer}
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={styles.headlineSection}>
-                    <Text style={styles.title}>{initialProduct.name}</Text>
-                    <Text style={styles.description}>{initialProduct.description}</Text>
-                    <Text style={styles.category}>
-                        Category: {initialProduct.category?.name || 'N/A'}
-                        {initialProduct.subCategory?.name && ` • ${initialProduct.subCategory.name}`}
-                    </Text>
-                </View>
+                {/* Spacer to show image behind */}
+                <View style={{ height: HEADER_HEIGHT - 40 }} />
 
-                <View style={styles.priceCard}>
-                    <View style={styles.priceHeader}>
-                        {originalPrice ? (
-                            <View style={styles.priceContainer}>
+                {/* Details Sheet */}
+                <View style={styles.detailsSheet}>
+                    {/* Sheet Handle */}
+                    <View style={styles.sheetHandle} />
+
+                    <View style={styles.headlineSection}>
+                        <Text style={styles.title}>{initialProduct.name}</Text>
+                        <Text style={styles.description}>{initialProduct.description}</Text>
+                        <Text style={styles.category}>
+                            Category: {initialProduct.category?.name || 'N/A'}
+                            {initialProduct.subCategory?.name && ` • ${initialProduct.subCategory.name}`}
+                        </Text>
+                    </View>
+
+                    <View style={styles.priceCard}>
+                        <View style={styles.priceHeader}>
+                            {originalPrice ? (
+                                <View style={styles.priceContainer}>
+                                    <Text style={styles.currentPrice}>₹{currentPrice}</Text>
+                                    <Text style={styles.originalPrice}>₹{originalPrice}</Text>
+                                </View>
+                            ) : (
                                 <Text style={styles.currentPrice}>₹{currentPrice}</Text>
-                                <Text style={styles.originalPrice}>₹{originalPrice}</Text>
+                            )}
+                            {hasDiscount && (
+                                <View style={styles.discountBadgeCard}>
+                                    <Text style={styles.discountText}>
+                                        {calculateDiscount(initialProduct.marketPrice, initialProduct.sellingPrice)}% OFF
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={styles.productMetaContainer}>
+                            {initialProduct.weight && (
+                                <View style={styles.metaItem}>
+                                    <Icon name="scale" size={16} color={COLORS.textSecondary} />
+                                    <Text style={styles.metaText}>Weight: {initialProduct.weight}</Text>
+                                </View>
+                            )}
+                            {initialProduct.pieces && (
+                                <View style={styles.metaItem}>
+                                    <Icon name="inventory" size={16} color={COLORS.textSecondary} />
+                                    <Text style={styles.metaText}>Pieces: {initialProduct.pieces}</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        <Text style={[
+                            styles.stockText,
+                            !initialProduct.isAvailable && styles.outOfStockText
+                        ]}>
+                            {initialProduct.isAvailable ? 'In Stock' : 'Out of Stock'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.freshnessGrid}>
+                        <View style={styles.freshnessItem}>
+                            <Icon name="ac-unit" size={24} color={COLORS.primary} />
+                            <Text style={styles.freshnessText}>Chilled, Never Frozen</Text>
+                        </View>
+                        <View style={styles.freshnessItem}>
+                            <Icon name="verified" size={24} color={COLORS.primary} />
+                            <Text style={styles.freshnessText}>100% Fresh Cut</Text>
+                        </View>
+                        <View style={styles.freshnessItem}>
+                            <Icon name="science" size={24} color={COLORS.primary} />
+                            <Text style={styles.freshnessText}>Antibiotic-Free</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.descriptionCard}>
+                        <Text style={styles.descriptionTitle}>Product Description</Text>
+                        <Text style={styles.descriptionBody}>
+                            {initialProduct.description || 'Our premium quality product is sourced from local farms and processed with the highest hygiene standards. Perfect for all your cooking needs.'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.tipsSection}>
+                        <View style={styles.tipCard}>
+                            <View style={styles.tipHeader}>
+                                <Icon name="soup-kitchen" size={24} color={COLORS.primary} style={styles.tipIcon} />
+                                <View style={styles.tipContent}>
+                                    <Text style={styles.tipTitle}>Preparation Tips</Text>
+                                    <Text style={styles.tipBody}>Rinse lightly with cold water before cooking. Pat dry for better searing and flavor absorption.</Text>
+                                </View>
                             </View>
-                        ) : (
-                            <Text style={styles.currentPrice}>₹{currentPrice}</Text>
-                        )}
-                        {hasDiscount && (
-                            <View style={styles.discountBadgeCard}>
-                                <Text style={styles.discountText}>
-                                    {calculateDiscount(initialProduct.marketPrice, initialProduct.sellingPrice)}% OFF
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-
-                    <View style={styles.productMetaContainer}>
-                        {initialProduct.weight && (
-                            <View style={styles.metaItem}>
-                                <Icon name="scale" size={16} color={COLORS.textSecondary} />
-                                <Text style={styles.metaText}>Weight: {initialProduct.weight}</Text>
-                            </View>
-                        )}
-                        {initialProduct.pieces && (
-                            <View style={styles.metaItem}>
-                                <Icon name="inventory" size={16} color={COLORS.textSecondary} />
-                                <Text style={styles.metaText}>Pieces: {initialProduct.pieces}</Text>
-                            </View>
-                        )}
-                    </View>
-
-                    <Text style={[
-                        styles.stockText,
-                        !initialProduct.isAvailable && styles.outOfStockText
-                    ]}>
-                        {initialProduct.isAvailable ? 'In Stock' : 'Out of Stock'}
-                    </Text>
-                </View>
-
-                <View style={styles.freshnessGrid}>
-                    <View style={styles.freshnessItem}>
-                        <Icon name="ac-unit" size={24} color={COLORS.primary} />
-                        <Text style={styles.freshnessText}>Chilled, Never Frozen</Text>
-                    </View>
-                    <View style={styles.freshnessItem}>
-                        <Icon name="verified" size={24} color={COLORS.primary} />
-                        <Text style={styles.freshnessText}>100% Fresh Cut</Text>
-                    </View>
-                    <View style={styles.freshnessItem}>
-                        <Icon name="science" size={24} color={COLORS.primary} />
-                        <Text style={styles.freshnessText}>Antibiotic-Free</Text>
-                    </View>
-                </View>
-
-                <View style={styles.descriptionCard}>
-                    <Text style={styles.descriptionTitle}>Product Description</Text>
-                    <Text style={styles.descriptionBody}>
-                        {initialProduct.description || 'Our premium quality product is sourced from local farms and processed with the highest hygiene standards. Perfect for all your cooking needs.'}
-                    </Text>
-                </View>
-
-                <View style={styles.tipsSection}>
-                    <View style={styles.tipCard}>
-                        <View style={styles.tipHeader}>
-                            <Icon name="soup-kitchen" size={24} color={COLORS.primary} style={styles.tipIcon} />
-                            <View style={styles.tipContent}>
-                                <Text style={styles.tipTitle}>Preparation Tips</Text>
-                                <Text style={styles.tipBody}>Rinse lightly with cold water before cooking. Pat dry for better searing and flavor absorption.</Text>
+                        </View>
+                        <View style={styles.tipCard}>
+                            <View style={styles.tipHeader}>
+                                <Icon name="thermostat" size={24} color={COLORS.primary} style={styles.tipIcon} />
+                                <View style={styles.tipContent}>
+                                    <Text style={styles.tipTitle}>Storage Tips</Text>
+                                    <Text style={styles.tipBody}>Store in an airtight container and refrigerate below 4°C. Consume within 2 days for best freshness.</Text>
+                                </View>
                             </View>
                         </View>
                     </View>
-                    <View style={styles.tipCard}>
-                        <View style={styles.tipHeader}>
-                            <Icon name="thermostat" size={24} color={COLORS.primary} style={styles.tipIcon} />
-                            <View style={styles.tipContent}>
-                                <Text style={styles.tipTitle}>Storage Tips</Text>
-                                <Text style={styles.tipBody}>Store in an airtight container and refrigerate below 4°C. Consume within 2 days for best freshness.</Text>
-                            </View>
-                        </View>
-                    </View>
+
+                    {/* Extra padding for bottom bar */}
+                    <View style={{ height: BOTTOM_BAR_HEIGHT + 40 }} />
                 </View>
             </ScrollView>
 
             {/* Sticky Bottom Bar */}
             {initialProduct.isAvailable && (
-                <View style={styles.bottomBar}>
+                <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
                     {cartQuantity === 0 ? (
                         <TouchableOpacity style={styles.addToCartButtonFull} onPress={handleAddToCart}>
                             <Text style={styles.addToCartText}>Add to Cart</Text>
@@ -311,7 +314,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                     )}
                 </View>
             )}
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -322,12 +325,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.background,
     },
-    headerSection: {
-        position: 'relative',
-    },
-    headerImage: {
-        backgroundColor: 'black',
-        justifyContent: 'space-between',
+    fixedImageContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: HEADER_HEIGHT,
+        backgroundColor: '#000',
     },
     imageSlide: {
         height: '100%',
@@ -336,30 +340,23 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
-    overlayGradient: {
+    topBarSafe: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
     },
     topBar: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: 16,
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
     },
     iconButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -369,7 +366,6 @@ const styles = StyleSheet.create({
     },
     badgeContainer: {
         position: 'absolute',
-        top: 80,
         left: 16,
     },
     bestsellerBadge: {
@@ -389,7 +385,7 @@ const styles = StyleSheet.create({
         gap: 8,
         padding: 16,
         position: 'absolute',
-        bottom: 0,
+        bottom: 50,
         left: 0,
         right: 0,
     },
@@ -405,17 +401,32 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         backgroundColor: 'rgba(255, 255, 255, 0.5)',
     },
-    detailsSection: {
+    scrollContainer: {
         flex: 1,
-        marginTop: -24,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        backgroundColor: COLORS.background,
     },
-    detailsContent: {
-        padding: 24,
-        paddingTop: 24,
-        paddingBottom: BOTTOM_BAR_HEIGHT + 24,
+    scrollContent: {
+        flexGrow: 1,
+    },
+    detailsSheet: {
+        backgroundColor: COLORS.background,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingHorizontal: 24,
+        paddingTop: 16,
+        minHeight: screenHeight - HEADER_HEIGHT + 100,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 10,
+    },
+    sheetHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#D1D5DB',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: 20,
     },
     headlineSection: {
         marginBottom: 24,
@@ -585,14 +596,15 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         backgroundColor: COLORS.white,
-        padding: 16,
+        paddingTop: 16,
+        paddingHorizontal: 16,
         borderTopWidth: 1,
         borderTopColor: '#e5e7eb',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.08,
         shadowRadius: 20,
-        elevation: 5,
+        elevation: 10,
     },
     addToCartButtonFull: {
         backgroundColor: COLORS.primary,

@@ -1,39 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  ImageBackground,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  Dimensions,
+  ScrollView,
+  Alert,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS } from '../../theme/theme';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useCartStore } from '../../store/cart';
 import { useAddressStore } from '../../store/address';
-import { parseToDecimal } from '../../utils/utils';
-import { COLORS } from '../../theme/theme';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppNavigation } from '../../types/type';
+import { handlePayment, parseToDecimal } from '../../utils/utils';
 import { useAlertStore } from '../../store/alert.store';
+import BottomCartPopup from '../../components/ui/popup/BottonCart';
+import { usePaymentStore } from '../../store/payment';
+import TaxBreakdownPopup from '../../components/cart/TaxBreakdownPopup';
 
-const Cart = ({ navigation }: AppNavigation) => {
-  const { fetchCart, cartItems, addToCart, clearCart, totalItems, subtotal, loading } = useCartStore();
+const { width: screenWidth } = Dimensions.get('window');
+
+const CartScreen = ({ navigation }: AppNavigation) => {
+  const insets = useSafeAreaInsets();
+  const { fetchCart, cartItems, addToCart, clearCart, totalItems, loading } = useCartStore();
   const { fetchAddresses, addresses } = useAddressStore();
-  const [showPriceBreakdown, setShowPriceBreakdown] = useState<boolean>(true);
-  const [showAddressModal, setShowAddressModal] = useState<boolean>(false);
-  const [selectedTip, setSelectedTip] = useState<number | null>(null);
-  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
-  const animatedHeight = useState(new Animated.Value(300))[0];
+  const { showAlert } = useAlertStore();
+  const { selectedPaymentMethod } = usePaymentStore();
 
-  const tipOptions = [0, 5, 10, 15, 20, 30];
+  const [selectedTip, setSelectedTip] = useState<number | null>(null);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [showCheckoutPopup, setShowCheckoutPopup] = useState(false);
+  const [showTaxPopup, setShowTaxPopup] = useState(false);
+
+  // All hooks at the top (before any early returns)
   useEffect(() => {
     fetchCart();
     fetchAddresses();
-    console.log('cartItems', cartItems);
   }, [fetchCart, fetchAddresses]);
 
   useEffect(() => {
@@ -43,299 +53,333 @@ const Cart = ({ navigation }: AppNavigation) => {
     }
   }, [addresses, selectedAddressId]);
 
+  // Early return for loading state
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
       </SafeAreaView>
     );
   }
+
+  // Early return for empty cart
+  if (cartItems.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyContent}>
+          <LinearGradient
+            colors={[COLORS.white, '#F5F7FA']}
+            style={styles.emptyContainer}
+          >
+            <View style={styles.emptyIconWrapper}>
+              <LinearGradient
+                colors={[`${COLORS.primary}15`, `${COLORS.accent}15`]}
+                style={styles.emptyIconBackground}
+              >
+                <MaterialIcons name="shopping-basket" size={64} color={COLORS.primary} />
+              </LinearGradient>
+            </View>
+            <Text style={styles.emptyTitle}>Your Cart is Empty!</Text>
+            <Text style={styles.emptySubtitle}>
+              Looks like you haven't made your choice yet.{'\n'}
+              Discover our fresh products today!
+            </Text>
+            <TouchableOpacity
+              style={styles.startShoppingButton}
+              onPress={() => navigation.goBack()}
+            >
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.accent]}
+                style={styles.startShoppingGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Text style={styles.startShoppingText}>Start Shopping</Text>
+                <MaterialIcons name="arrow-forward" size={20} color={COLORS.white} />
+              </LinearGradient>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const defaultAddress = selectedAddressId
     ? addresses.find((addr: any) => addr.id === selectedAddressId)
     : addresses.find((addr: any) => addr.isDefault);
   const hasDefaultAddress = !!defaultAddress;
-  const getAddressTypeEmoji = (type: string): string => {
-    switch (type.toUpperCase()) {
-      case 'HOME':
-        return '🏠';
-      case 'WORK':
-        return '🏢';
-      case 'OTHER':
-        return '📍';
-      default:
-        return '📍';
-    }
+  const addressText = defaultAddress
+    ? `${defaultAddress.completeAddress}, ${defaultAddress.city || ''}${defaultAddress.landMark ? `, ${defaultAddress.landMark}` : ''}`
+    : 'Select delivery address';
+
+  const getSellingPrice = (item: any): number => {
+    return parseToDecimal(item?.product?.sellingPrice) || 0;
   };
+
+  const itemTotal = cartItems.reduce((acc: number, item: any) => acc + getSellingPrice(item) * item.quantity, 0);
+
+  const deliveryFee = 40;
+  const packingFee = 10; // You might want to make this dynamic or constant
+  const tipAmount = selectedTip || 0;
+
+  // Calculate GST: 5% on Item Total, 18% on Delivery & Packing
+  const gstAmount = (itemTotal * 0.05) + ((deliveryFee + packingFee) * 0.18);
+
+  const calculateTotal = (): number => itemTotal + deliveryFee + packingFee + gstAmount + tipAmount;
+
   const updateCartItem = async (item: any, newQuantity: number) => {
     if (newQuantity === 0) {
-      Alert.alert('Remove Item', 'Are you sure you want to remove this item?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            await addToCart(String(item.productId), 0);
-          },
+      showAlert({
+        title: 'Remove Item',
+        message: 'Are you sure you want to remove this item from your cart?',
+        confirmText: 'Remove',
+        cancelText: 'Cancel',
+        onConfirm: async () => {
+          await addToCart(String(item.productId), 0);
         },
-      ]);
+      });
       return;
     }
     await addToCart(String(item.productId), newQuantity);
   };
+
   const increaseQty = (item: any) => {
     updateCartItem(item, item.quantity + 1);
   };
+
   const decreaseQty = (item: any) => {
-    if (item.quantity > 1) {
+    if (item.quantity >= 1) {
       updateCartItem(item, item.quantity - 1);
     }
   };
-  const getSellingPrice = (item: any): number => {
-    return parseToDecimal(item?.product?.sellingPrice?.d?.[0] || 0);
-  };
-  const itemTotal: number = cartItems.reduce(
-    (acc: number, item: any) => acc + getSellingPrice(item) * item.quantity,
-    0
-  );
-  const deliveryFee = 20;
-  const gstCharges = 21.57;
-  const calculateTotal = (): string => (itemTotal + deliveryFee + gstCharges + (selectedTip || 0)).toFixed(0);
-  const togglePriceBreakdown = () => {
-    const newShow = !showPriceBreakdown;
-    setShowPriceBreakdown(newShow);
-    Animated.timing(animatedHeight, {
-      toValue: newShow ? 300 : 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  };
-  const handleCheckout = () => {
-    if (cartItems.length === 0) {
-      Alert.alert('Empty Cart', 'Your cart is empty. Add some items to proceed.');
-      return;
-    }
-    if (!hasDefaultAddress) {
-      Alert.alert('No Address', 'Please select a delivery address to proceed.');
-      setShowAddressModal(true);
-      return;
-    }
-    Alert.alert('Checkout', `Proceed to checkout for ₹${calculateTotal()}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Checkout', onPress: () => navigation.navigate('OrderPlaced') },
-    ]);
-  };
-  const {showAlert} = useAlertStore()
+
   const handleClearCart = () => {
-    if (cartItems.length === 0) return;
     showAlert({
-      title: 'Clear Carts',
-      message: 'Are you sure you want to clear all itemsss?',
+      title: 'Clear Cart',
+      message: 'Are you sure you want to clear all items?',
       confirmText: 'Clear',
       cancelText: 'Cancel',
       onConfirm: async () => {
         await clearCart();
       },
-    })
+    });
   };
+
+  const handleTipSelect = (tip: number) => {
+    if (selectedTip === tip) {
+      setSelectedTip(null);
+    } else {
+      setSelectedTip(tip);
+    }
+  };
+
+  const handleCheckout = () => {
+    if (cartItems.length === 0) {
+      showAlert({
+        title: 'Empty Cart',
+        message: 'Your cart is empty. Add some items to proceed.',
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        onConfirm: () => { },
+      });
+      return;
+    }
+    if (!hasDefaultAddress) {
+      showAlert({
+        title: 'No Address',
+        message: 'Please select a delivery address to proceed.',
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        onConfirm: () => { },
+      });
+      setShowAddressModal(true);
+      return;
+    }
+    if (!selectedPaymentMethod) {
+      showAlert({
+        title: 'Payment Method',
+        message: 'Please select a payment method to proceed.',
+        confirmText: 'Select',
+        cancelText: 'Cancel',
+        onConfirm: () => navigation.navigate('PaymentMethod'),
+      });
+      return;
+    }
+    setShowCheckoutPopup(true);
+  };
+
   const handleSelectAddress = (addressId: number) => {
     setSelectedAddressId(addressId);
     setShowAddressModal(false);
   };
+
   const handleAddAddress = () => {
-    navigation.navigate("AddAddress")
+    navigation.navigate('AddAddress');
     setShowAddressModal(false);
   };
+
+  const getAddressDisplay = (addr: any): string => {
+    return `${addr.completeAddress || ''}${addr.city ? `, ${addr.city}` : ''}${addr.landMark ? `, ${addr.landMark}` : ''}`;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-back" size={20} color={COLORS.white} />
-        </TouchableOpacity>
-        <View style={styles.headerLeft}>
-          <View style={styles.cartIconContainer}>
-            <Icon name="shopping-bag" size={18} color={COLORS.white} />
-            {totalItems > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{totalItems}</Text>
-              </View>
+      <ScrollView
+        style={styles.main}
+        contentContainerStyle={{ paddingBottom: 112 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Section */}
+        <View style={styles.header}>
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.accent]}
+            style={styles.headerGradient}
+          />
+          <View style={styles.headerContent}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}>
+              <MaterialIcons name="arrow-back" size={24} color={COLORS.textPrimary} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>My Cart</Text>
+            {cartItems.length > 0 && (
+              <TouchableOpacity style={styles.iconButton} onPress={handleClearCart}>
+                <MaterialIcons name="delete-sweep" size={24} color={COLORS.textPrimary} />
+              </TouchableOpacity>
             )}
           </View>
-          <View>
-            <Text style={styles.headerTitle}>My Cart</Text>
-            <Text style={styles.headerSubtitle}>{totalItems} items</Text>
-          </View>
         </View>
-        {cartItems.length > 0 && (
-          <TouchableOpacity onPress={handleClearCart} style={styles.clearButton}>
-            <Icon name="delete-outline" size={18} color={COLORS.white} />
-          </TouchableOpacity>
-        )}
-      </View>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Cart Items */}
-        {cartItems.length === 0 ? (
-          <View style={styles.emptyCart}>
-            <View style={styles.emptyCartIcon}>
-              <Icon name="shopping-cart" size={48} color={COLORS.accent} />
-            </View>
-            <Text style={styles.emptyText}>Your cart is empty</Text>
-            <Text style={styles.emptySubText}>Add items to get started</Text>
-          </View>
-        ) : (
-          cartItems.map((item, index) => (
-            <View key={item.id} style={[styles.cartItemCard, { marginTop: index === 0 ? 12 : 8 }]}>
-              <View style={styles.cartItemHeader}>
-                <View style={styles.itemLeft}>
-                  <View style={styles.productImageContainer}>
-                    <Image
-                      source={{
-                        uri: 'https://via.placeholder.com/80x80/8719C6/FFFFFF?text=Product',
-                      }}
-                      style={styles.productImage}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemName} numberOfLines={2}>
-                      {item.product.name}
-                    </Text>
-                    <View style={styles.priceRow}>
-                      <Text style={styles.discountedPrice}>₹{getSellingPrice(item)}</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-              {/* Quantity Controls and Subtotal */}
-              <View style={styles.itemFooter}>
-                <View style={styles.quantityContainer}>
-                  <TouchableOpacity
-                    style={[styles.quantityButton, item.quantity <= 1 && styles.disabledQuantityButton]}
-                    onPress={() => decreaseQty(item)}
-                    disabled={item.quantity <= 1}
-                  >
-                    <Icon name="remove" size={16} color={item.quantity <= 1 ? COLORS.muted : COLORS.primary} />
-                  </TouchableOpacity>
-                  <Text style={styles.quantityText}>{item.quantity}</Text>
-                  <TouchableOpacity style={styles.quantityButton} onPress={() => increaseQty(item)}>
-                    <Icon name="add" size={16} color={COLORS.primary} />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.itemSubtotalContainer}>
-                  <Text style={styles.itemSubtotalLabel}>Total</Text>
-                  <Text style={styles.itemSubtotalText}>
-                    ₹{(getSellingPrice(item) * item.quantity).toFixed(0)}
+
+        {/* Cart Items List */}
+        <View style={styles.itemsList}>
+          {cartItems.map((item) => (
+            <View key={item.id} style={styles.itemCard}>
+              <View style={styles.itemContent}>
+                <ImageBackground
+                  source={{
+                    uri: item.product.images[0]?.image.url || 'https://via.placeholder.com/64x64?text=Product',
+                  }}
+                  style={styles.itemImage}
+                  imageStyle={styles.itemImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.itemDetails}>
+                  <Text style={styles.itemName} numberOfLines={1}>
+                    {item.product.name}
                   </Text>
+                  <Text style={styles.itemPrice}>₹{getSellingPrice(item).toFixed(2)}</Text>
                 </View>
               </View>
+              <View style={styles.quantityContainer}>
+                <TouchableOpacity
+                  style={[styles.quantityButton]}
+                  onPress={() => decreaseQty(item)}
+                >
+                  <Text style={[styles.quantityIcon]}>-</Text>
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.quantityInput}
+                  value={item.quantity.toString()}
+                  keyboardType="numeric"
+                  selectTextOnFocus={false}
+                  editable={false}
+                />
+                <TouchableOpacity style={styles.quantityButton} onPress={() => increaseQty(item)}>
+                  <Text style={styles.quantityIcon}>+</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          ))
-        )}
-        {/* Address Section */}
-        {itemTotal > 0 && (
-          <TouchableOpacity style={styles.addressSection} onPress={() => setShowAddressModal(true)}>
-            <View style={styles.addressIconContainer}>
-              <Icon name="location-on" size={18} color={COLORS.primary} />
-            </View>
-            <View style={styles.addressContent}>
-              <Text style={styles.addressLabel}>Delivery Address</Text>
-              {defaultAddress ? (
-                <Text style={styles.addressText} numberOfLines={2}>
-                  {getAddressTypeEmoji(defaultAddress.type)} {defaultAddress.type} • {defaultAddress.receiverName}
-                </Text>
-              ) : (
-                <Text style={[styles.addressText, { color: COLORS.muted }]}>Tap to select address</Text>
-              )}
-            </View>
-            <Icon name="chevron-right" size={20} color={COLORS.accent} />
-          </TouchableOpacity>
-        )}
+          ))}
+        </View>
+
         {/* Tip Section */}
-        {itemTotal > 0 && (
-          <View style={styles.tipSection}>
-            <View style={styles.tipHeader}>
-              <View style={styles.tipIconContainer}>
-                <Text style={styles.tipEmoji}>💝</Text>
-              </View>
-              <View style={styles.tipHeaderText}>
-                <Text style={styles.tipTitle}>Tip your delivery partner</Text>
-                <Text style={styles.tipSubtitle}>Thank them for their service</Text>
-              </View>
-            </View>
-            <View style={styles.tipOptions}>
-              {tipOptions.map((tip) => (
+        <View style={styles.tipSection}>
+          <LinearGradient
+            colors={[`${COLORS.secondary}20`, COLORS.white]}
+            style={styles.tipCard}
+          >
+            <Text style={styles.tipTitle}>Tip your delivery partner</Text>
+            <Text style={styles.tipDesc}>100% of the tip goes to your delivery partner.</Text>
+            <View style={styles.tipButtons}>
+              {[10, 20, 30, 40, 50].map((tip) => (
                 <TouchableOpacity
                   key={tip}
                   style={[
-                    styles.tipButton,
+                    styles.tipButtonUnselected,
                     selectedTip === tip && styles.tipButtonSelected,
                   ]}
-                  onPress={() => setSelectedTip(tip)}
+                  onPress={() => handleTipSelect(tip)}
                 >
-                  <Text
-                    style={[
-                      styles.tipButtonText,
-                      selectedTip === tip && styles.tipButtonTextSelected,
-                    ]}
-                  >
+                  <Text style={[styles.tipButtonText, selectedTip === tip && styles.tipButtonSelectedText]}>
                     ₹{tip}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
-        )}
-        {/* Price Breakdown */}
-        {itemTotal > 0 && (
-          <View style={styles.priceCard}>
-            <TouchableOpacity style={styles.priceHeader} onPress={togglePriceBreakdown} activeOpacity={0.7}>
-              <View style={styles.priceLeft}>
-                <View style={styles.billIcon}>
-                  <Icon name="receipt-long" size={18} color={COLORS.primary} />
-                </View>
-                <Text style={styles.toPayLabel}>Bill Details</Text>
-              </View>
-              <Icon
-                name={showPriceBreakdown ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-                size={20}
-                color={COLORS.accent}
-              />
+          </LinearGradient>
+        </View>
+
+        {/* Delivery Address Section */}
+        <View style={styles.addressSection}>
+          <TouchableOpacity style={styles.addressCard} onPress={() => setShowAddressModal(true)}>
+            <View style={styles.addressContent}>
+              <Text style={styles.addressTitle}>Delivery Address</Text>
+              <Text style={styles.addressText} numberOfLines={2}>
+                {addressText}
+              </Text>
+            </View>
+            <TouchableOpacity>
+              <Text style={styles.changeButton}>Change</Text>
             </TouchableOpacity>
-            <Animated.View style={{ height: animatedHeight, overflow: 'hidden' }}>
-              <View style={styles.priceBreakdown}>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Item Total</Text>
-                  <Text style={styles.finalPrice}>₹{itemTotal.toFixed(0)}</Text>
-                </View>
-                <Text style={styles.sectionHeader}>Delivery Charges</Text>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Delivery Fee</Text>
-                  <Text style={styles.finalPrice}>₹{deliveryFee}</Text>
-                </View>
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>GST & Charges</Text>
-                  <Text style={styles.finalPrice}>₹{gstCharges.toFixed(2)}</Text>
-                </View>
-                {selectedTip && selectedTip > 0 && (
-                  <>
-                    <Text style={styles.sectionHeader}>Tip to Delivery Partner</Text>
-                    <View style={styles.priceRow}>
-                      <Text style={styles.priceLabel}>Delivery Tip</Text>
-                      <Text style={styles.finalPrice}>₹{selectedTip}</Text>
-                    </View>
-                  </>
-                )}
-                <View style={styles.divider} />
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total Amount</Text>
-                  <Text style={styles.totalAmount}>₹{calculateTotal()}</Text>
-                </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Subtotal Summary */}
+        <View style={styles.subtotalSection}>
+          <View style={styles.subtotalCard}>
+            <View style={styles.subtotalRow}>
+              <Text style={styles.subtotalLabel}>Subtotal</Text>
+              <Text style={styles.subtotalValue}>₹{itemTotal.toFixed(2)}</Text>
+            </View>
+            <View style={styles.subtotalRow}>
+              <Text style={styles.subtotalLabel}>Delivery Fee</Text>
+              <Text style={styles.subtotalValue}>₹{deliveryFee.toFixed(2)}</Text>
+            </View>
+            <View style={styles.subtotalRow}>
+              <Text style={styles.subtotalLabel}>Packing Fee</Text>
+              <Text style={styles.subtotalValue}>₹{packingFee.toFixed(2)}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.subtotalRow}
+              onPress={() => setShowTaxPopup(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.taxLabelContainer}>
+                <Text style={[styles.subtotalLabel, { color: COLORS.primary, textDecorationLine: 'underline' }]}>Taxes & GST</Text>
+                <MaterialIcons name="info-outline" size={16} color={COLORS.primary} style={{ marginLeft: 4 }} />
               </View>
-            </Animated.View>
+              <Text style={styles.subtotalValue}>₹{gstAmount.toFixed(2)}</Text>
+            </TouchableOpacity>
+            {tipAmount > 0 && (
+              <View style={styles.subtotalRow}>
+                <Text style={styles.subtotalLabel}>Tip</Text>
+                <Text style={styles.subtotalValue}>₹{tipAmount.toFixed(2)}</Text>
+              </View>
+            )}
+            <View style={styles.dashedBorder} />
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.accent]}
+                style={styles.gradientTextContainer}
+              >
+                <Text style={styles.gradientText}>₹{calculateTotal().toFixed(2)}</Text>
+              </LinearGradient>
+            </View>
           </View>
-        )}
-        <View style={styles.bottomPadding} />
+        </View>
       </ScrollView>
+
       {/* Address Modal */}
       <Modal
         visible={showAddressModal}
@@ -345,19 +389,17 @@ const Cart = ({ navigation }: AppNavigation) => {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Address</Text>
+            <Text style={styles.modalTitle}>Delivery Address</Text>
             <TouchableOpacity onPress={() => setShowAddressModal(false)} style={styles.modalCloseButton}>
-              <Icon name="close" size={20} color={COLORS.textPrimary} />
+              <MaterialIcons name="close" size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
             {addresses.length === 0 ? (
               <View style={styles.noAddressContainer}>
-                <View style={styles.noAddressIcon}>
-                  <Icon name="location-off" size={40} color={COLORS.accent} />
-                </View>
-                <Text style={styles.noAddressText}>No addresses saved</Text>
-                <Text style={styles.noAddressSubText}>Add a delivery address to continue</Text>
+                <MaterialIcons name="location-off" size={64} color={COLORS.textSecondary} />
+                <Text style={styles.noAddressTitle}>No addresses saved</Text>
+                <Text style={styles.noAddressSubtitle}>Add a delivery address to continue</Text>
               </View>
             ) : (
               addresses.map((addr: any) => (
@@ -365,679 +407,644 @@ const Cart = ({ navigation }: AppNavigation) => {
                   key={addr.id}
                   style={[
                     styles.addressItem,
-                    selectedAddressId === addr.id && styles.addressItemDefault,
+                    selectedAddressId === addr.id && styles.addressItemSelected,
                   ]}
                   onPress={() => handleSelectAddress(addr.id)}
                 >
-                  <View style={styles.addressItemLeft}>
-                    <View style={styles.addressItemIcon}>
-                      <Icon name="location-on" size={18} color={COLORS.primary} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.addressItemHeader}>
-                        <Text style={styles.addressItemType}>
-                          {getAddressTypeEmoji(addr.type)} {addr.type}
-                        </Text>
-                        {addr.isDefault && (
-                          <View style={styles.defaultBadge}>
-                            <Text style={styles.defaultBadgeText}>DEFAULT</Text>
-                          </View>
-                        )}
-                      </View>
+                  <View style={styles.addressItemContent}>
+                    <MaterialIcons name="location-on" size={20} color={COLORS.primary} />
+                    <View style={styles.addressItemDetails}>
                       <Text style={styles.addressItemName}>{addr.receiverName}</Text>
-                      <Text style={styles.addressItemDetail} numberOfLines={2}>
-                        {addr.completeAddress}
+                      <Text style={styles.addressItemText} numberOfLines={2}>
+                        {getAddressDisplay(addr)}
                       </Text>
-                      {addr.city && <Text style={styles.addressItemDetail}>{addr.city}</Text>}
-                      {addr.landMark && <Text style={styles.addressItemDetail}>{addr.landMark}</Text>}
-                      {addr.floor && <Text style={styles.addressItemDetail}>{addr.floor}</Text>}
-                      {addr.instructions && <Text style={styles.addressItemDetail}>{addr.instructions}</Text>}
                       <Text style={styles.addressItemContact}>{addr.receiverContact}</Text>
                     </View>
                   </View>
-                  <Icon name="chevron-right" size={18} color={COLORS.accent} />
+                  {addr.isDefault && <Text style={styles.defaultLabel}>DEFAULT</Text>}
                 </TouchableOpacity>
               ))
             )}
           </ScrollView>
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.addAddressButton} onPress={handleAddAddress}>
-              <Icon name="add-location" size={18} color={COLORS.white} />
+              <MaterialIcons name="add-location" size={20} color={COLORS.white} />
               <Text style={styles.addAddressText}>Add New Address</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
       </Modal>
-      {/* Bottom Button */}
-      {itemTotal > 0 && (
-        <View style={styles.bottomButtonContainer}>
-          {hasDefaultAddress ? (
-            <TouchableOpacity style={styles.bottomButton} onPress={handleCheckout}>
-              <View style={styles.bottomButtonContent}>
-                <View>
-                  <Text style={styles.bottomButtonLabel}>Total Amount</Text>
-                  <Text style={styles.bottomButtonAmount}>₹{calculateTotal()}</Text>
+
+      <BottomCartPopup
+        visible={showCheckoutPopup}
+        onClose={() => setShowCheckoutPopup(false)}
+        onConfirm={async () => {
+          setShowCheckoutPopup(false);
+          await handlePayment(calculateTotal().toString());
+          navigation.navigate('OrderPlaced');
+        }}
+        price={calculateTotal()}
+      />
+
+      {/* Sticky Footer Checkout Button */}
+      {/* Sticky Footer Checkout Button */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
+        <View style={styles.footerContent}>
+          {/* Payment Method Selector */}
+          <TouchableOpacity
+            style={styles.paymentSelector}
+            onPress={() => navigation.navigate('PaymentMethod')}
+          >
+            {selectedPaymentMethod ? (
+              <View style={styles.paymentSelectedContent}>
+                <View style={styles.paymentIconWrapper}>
+                  <MaterialIcons name={selectedPaymentMethod.icon} size={20} color={COLORS.primary} />
                 </View>
-                <View style={styles.bottomButtonRight}>
-                  <Text style={styles.bottomButtonText}>Checkout</Text>
-                  <Icon name="arrow-forward" size={18} color={COLORS.white} />
+                <View style={styles.paymentTextInfo}>
+                  <Text style={styles.payUsingText}>Pay using</Text>
+                  <Text style={styles.paymentMethodName} numberOfLines={1}>
+                    {selectedPaymentMethod.name}
+                  </Text>
                 </View>
+                <MaterialIcons name="keyboard-arrow-up" size={20} color={COLORS.textSecondary} />
               </View>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.bottomButton, styles.selectAddressButton]}
-              onPress={() => setShowAddressModal(true)}
+            ) : (
+              <View style={styles.paymentUnselectedContent}>
+                <View style={styles.paymentIconWrapper}>
+                  <MaterialIcons name="payment" size={20} color={COLORS.primary} />
+                </View>
+                <View style={styles.paymentTextInfo}>
+                  <Text style={styles.selectPaymentText}>Select Payment</Text>
+                </View>
+                <MaterialIcons name="keyboard-arrow-right" size={20} color={COLORS.textSecondary} />
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Proceed Button */}
+          <TouchableOpacity
+            style={[styles.proceedLink, !selectedPaymentMethod && styles.proceedLinkDisabled]}
+            disabled={!selectedPaymentMethod}
+            onPress={handleCheckout}
+          >
+            <LinearGradient
+              colors={selectedPaymentMethod ? [COLORS.primary, COLORS.accent] : ['#E0E0E0', '#BDBDBD']}
+              style={styles.proceedGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
             >
-              <Icon name="location-on" size={18} color={COLORS.white} />
-              <Text style={styles.bottomButtonText}>Select Address</Text>
-            </TouchableOpacity>
-          )}
+              <View style={styles.proceedContent}>
+                <Text style={styles.totalAmount}>₹{calculateTotal().toFixed(2)}</Text>
+                <Text style={styles.proceedLabel}>Proceed</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
-      )}
-    </SafeAreaView>
+      </View>
+
+      <TaxBreakdownPopup
+        visible={showTaxPopup}
+        onClose={() => setShowTaxPopup(false)}
+        itemTotal={itemTotal}
+        deliveryFee={deliveryFee}
+        tipAmount={tipAmount}
+        gstAmount={gstAmount}
+        packingFee={packingFee}
+      />
+    </SafeAreaView >
   );
 };
+
+export default CartScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  backButton: {
-    padding: 4,
-    marginRight: 4,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  main: {
     flex: 1,
   },
-  cartIconContainer: {
-    position: 'relative',
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -6,
-    backgroundColor: COLORS.highlight,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartBadgeText: {
-    color: COLORS.white,
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  headerTitle: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  headerSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  clearButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollView: {
+  emptyContent: {
     flex: 1,
+    backgroundColor: COLORS.white,
   },
-  emptyCart: {
+  emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
+    justifyContent: 'center',
     paddingHorizontal: 32,
   },
-  emptyCartIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.secondary,
+  emptyIconWrapper: {
+    marginBottom: 32,
+    borderRadius: 9999,
+    padding: 8,
+    backgroundColor: COLORS.white,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  emptyIconBackground: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
-  emptyText: {
-    fontSize: 20,
-    fontWeight: '700',
+  emptyTitle: {
+    fontSize: 26,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    marginBottom: 6,
-  },
-  emptySubText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    marginBottom: 12,
     textAlign: 'center',
   },
-  cartItemCard: {
-    backgroundColor: COLORS.white,
-    marginHorizontal: 12,
-    borderRadius: 16,
-    padding: 14,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+  emptySubtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 40,
   },
-  cartItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  startShoppingButton: {
+    width: '100%',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  itemLeft: {
+  startShoppingGradient: {
     flexDirection: 'row',
-    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 56,
+    borderRadius: 28,
     gap: 12,
   },
-  productImageContainer: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: COLORS.secondary,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0.5 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+  startShoppingText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.white,
   },
-  productImage: {
+  header: {
+    position: 'relative',
+    backgroundColor: `${COLORS.background}CC`,
+  },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 6,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 24,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    flex: 1,
+    textAlign: 'center',
+  },
+  itemsList: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 16,
+  },
+  itemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    padding: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 5,
+    gap: 16,
+  },
+  itemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 16,
+  },
+  itemImage: {
     width: 64,
     height: 64,
+    borderRadius: 12,
   },
-  itemInfo: {
+  itemDetails: {
     flex: 1,
     justifyContent: 'center',
   },
   itemName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 6,
-    lineHeight: 18,
-  },
-  discountedPrice: {
     fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.primary,
-    letterSpacing: 0.2,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
   },
-  itemFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f5f5f5',
+  itemPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.primary,
+    marginTop: 4,
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.secondary,
-    borderRadius: 10,
-    padding: 3,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 9999,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    gap: 8,
   },
   quantityButton: {
     width: 28,
     height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: COLORS.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
   },
   disabledQuantityButton: {
-    opacity: 0.4,
+    opacity: 0.5,
   },
-  quantityText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    paddingHorizontal: 12,
-    minWidth: 32,
+  quantityIcon: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  quantityInput: {
+    width: 20,
+    fontSize: 16,
+    fontWeight: '800',
     textAlign: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
-  itemSubtotalContainer: {
-    alignItems: 'flex-end',
+  tipSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
   },
-  itemSubtotalLabel: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginBottom: 1,
-    fontWeight: '500',
+  tipCard: {
+    padding: 16,
+    borderRadius: 12,
   },
-  itemSubtotalText: {
-    fontSize: 15,
-    fontWeight: '700',
+  tipTitle: {
+    fontSize: 16,
+    fontWeight: '800',
     color: COLORS.textPrimary,
   },
-  addressSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    marginHorizontal: 12,
-    marginTop: 12,
-    padding: 14,
-    borderRadius: 16,
-    gap: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+  tipDesc: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
-  addressIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.secondary,
+  tipButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 16,
+    flexWrap: 'wrap',
+  },
+  tipButtonUnselected: {
+    height: 36,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: COLORS.white,
+    borderRadius: 9999,
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  tipButtonSelected: {
+    height: 36,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary,
+    borderRadius: 9999,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  tipButtonSelectedText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.white,
+  },
+  addressSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  addressCard: {
+    backgroundColor: COLORS.white,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 5,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
   },
   addressContent: {
     flex: 1,
   },
-  addressLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginBottom: 3,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+  addressTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
   },
   addressText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: COLORS.textPrimary,
-    lineHeight: 18,
-  },
-  tipSection: {
-    backgroundColor: COLORS.white,
-    marginHorizontal: 12,
-    marginTop: 12,
-    padding: 14,
-    borderRadius: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-  },
-  tipHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 10,
-  },
-  tipIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tipEmoji: {
-    fontSize: 20,
-  },
-  tipHeaderText: {
-    flex: 1,
-  },
-  tipTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 2,
-  },
-  tipSubtitle: {
-    fontSize: 12,
     color: COLORS.textSecondary,
-    fontWeight: '500',
+    marginTop: 8,
   },
-  tipOptions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  tipButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: COLORS.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  tipButtonSelected: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  tipButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  tipButtonTextSelected: {
-    color: COLORS.white,
-  },
-  priceCard: {
-    backgroundColor: COLORS.white,
-    marginHorizontal: 12,
-    marginTop: 12,
-    padding: 14,
-    borderRadius: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-  },
-  priceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  priceLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  billIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toPayLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  priceBreakdown: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#f5f5f5',
-  },
-  sectionHeader: {
+  changeButton: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: COLORS.primary,
-    marginTop: 12,
-    marginBottom: 4,
-    textTransform: 'uppercase',
+    marginLeft: 8,
   },
-  priceRow: {
+  subtotalSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  subtotalCard: {
+    backgroundColor: COLORS.white,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 5,
+    gap: 12,
+  },
+  subtotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
-    paddingVertical: 4,
     alignItems: 'center',
   },
-  priceLabel: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
+  taxLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  finalPrice: {
-    fontSize: 13,
+  subtotalLabel: {
+    fontSize: 14,
+    color: COLORS.muted,
+  },
+  subtotalValue: {
+    fontSize: 14,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    fontWeight: '600',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#e9ecef',
-    marginVertical: 10,
+  dashedBorder: {
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    borderStyle: 'dashed',
+    marginVertical: 12,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
   },
   totalLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '800',
     color: COLORS.textPrimary,
   },
-  totalAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.primary,
-    letterSpacing: 0.2,
+  gradientTextContainer: {
+    borderRadius: 4,
   },
-  bottomPadding: {
-    height: 100,
+  gradientText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.white,
   },
-  bottomButtonContainer: {
+  footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    paddingTop: 8,
-    backgroundColor: 'rgba(248,249,250,0.95)',
+    backgroundColor: COLORS.white,
     borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
-  },
-  bottomButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
+    borderTopColor: '#f3f4f6',
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 10,
   },
-  selectAddressButton: {
+  footerContent: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  paymentSelector: {
+    flex: 1,
+  },
+  paymentSelectedContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  paymentUnselectedContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  paymentIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: `${COLORS.primary}10`,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
   },
-  bottomButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  paymentTextInfo: {
+    flex: 1,
   },
-  bottomButtonLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 2,
-    fontWeight: '500',
-  },
-  bottomButtonAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.white,
-    letterSpacing: 0.2,
-  },
-  bottomButtonRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  bottomButtonText: {
-    color: COLORS.white,
-    fontSize: 15,
+  payUsingText: {
+    fontSize: 10,
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
     fontWeight: '600',
-    letterSpacing: 0.2,
+  },
+  paymentMethodName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  selectPaymentText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  proceedLink: {
+    flex: 1,
+    height: 50,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  proceedLinkDisabled: {
+    opacity: 0.7,
+  },
+  proceedGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proceedContent: {
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  totalAmount: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.white,
+    lineHeight: 20,
+  },
+  proceedLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: `${COLORS.white}CC`,
+    textTransform: 'uppercase',
   },
   // Modal Styles
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.background,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: '#e5e7eb',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '800',
     color: COLORS.textPrimary,
   },
   modalCloseButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.secondary,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalScrollView: {
     flex: 1,
-    paddingTop: 12,
+    padding: 16,
   },
   noAddressContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 60,
+    paddingVertical: 60,
+    gap: 16,
   },
-  noAddressIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  noAddressText: {
+  noAddressTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    marginBottom: 6,
   },
-  noAddressSubText: {
+  noAddressSubtitle: {
     fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: 'center',
   },
   addressItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: COLORS.white,
-    padding: 14,
-    marginHorizontal: 12,
-    marginBottom: 8,
+    padding: 16,
     borderRadius: 12,
-    gap: 10,
-    elevation: 1,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0.5 },
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  addressItemDefault: {
-    borderColor: COLORS.accent,
-    backgroundColor: 'rgba(135, 25, 198, 0.03)',
+  addressItemSelected: {
+    borderWidth: 1,
+    borderColor: COLORS.primary,
   },
-  addressItemLeft: {
+  addressItemContent: {
     flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    gap: 10,
+    gap: 12,
   },
-  addressItemIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: COLORS.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addressItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  addressItemType: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
+  addressItemDetails: {
+    flex: 1,
   },
   addressItemName: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    marginBottom: 3,
+    marginBottom: 4,
   },
-  addressItemDetail: {
-    fontSize: 12,
+  addressItemText: {
+    fontSize: 14,
     color: COLORS.textSecondary,
-    lineHeight: 16,
-    marginBottom: 1,
+    marginBottom: 4,
   },
   addressItemContact: {
-    fontSize: 12,
+    fontSize: 14,
     color: COLORS.primary,
-    fontWeight: '500',
-    marginTop: 4,
+    fontWeight: '800',
   },
-  defaultBadge: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 6,
-  },
-  defaultBadgeText: {
-    color: COLORS.white,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+  defaultLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
   },
   modalFooter: {
-    padding: 12,
+    padding: 16,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
+    borderTopColor: '#e5e7eb',
   },
   addAddressButton: {
     flexDirection: 'row',
@@ -1045,20 +1052,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
     paddingVertical: 14,
-    borderRadius: 10,
-    gap: 6,
-    elevation: 2,
+    borderRadius: 12,
+    gap: 8,
     shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   addAddressText: {
     color: COLORS.white,
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontSize: 16,
+    fontWeight: '800',
   },
 });
-
-export default Cart;

@@ -17,6 +17,7 @@ import LottieView from 'lottie-react-native';
 import { COLORS } from '../../theme/theme';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
+import { useEliteMembership } from '../../api/hooks/elite_membership';
 
 const { width, height } = Dimensions.get('window');
 
@@ -105,6 +106,59 @@ const EliteMemberScreen = () => {
     const { isAuthenticated } = useAuth();
     const scrollY = useRef(new Animated.Value(0)).current;
 
+    const { data, isLoading, error } = useEliteMembership();
+
+    // Extract membership data
+    const membership = data?.data;
+    const plan = membership?.plan;
+    const isActive = membership?.status === 'ACTIVE';
+    const isTrial = membership?.isTrial;
+
+    // Format dates
+    const formatDate = (dateString: string) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    // Calculate days remaining
+    const getDaysRemaining = () => {
+        if (!membership?.endDate) return 0;
+        const endDate = new Date(membership.endDate);
+        const today = new Date();
+        const diffTime = endDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return Math.max(0, diffDays);
+    };
+
+    // Get status text
+    const getStatusText = () => {
+        if (!membership) return 'NOT ACTIVE';
+        if (isActive && isTrial) return 'FREE TRIAL';
+        if (isActive) return 'ACTIVE PASS';
+        return membership.status || 'INACTIVE';
+    };
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <StatusBar barStyle="light-content" backgroundColor="#050505" />
+                <View style={[styles.mainContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <LottieView
+                        source={require('../../assets/lottie/elite_membership.json')}
+                        autoPlay
+                        loop
+                        style={{ width: 150, height: 150 }}
+                    />
+                    <Text style={{ color: '#FFD700', marginTop: 20, fontSize: 14, fontWeight: '600' }}>
+                        Loading membership...
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar barStyle="light-content" backgroundColor="#050505" />
@@ -154,22 +208,35 @@ const EliteMemberScreen = () => {
                                         style={styles.passLottie}
                                     />
                                 </View>
-                                <View style={styles.statusBadge}>
-                                    <View style={styles.pulseDot} />
-                                    <Text style={styles.statusText}>ACTIVE PASS</Text>
+                                <View style={[styles.statusBadge, isActive && { backgroundColor: 'rgba(0, 255, 0, 0.1)', borderColor: 'rgba(0, 255, 0, 0.2)' }]}>
+                                    <View style={[styles.pulseDot, isActive && { backgroundColor: '#00FF00' }]} />
+                                    <Text style={[styles.statusText, isActive && { color: '#00FF00' }]}>
+                                        {getStatusText()}
+                                    </Text>
                                 </View>
                             </View>
 
                             <View style={styles.passBody}>
-                                <Text style={styles.passTitle}>THE ELITE EXPERIENCE</Text>
+                                <Text style={styles.passTitle}>
+                                    {plan?.name?.toUpperCase() || 'THE ELITE EXPERIENCE'}
+                                </Text>
                                 <View style={styles.priceContainer}>
                                     <Text style={styles.currency}>₹</Text>
-                                    <Text style={styles.priceValue}>{isAuthenticated ? '1' : '0'}</Text>
+                                    <Text style={styles.priceValue}>
+                                        {isTrial ? '0' : '1'}
+                                    </Text>
                                     <View style={styles.priceDetail}>
                                         <Text style={styles.pricePeriod}>/month</Text>
-                                        <Text style={styles.priceOld}>₹999</Text>
+                                        {!isTrial && <Text style={styles.priceOld}>₹999</Text>}
                                     </View>
                                 </View>
+
+                                {isTrial && (
+                                    <View style={styles.promoBanner}>
+                                        <MaterialCommunityIcons name="gift-outline" size={16} color="#FFD700" />
+                                        <Text style={styles.promoText}>Free Trial Active!</Text>
+                                    </View>
+                                )}
 
                                 {!isAuthenticated && (
                                     <View style={styles.promoBanner}>
@@ -184,13 +251,31 @@ const EliteMemberScreen = () => {
                                 <View style={styles.passDetailsRow}>
                                     <View>
                                         <Text style={styles.detailLabel}>MEMBER TYPE</Text>
-                                        <Text style={styles.detailValue}>PREMIUM ELITE</Text>
+                                        <Text style={styles.detailValue}>
+                                            {isTrial ? 'FREE TRIAL' : 'PREMIUM ELITE'}
+                                        </Text>
                                     </View>
                                     <View style={{ alignItems: 'flex-end' }}>
-                                        <Text style={styles.detailLabel}>VALIDITY</Text>
-                                        <Text style={styles.detailValue}>30 DAYS</Text>
+                                        <Text style={styles.detailLabel}>
+                                            {isActive ? 'DAYS LEFT' : 'VALIDITY'}
+                                        </Text>
+                                        <Text style={styles.detailValue}>
+                                            {isActive ? `${getDaysRemaining()} DAYS` : `${plan?.durationDays || 30} DAYS`}
+                                        </Text>
                                     </View>
                                 </View>
+                                {isActive && membership?.endDate && (
+                                    <View style={[styles.passDetailsRow, { marginTop: 12 }]}>
+                                        <View>
+                                            <Text style={styles.detailLabel}>STARTED ON</Text>
+                                            <Text style={styles.detailValue}>{formatDate(membership.startDate)}</Text>
+                                        </View>
+                                        <View style={{ alignItems: 'flex-end' }}>
+                                            <Text style={styles.detailLabel}>EXPIRES ON</Text>
+                                            <Text style={styles.detailValue}>{formatDate(membership.endDate)}</Text>
+                                        </View>
+                                    </View>
+                                )}
                             </View>
 
                             {/* Ticket Notch Effects */}
@@ -206,12 +291,14 @@ const EliteMemberScreen = () => {
                             <View style={styles.titleUnderline} />
                         </View>
 
-                        <BenefitCard
-                            index={0}
-                            icon="truck-delivery"
-                            title="Unlimited Free Delivery"
-                            subtitle="Zero delivery charges on every single order you place."
-                        />
+                        {plan?.benefits?.freeDelivery && (
+                            <BenefitCard
+                                index={0}
+                                icon="truck-delivery"
+                                title="Unlimited Free Delivery"
+                                subtitle="Zero delivery charges on every single order you place."
+                            />
+                        )}
                         <BenefitCard
                             index={1}
                             icon="brightness-percent"
@@ -224,12 +311,14 @@ const EliteMemberScreen = () => {
                             title="VIP Delivery Slots"
                             subtitle="Your orders get prioritized for the fastest delivery."
                         />
-                        <BenefitCard
-                            index={3}
-                            icon="headset"
-                            title="Personal Concierge"
-                            subtitle="Dedicated 24/7 priority support for elite members."
-                        />
+                        {plan?.benefits?.prioritySupport && (
+                            <BenefitCard
+                                index={3}
+                                icon="headset"
+                                title="Priority Support"
+                                subtitle="Dedicated 24/7 priority support for elite members."
+                            />
+                        )}
                     </View>
 
                     {/* FAQ Section */}
@@ -266,30 +355,48 @@ const EliteMemberScreen = () => {
                     />
                     <View style={styles.priceInfo}>
                         <Text style={styles.ctaPriceLabel}>
-                            {isAuthenticated ? 'MEMBERSHIP FEE' : 'SPECIAL OFFER'}
+                            {isActive ? 'YOUR MEMBERSHIP' : isAuthenticated ? 'MEMBERSHIP FEE' : 'SPECIAL OFFER'}
                         </Text>
                         <View style={styles.ctaPriceRow}>
-                            <Text style={styles.ctaPriceCurrency}>₹</Text>
-                            <Text style={styles.ctaPriceValue}>{isAuthenticated ? '1' : '0'}</Text>
-                            <Text style={styles.ctaPriceUnit}>/mo</Text>
+                            {isActive ? (
+                                <Text style={[styles.ctaPriceValue, { color: '#00FF00', fontSize: 18 }]}>
+                                    {getDaysRemaining()} days left
+                                </Text>
+                            ) : (
+                                <>
+                                    <Text style={styles.ctaPriceCurrency}>₹</Text>
+                                    <Text style={styles.ctaPriceValue}>{isAuthenticated ? '1' : '0'}</Text>
+                                    <Text style={styles.ctaPriceUnit}>/mo</Text>
+                                </>
+                            )}
                         </View>
                     </View>
 
                     <TouchableOpacity
                         style={styles.buyButton}
                         activeOpacity={0.8}
-                        onPress={() => !isAuthenticated ? navigation.navigate('Login') : null}
+                        onPress={() => {
+                            if (!isAuthenticated) {
+                                navigation.navigate('Login');
+                            } else if (isActive) {
+                                navigation.navigate('BottomTab');
+                            }
+                        }}
                     >
                         <LinearGradient
-                            colors={['#FFD700', '#B8860B']}
+                            colors={isActive ? ['#00FF00', '#00AA00'] : ['#FFD700', '#B8860B']}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                             style={styles.buyGradient}
                         >
                             <Text style={styles.buyBtnText}>
-                                {!isAuthenticated ? 'LOGIN FOR FREE' : 'GET ELITE NOW'}
+                                {!isAuthenticated ? 'LOGIN FOR FREE' : isActive ? 'START SHOPPING' : 'GET ELITE NOW'}
                             </Text>
-                            <MaterialCommunityIcons name="lightning-bolt" size={20} color="#000" />
+                            <MaterialCommunityIcons
+                                name={isActive ? "shopping" : "lightning-bolt"}
+                                size={20}
+                                color="#000"
+                            />
                         </LinearGradient>
                     </TouchableOpacity>
                 </View>

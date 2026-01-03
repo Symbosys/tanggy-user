@@ -325,7 +325,7 @@ import {
     requestLocationPermission,
     turnOnLocation,
 } from '../../utils/permissions/location';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
 
@@ -354,6 +354,7 @@ interface PlaceDetails {
 }
 
 function TestAddAddress({ navigation }: AppNavigation) {
+    const insets = useSafeAreaInsets();
     const [showBottomSheet, setShowBottomSheet] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [selectedTag, setSelectedTag] = useState('Home');
@@ -704,7 +705,7 @@ function TestAddAddress({ navigation }: AppNavigation) {
             )}
 
             {/* Header */}
-            <SafeAreaView style={styles.header}>
+            <SafeAreaView style={styles.header} edges={['top', 'left', 'right']}>
                 <View style={styles.headerContent}>
                     <TouchableOpacity style={styles.backButton}>
                         <Text style={styles.backArrow}>←</Text>
@@ -741,7 +742,7 @@ function TestAddAddress({ navigation }: AppNavigation) {
                 </View>
             </View>
             {/* Use Current Location Button */}
-            <View style={styles.currentLocationContainer}>
+            <View style={[styles.currentLocationContainer, { bottom: 220 + insets.bottom }]}>
                 <TouchableOpacity
                     style={[
                         styles.currentLocationButton,
@@ -791,7 +792,7 @@ function TestAddAddress({ navigation }: AppNavigation) {
             </View>
             {/* Add More Details Button */}
             <TouchableOpacity
-                style={styles.addDetailsButton}
+                style={[styles.addDetailsButton, { marginBottom: 16 + insets.bottom }]}
                 onPress={handleAddDetailsPress}>
                 <Text style={styles.addDetailsText}>Add more address details</Text>
             </TouchableOpacity>
@@ -1105,7 +1106,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingTop: 12,
+        paddingBottom: 4,
     },
     backButton: {
         marginRight: 16,
@@ -1121,7 +1123,8 @@ const styles = StyleSheet.create({
     },
     searchContainer: {
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingTop: 4,
+        paddingBottom: 12,
         backgroundColor: COLORS.white,
     },
     searchBar: {

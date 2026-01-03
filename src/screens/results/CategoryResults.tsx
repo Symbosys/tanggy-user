@@ -452,6 +452,7 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
                     totalItems={totalCartItems}
                     subTotal={subTotal}
                     onPress={() => navigation.navigate('Cart')}
+                    hasBottomTab={false}
                 />
             )}
         </SafeAreaView>

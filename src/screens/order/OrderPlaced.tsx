@@ -1,201 +1,178 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Animated,
-  Easing,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import LinearGradient from 'react-native-linear-gradient';
+import LottieView from 'lottie-react-native';
 import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
-import LottieView from 'lottie-react-native';
+
+const { width, height } = Dimensions.get('window');
 
 const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
   const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView
-      style={[
-        styles.container,
-        {
-          paddingTop: insets.top,
-          backgroundColor: COLORS.background,
-          marginTop: insets.top,
-        },
-      ]}
-    >
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+
+      {/* Decorative Gradient Background */}
+      <LinearGradient
+        colors={[COLORS.primary + '08', COLORS.white, COLORS.white]}
+        style={styles.gradientBg}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.5 }}
+      />
+
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => navigation.navigate('BottomTab')}
-        >
-          <Icon name="close" size={28} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Confirmation</Text>
-        <View style={styles.headerButton} />
-      </View>
+      <SafeAreaView edges={['top']} style={styles.headerSafe}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={() => navigation.navigate('BottomTab')}
+          >
+            <Icon name="close" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
 
       {/* Main Content */}
       <View style={styles.main}>
-        {/* Success Icon */}
-        <LottieView
-          source={require('../../assets/lottie/Green_tick.json')}
-          autoPlay
-          loop={false}
-          style={styles.lottie}
-        />
+        {/* Success Animation */}
+        <View style={styles.animationContainer}>
+          <LottieView
+            source={require('../../assets/lottie/Green_tick.json')}
+            autoPlay
+            loop={false}
+            style={styles.lottie}
+          />
+        </View>
 
-        {/* Headline */}
-        <Text style={styles.title}>Order Placed Successfully!</Text>
+        {/* Success Content */}
+        <View style={styles.contentCard}>
+          <Text style={styles.title}>Order Confirmed!</Text>
+          <Text style={styles.subtitle}>
+            Your order has been placed successfully.{'\n'}
+            We're preparing it with love! 💜
+          </Text>
 
-        {/* Body Text */}
-        <Text style={styles.subtitle}>
-          Thank you for your order! Your food is on its way.
-        </Text>
+          {/* Order Info Card */}
+          <View style={styles.orderInfoCard}>
+            <View style={styles.orderInfoRow}>
+              <View style={styles.infoItem}>
+                <Icon name="receipt" size={20} color={COLORS.primary} />
+                <View style={styles.infoTextGroup}>
+                  <Text style={styles.infoLabel}>Order ID</Text>
+                  <Text style={styles.infoValue}>#ORD-58934</Text>
+                </View>
+              </View>
+              <View style={styles.infoDivider} />
+              <View style={styles.infoItem}>
+                <Icon name="schedule" size={20} color={COLORS.success} />
+                <View style={styles.infoTextGroup}>
+                  <Text style={styles.infoLabel}>Delivery Time</Text>
+                  <Text style={styles.infoValue}>25-35 mins</Text>
+                </View>
+              </View>
+            </View>
+          </View>
 
-        {/* Meta Info */}
-        <Text style={styles.meta}>Order ID: #ORD-58934</Text>
-
-        {/* Estimated Delivery */}
-        <View style={styles.etaContainer}>
-          <Icon name="timer" size={22} color={COLORS.primary} />
-          <Text style={styles.etaText}>Estimated arrival: 25-35 mins</Text>
+          {/* Status Steps */}
+          <View style={styles.statusContainer}>
+            <View style={styles.statusStep}>
+              <View style={[styles.statusDot, styles.statusDotActive]} />
+              <Text style={styles.statusText}>Order Placed</Text>
+            </View>
+            <View style={styles.statusLine} />
+            <View style={styles.statusStep}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusTextMuted}>Preparing</Text>
+            </View>
+            <View style={styles.statusLine} />
+            <View style={styles.statusStep}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusTextMuted}>On the way</Text>
+            </View>
+            <View style={styles.statusLine} />
+            <View style={styles.statusStep}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusTextMuted}>Delivered</Text>
+            </View>
+          </View>
         </View>
       </View>
 
       {/* CTA Buttons */}
-      <View
-        style={[styles.ctaContainer, { paddingBottom: insets.bottom || 16 }]}
-      >
+      <View style={[styles.ctaContainer, { paddingBottom: insets.bottom + 16 }]}>
         <TouchableOpacity
-          style={styles.primaryButton}
+          style={styles.primaryBtn}
           onPress={() => navigation.navigate('OrderTracking')}
+          activeOpacity={0.9}
         >
-          <Text style={styles.primaryButtonText}>Track Order</Text>
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.accent]}
+            style={styles.primaryBtnGrad}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Icon name="local-shipping" size={22} color={COLORS.white} />
+            <Text style={styles.primaryBtnText}>Track My Order</Text>
+          </LinearGradient>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate('OrderDetails')}
+          style={styles.secondaryBtn}
+          onPress={() => navigation.navigate('BottomTab')}
+          activeOpacity={0.8}
         >
-          <Text style={styles.secondaryButtonText}>View Order Details</Text>
+          <Text style={styles.secondaryBtnText}>Continue Shopping</Text>
         </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
-};
-
-export default OrderConfirmationScreen;
-
-const AnimatedCheckmark = ({ size = 48, color = 'white' }) => {
-  const stroke1Width = useRef(new Animated.Value(0)).current;
-  const stroke2Width = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.sequence([
-      // Delay slightly
-      Animated.delay(300),
-      // Stroke 1
-      Animated.timing(stroke1Width, {
-        toValue: 18, // Length of short stroke
-        duration: 200,
-        useNativeDriver: false,
-        easing: Easing.out(Easing.quad),
-      }),
-      // Stroke 2
-      Animated.timing(stroke2Width, {
-        toValue: 36, // Length of long stroke
-        duration: 300,
-        useNativeDriver: false,
-        easing: Easing.out(Easing.quad),
-      }),
-    ]).start();
-  }, []);
-
-  const thickness = 5;
-
-  return (
-    <View style={{ width: size, height: size }}>
-      {/* Stroke 1: Down-Right */}
-      {/* Position carefully calibrated for 48px size */}
-      <View
-        style={{
-          position: 'absolute',
-          left: 4,
-          top: 27,
-          width: 18,
-          height: thickness,
-          transform: [{ rotate: '45deg' }],
-          justifyContent: 'center',
-          alignItems: 'flex-start', // Grow from left
-        }}
-      >
-        <Animated.View
-          style={{
-            height: '100%',
-            width: stroke1Width,
-            backgroundColor: color,
-            borderRadius: thickness / 2,
-          }}
-        />
-      </View>
-
-      {/* Stroke 2: Up-Right */}
-      <View
-        style={{
-          position: 'absolute',
-          left: 12,
-          top: 22,
-          width: 36,
-          height: thickness,
-          transform: [{ rotate: '-48deg' }], // Slight angle tweak
-          justifyContent: 'center',
-          alignItems: 'flex-start', // Grow from left
-        }}
-      >
-        <Animated.View
-          style={{
-            height: '100%',
-            width: stroke2Width,
-            backgroundColor: color,
-            borderRadius: thickness / 2,
-          }}
-        />
       </View>
     </View>
   );
 };
 
+export default OrderConfirmationScreen;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.white,
+  },
+  gradientBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.5,
+  },
+  headerSafe: {
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     paddingHorizontal: 16,
-    paddingBottom: 8,
-    justifyContent: 'space-between',
-    marginTop: 20,
+    paddingVertical: 12,
   },
-  headerButton: {
+  closeBtn: {
     width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
   },
   main: {
     flex: 1,
@@ -203,93 +180,152 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  successOuter: {
-    height: 128,
-    width: 128,
-    borderRadius: 999,
-    backgroundColor: 'rgba(34,197,94,0.1)',
+  animationContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
   },
-  successMid: {
-    height: 96,
-    width: 96,
-    borderRadius: 999,
-    backgroundColor: 'rgba(34,197,94,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  lottie: {
+    width: width * 0.55,
+    height: width * 0.55,
+    maxWidth: 220,
+    maxHeight: 220,
   },
-  successInner: {
-    height: 80,
-    width: 80,
-    borderRadius: 999,
-    backgroundColor: '#22c55e',
+  contentCard: {
     alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
   },
   title: {
-    fontSize: 28,
+    fontSize: width > 400 ? 28 : 24,
     fontWeight: '800',
     color: COLORS.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
     color: COLORS.muted,
-    fontSize: 16,
+    fontSize: width > 400 ? 16 : 14,
     textAlign: 'center',
-    marginBottom: 4,
-  },
-  lottie: {
-    width: 250,
-    height: 250,
-  },
-  meta: {
-    color: '#888',
-    fontSize: 13,
+    lineHeight: 22,
     marginBottom: 24,
-    textAlign: 'center',
   },
-  etaContainer: {
+  orderInfoCard: {
+    width: '100%',
+    backgroundColor: '#FAFBFC',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#F1F3F5',
+  },
+  orderInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.primary + '20',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginTop: 8,
+    justifyContent: 'space-around',
   },
-  etaText: {
-    fontSize: 15,
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  infoTextGroup: {
+    justifyContent: 'center',
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: COLORS.muted,
     fontWeight: '600',
-    color: COLORS.primary,
+    letterSpacing: 0.3,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  infoDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 12,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingHorizontal: 8,
+  },
+  statusStep: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E5E7EB',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  statusDotActive: {
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.success,
+  },
+  statusLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 4,
+    marginBottom: 20,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.success,
+    textAlign: 'center',
+  },
+  statusTextMuted: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.muted,
+    textAlign: 'center',
   },
   ctaContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     gap: 12,
   },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
+  primaryBtn: {
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  primaryButtonText: {
+  primaryBtnGrad: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  primaryBtnText: {
     color: COLORS.white,
-    fontWeight: '700',
-    fontSize: 16,
+    fontWeight: '800',
+    fontSize: 17,
+    letterSpacing: 0.3,
   },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: COLORS.primary + '50',
-    borderRadius: 12,
-    paddingVertical: 14,
+  secondaryBtn: {
+    height: 52,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFBFC',
   },
-  secondaryButtonText: {
-    color: COLORS.primary,
+  secondaryBtnText: {
+    color: COLORS.textPrimary,
     fontWeight: '700',
     fontSize: 16,
   },

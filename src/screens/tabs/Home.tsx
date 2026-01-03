@@ -158,7 +158,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
   }
 
   return (
-    <SafeAreaView style={{flex: 1}}>
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
@@ -339,7 +339,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             </View>
 
             {/* Bottom Spacer */}
-          {!isAuthenticated && <EliteMemberShipCard />}
+            {!isAuthenticated && <EliteMemberShipCard />}
             <View style={{ height: 190 }} />
           </View>
         </ScrollView>
@@ -353,7 +353,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             totalItems={totalCartItems}
             subTotal={subTotal}
             onPress={() => navigation.navigate('Cart')}
-            marginBottom={75}
+            hasBottomTab={true}
           />
         )}
 

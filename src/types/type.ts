@@ -31,6 +31,7 @@ export type RootStackParamList = {
 
   // Payment
   PaymentCallback: undefined;
+  PaymentMethod: undefined;
 
   ProductDetails: { product: Product };
   CategoryResults: { categoryId?: string; categoryName: string };

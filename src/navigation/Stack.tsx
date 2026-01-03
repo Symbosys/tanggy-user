@@ -1,11 +1,11 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import GlobalAlert from '../components/alert/LoginAlert';
+import GlobalAlert from '../components/alert/GlobalAlert';
 import MyAddressesScreen from '../screens/address/Address';
 import TestAddAddress from '../screens/address/TestAddress';
 import Login from '../screens/auth/Login';
 import Otp from '../screens/auth/Otp';
-import CartScreen from '../screens/cart/TestCart';
+import CartScreen from '../screens/cart/Cart';
 import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicy';
 import TermsAndConditionsScreen from '../screens/legal/TermsAndConditions';
 import SelectYourLocation from '../screens/location/Location';
@@ -16,6 +16,7 @@ import OrderConfirmationScreen from '../screens/order/OrderPlaced';
 import OrderTracking from '../screens/order/Tracking';
 import Splash from '../screens/others/Splash';
 import PaymentButton from '../screens/payment/PaymentCallback';
+import PaymentMethodScreen from '../screens/payment/PaymentMethod';
 import ProductDetailsScreen from '../screens/productsDetails/ProductDetails';
 import UpdateProfile from '../screens/profile/UpdateProfile';
 import CategoryResults from '../screens/results/CategoryResults';
@@ -35,7 +36,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer linking={deeplink}>
       <Stack.Navigator
-        // initialRouteName='OrderTracking'
+        // initialRouteName='EliteMembership'
 
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />
@@ -56,6 +57,7 @@ export default function StackNavigation() {
 
         {/* Order  */}
         <Stack.Screen name='PaymentCallback' component={PaymentButton} />
+        <Stack.Screen name='PaymentMethod' component={PaymentMethodScreen} />
         <Stack.Screen name='OrderPlaced' component={OrderConfirmationScreen} />
         <Stack.Screen name='OrderTracking' component={OrderTracking} />
         <Stack.Screen name='ChatWithDelivery' component={ChatScreen} />

@@ -79,7 +79,7 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
 
     if (isLoading) {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
                 </View>
@@ -88,7 +88,7 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
             <ScrollView
                 style={styles.main}
                 contentContainerStyle={styles.scrollContent}
@@ -174,7 +174,7 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
                     totalItems={totalCartItems}
                     subTotal={subTotal}
                     onPress={() => navigation.navigate('Cart')}
-                    marginBottom={75}
+                    hasBottomTab={true}
                 />
             )}
         </SafeAreaView>

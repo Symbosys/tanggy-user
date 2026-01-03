@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../../theme/theme';
 import { parseToDecimal } from '../../utils/utils';
@@ -9,18 +10,32 @@ interface FloatingCartProps {
     totalItems: number;
     subTotal: number;
     onPress: () => void;
-    marginBottom?: number;
+    hasBottomTab?: boolean; // Whether there's a bottom tab bar below
 }
 
 const BUTTON_GRADIENT = ['#6A0DAD', '#D8B4FF'];
+// Match exact bottom tab height from Bottom.tsx
+const BOTTOM_TAB_HEIGHT = Platform.OS === 'ios' ? 85 : 70;
 
-export default function FloatingCart({ totalItems, subTotal, onPress, marginBottom = 10 }: FloatingCartProps) {
+export default function FloatingCart({
+    totalItems,
+    subTotal,
+    onPress,
+    hasBottomTab = false
+}: FloatingCartProps) {
+    const insets = useSafeAreaInsets();
+
+    // Calculate bottom position based on whether there's a tab bar
+    const bottomPosition = hasBottomTab
+        ? BOTTOM_TAB_HEIGHT + 10 // Above tab bar with small gap
+        : Math.max(insets.bottom, 12) + 8; // Above safe area with small gap
+
     return (
         <LinearGradient
             colors={['#000000', '#000000']}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
-            style={[styles.viewCartBar, { marginBottom }]}
+            style={[styles.viewCartBar, { bottom: bottomPosition }]}
         >
             <View>
                 <Text style={styles.viewCartItems}>
@@ -46,7 +61,6 @@ export default function FloatingCart({ totalItems, subTotal, onPress, marginBott
 const styles = StyleSheet.create({
     viewCartBar: {
         position: 'absolute',
-        bottom: 0,
         left: 16,
         right: 16,
         borderRadius: 16,
