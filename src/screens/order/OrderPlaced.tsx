@@ -6,6 +6,7 @@ import {
   View,
   Dimensions,
   StatusBar,
+  ImageBackground,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -23,16 +24,13 @@ const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-
-      {/* Decorative Gradient Background */}
-      <LinearGradient
-        colors={[COLORS.primary + '08', COLORS.white, COLORS.white]}
-        style={styles.gradientBg}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 0.5 }}
-      />
+    <ImageBackground
+      source={require('../../assets/order/order-successfull.jpeg')}
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay} />
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       {/* Header */}
       <SafeAreaView edges={['top']} style={styles.headerSafe}>
@@ -138,7 +136,7 @@ const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
           <Text style={styles.secondaryBtnText}>Continue Shopping</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ImageBackground>
   );
 };
 
@@ -147,14 +145,10 @@ export default OrderConfirmationScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
   },
-  gradientBg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: height * 0.5,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   headerSafe: {
     backgroundColor: 'transparent',
