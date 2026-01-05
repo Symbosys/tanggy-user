@@ -8,22 +8,34 @@ const { width } = Dimensions.get('window');
 interface TaxBreakdownPopupProps {
     visible: boolean;
     onClose: () => void;
-    itemTotal: number;
-    deliveryFee: number;
-    tipAmount: number;
-    gstAmount: number;
-    packingFee?: number;
+    // New breakdown props
+    gstOnItemTotal: number;
+    gstOnDeliveryFee: number;
+    gstOnPlatform: number;
+    gstOnPackingFee: number;
+    totalGstAmount: number;
 }
 
 const TaxBreakdownPopup = ({
     visible,
     onClose,
-    itemTotal,
-    deliveryFee,
-    tipAmount,
-    gstAmount,
-    packingFee = 0,
+    gstOnItemTotal,
+    gstOnDeliveryFee,
+    gstOnPlatform,
+    gstOnPackingFee,
+    totalGstAmount,
 }: TaxBreakdownPopupProps) => {
+
+    // Helper to render a row only if amount > 0
+    const renderRow = (label: string, amount: number) => {
+        if (amount <= 0) return null;
+        return (
+            <View style={styles.row}>
+                <Text style={styles.label}>{label}</Text>
+                <Text style={styles.value}>₹{amount.toFixed(2)}</Text>
+            </View>
+        );
+    };
 
     return (
         <Modal
@@ -46,26 +58,10 @@ const TaxBreakdownPopup = ({
                     </View>
 
                     <View style={styles.content}>
-                        <View style={styles.row}>
-                            <Text style={styles.label}>GST on Subtotal (5%)</Text>
-                            <Text style={styles.value}>₹{(itemTotal * 0.05).toFixed(2)}</Text>
-                        </View>
-                        {packingFee > 0 && (
-                            <View style={styles.row}>
-                                <Text style={styles.label}>GST on Packing (18%)</Text>
-                                <Text style={styles.value}>₹{(packingFee * 0.18).toFixed(2)}</Text>
-                            </View>
-                        )}
-                        <View style={styles.row}>
-                            <Text style={styles.label}>GST on Delivery Fee (18%)</Text>
-                            <Text style={styles.value}>₹{(deliveryFee * 0.18).toFixed(2)}</Text>
-                        </View>
-                        {tipAmount > 0 && (
-                            <View style={styles.row}>
-                                <Text style={styles.label}>GST on Tip</Text>
-                                <Text style={styles.value}>₹0.00</Text>
-                            </View>
-                        )}
+                        {renderRow("GST on Items Total", gstOnItemTotal)}
+                        {renderRow("GST on Delivery Fee", gstOnDeliveryFee)}
+                        {renderRow("GST on Platform Fee", gstOnPlatform)}
+                        {renderRow("GST on Packing Fee", gstOnPackingFee)}
 
                         <View style={styles.divider} />
 
@@ -73,7 +69,7 @@ const TaxBreakdownPopup = ({
                             <View style={styles.gstLabelContainer}>
                                 <Text style={styles.totalLabel}>Total Tax</Text>
                             </View>
-                            <Text style={styles.totalValue}>₹{gstAmount.toFixed(2)}</Text>
+                            <Text style={styles.totalValue}>₹{totalGstAmount.toFixed(2)}</Text>
                         </View>
                     </View>
                 </View>
@@ -141,11 +137,6 @@ const styles = StyleSheet.create({
     },
     gstLabelContainer: {
         flex: 1,
-    },
-    gstNote: {
-        fontSize: 10,
-        color: COLORS.muted,
-        marginTop: 2,
     },
     totalLabel: {
         fontSize: 16,
