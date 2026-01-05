@@ -22,7 +22,7 @@ const PAYMENT_METHODS: PaymentMethodType[] = [
         name: 'UPI',
         description: 'Google Pay, PhonePe, Paytm, etc.',
         icon: 'account-balance-wallet',
-        isAvailable: false,
+        isAvailable: true,
         type: 'upi',
     },
     {

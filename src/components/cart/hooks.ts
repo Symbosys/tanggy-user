@@ -9,6 +9,7 @@ import { useAlertStore } from '../../store/alert.store';
 import { CartItem } from './types';
 import { RootStackParamList } from '../../types/type';
 import { NavigationProp } from '@react-navigation/native';
+import { useEliteMembership } from '../../api/hooks/elite_membership';
 
 export const useCartInitialization = () => {
   const { fetchCart, cartItems, loading } = useCartStore();
@@ -30,9 +31,14 @@ export const useCartInitialization = () => {
   return { loading, cartItems };
 };
 
+
 export const useCartCalculations = () => {
   const { cartItems } = useCartStore();
   const { selectedTip } = useCartUIStore();
+  
+  // Elite Membership Check
+  const { data: eliteData } = useEliteMembership();
+  const isElite = eliteData?.data?.status === 'ACTIVE';
 
   const getSellingPrice = useCallback((item: CartItem | any): number => {
     return parseToDecimal(item?.product?.sellingPrice) || 0;
@@ -49,7 +55,8 @@ export const useCartCalculations = () => {
   const gstOnItemTotal = itemTotal * 0.05;
 
   // 3. Delivery Fee
-  const deliveryFee = 40;
+  const standardDeliveryFee = 40;
+  const deliveryFee = isElite ? 0 : standardDeliveryFee;
 
   // 4. Platform Fee & GST
   const platformFee = 3; // Example small fee
@@ -98,7 +105,7 @@ export const useCartCalculations = () => {
   // Usually in apps "Subtotal" = Item Total. 
   // Let's alias itemTotal as subtotal for display if needed, but the DB field `subtotal` often stores the pre-tax total of items.
   const subtotal = itemTotal; 
-
+  
   // 11. Paid Amount / Grand Total
   const total = 
     itemTotal + 
@@ -126,6 +133,8 @@ export const useCartCalculations = () => {
     subtotal,
     total,          // paidAmount
     getSellingPrice,
+    isElite,
+    standardDeliveryFee,
   };
 };
 
@@ -250,11 +259,23 @@ export const useCheckoutLogic = () => {
 
   const handleConfirmPayment = useCallback(async () => {
     setShowCheckoutPopup(false);
-    // Passing total as string because handlePayment expects string? 
-    // Original code: await handlePayment(calculateTotal().toString());
-    await handlePaymentUtil(total.toString());
-    navigation.navigate('OrderPlaced');
-  }, [setShowCheckoutPopup, total, navigation]);
+    
+    // Check payment method type
+    if (selectedPaymentMethod?.type === 'cod') {
+        // Direct order placement for Cash on Delivery
+        navigation.navigate('OrderPlaced');
+    } else {
+        // For UPI and others, use the payment handler
+        const paymentInitiated = await handlePaymentUtil(total.toString());
+        
+        if (paymentInitiated) {
+          // Wait a bit to ensure the payment app has time to open so the navigation doesn't feel simultaneous
+          setTimeout(() => {
+             navigation.navigate('OrderPlaced');
+          }, 3000);
+        }
+    }
+  }, [setShowCheckoutPopup, total, navigation, selectedPaymentMethod]);
 
   return {
     handleCheckout,

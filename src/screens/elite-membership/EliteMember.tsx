@@ -1,23 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import LottieView from 'lottie-react-native';
+import { useEffect, useRef, useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    StatusBar,
-    Dimensions,
     Animated,
+    Dimensions,
     Easing,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import LinearGradient from 'react-native-linear-gradient';
-import LottieView from 'lottie-react-native';
-import { COLORS } from '../../theme/theme';
-import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../../context/AuthContext';
 import { useEliteMembership } from '../../api/hooks/elite_membership';
+import { useAuth } from '../../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -106,7 +104,8 @@ const EliteMemberScreen = () => {
     const { isAuthenticated } = useAuth();
     const scrollY = useRef(new Animated.Value(0)).current;
 
-    const { data, isLoading, error } = useEliteMembership();
+    const { data, isLoading } = useEliteMembership();
+    console.log(data);
 
     // Extract membership data
     const membership = data?.data;

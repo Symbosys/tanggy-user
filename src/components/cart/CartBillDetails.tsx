@@ -24,6 +24,8 @@ export const CartBillDetails: React.FC = () => {
         gstOnDeliveryFee,
         gstOnPlatform,
         gstOnPackingFee,
+        isElite,
+        standardDeliveryFee,
     } = useCartCalculations();
 
     const { setShowTaxPopup } = useCartUIStore();
@@ -38,9 +40,27 @@ export const CartBillDetails: React.FC = () => {
                 </View>
 
                 {/* Delivery Fee */}
-                <View style={styles.subtotalRow}>
-                    <Text style={styles.subtotalLabel}>Delivery Fee</Text>
-                    <Text style={styles.subtotalValue}>₹{deliveryFee.toFixed(2)}</Text>
+                <View style={[styles.subtotalRow, { alignItems: 'flex-start' }]}>
+                    <View>
+                        <Text style={styles.subtotalLabel}>Delivery Fee</Text>
+                        {isElite && (
+                            <Text style={{ fontSize: 10, color: '#DAA520', marginTop: 2, fontWeight: '600' }}>
+                                Free with Elite Membership 👑
+                            </Text>
+                        )}
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                        {isElite ? (
+                            <>
+                                <Text style={[styles.subtotalValue, { textDecorationLine: 'line-through', fontSize: 11, color: '#9CA3AF' }]}>
+                                    ₹{standardDeliveryFee.toFixed(2)}
+                                </Text>
+                                <Text style={[styles.subtotalValue, { color: COLORS.success }]}>FREE</Text>
+                            </>
+                        ) : (
+                            <Text style={styles.subtotalValue}>₹{deliveryFee.toFixed(2)}</Text>
+                        )}
+                    </View>
                 </View>
 
                 {/* Platform Fee */}

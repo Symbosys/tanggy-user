@@ -67,11 +67,20 @@ export const getInitials = (name: string): string => {
   return firstInitial + lastInitial;
 };
 
+
+
+
+
+
+
+
+
+
 const upiId = 'amitkumardss2892@okaxis'; // Replace with your VPA
 const payeeName = 'Fresh'; // Replace with your Name
 const note = 'Fresh Order Payment';
 
-export const handlePayment = async (totalAmount: string) => {
+export const handlePayment = async (totalAmount: string): Promise<boolean> => {
   // 1. Construct the URL (Same as Web)
   const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(
     payeeName,
@@ -85,14 +94,17 @@ export const handlePayment = async (totalAmount: string) => {
     if (supported) {
       // 3. Open the App Chooser
       await Linking.openURL(upiUrl);
+      return true;
     } else {
       Alert.alert(
         'Error',
         'No UPI apps found on this phone (PhonePe, GPay, etc).',
       );
+      return false;
     }
   } catch (err) {
     console.error('An error occurred', err);
     Alert.alert('Error', 'Could not open payment app.');
+    return false;
   }
 };
