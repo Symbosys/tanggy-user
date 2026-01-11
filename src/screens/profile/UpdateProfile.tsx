@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useProfile, useUpdateProfile } from '../../api/hooks/useProfile';
 import { COLORS } from '../../theme/theme';
 import { User } from '../../types/user';
+import { ErrorMessage } from '../../utils/utils';
 
 const UpdateProfile = () => {
     const navigation = useNavigation();
@@ -45,7 +46,8 @@ const UpdateProfile = () => {
         updateProfile(updatedUser, {
             onSuccess: () => {
                 navigation.goBack();
-            }
+            },
+            onError: (error) => ErrorMessage(error)
         });
     };
 

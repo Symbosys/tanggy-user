@@ -1,975 +1,1040 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    Image,
-    Dimensions,
-    ScrollView,
-    Animated,
-    Easing,
-    Platform,
-    StatusBar,
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Dimensions,
+  Animated,
+  StatusBar,
+  TouchableOpacity,
+  FlatList,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  ScrollView,
+  Linking,
+  Modal,
+  TouchableWithoutFeedback
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import CustomBottomSheet from '../../components/ui/BottomSheet';
 import { COLORS } from '../../theme/theme';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+// --- TYPES ---
+interface Coordinate {
+  latitude: number;
+  longitude: number;
+}
+
+interface BannerItem {
+  id: string;
+  image: string;
+}
+
+interface OrderOption {
+  id: string;
+  storeName: string;
+  itemsCount: string;
+  price: string;
+  status: string;
+}
 
 const { width, height } = Dimensions.get('window');
+const CARD_MARGIN = 12;
+const CARD_WIDTH = width - CARD_MARGIN * 2;
 
-const OrderTrackingScreen = ({ navigation }: any) => {
-    const insets = useSafeAreaInsets();
-    const [currentState, setCurrentState] = useState<'preparing' | 'tracking' | 'delivered'>('preparing');
 
-    // Animation Values
-    const pulseAnim = useRef(new Animated.Value(1)).current;
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-
-    const [riderLocation, setRiderLocation] = useState({
-        latitude: 37.7749,
-        longitude: -122.4194,
-    });
-    const bottomSheetRef = useRef<any>(null);
-
-    // Mock data
-    const order = {
-        id: '#ORD-9823',
-        restaurant: 'Pizza Hut - MG Road',
-        location: '123 MG Road, Bangalore',
-        items: ['Margherita Pizza x1', 'Garlic Bread x2'],
-        total: '₹450',
-        payment: 'UPI',
-        eta: '14 mins',
-        deliveryTime: '7:45 – 8:00 PM',
-    };
-
-    const rider = {
-        name: 'Ravi Kumar',
-        photo: 'https://randomuser.me/api/portraits/men/32.jpg',
-        vehicle: 'Honda Activa',
-        plate: 'KA 03 AB 4721',
-        rating: 4.8,
-        deliveries: 1240,
-    };
-
-    const restaurantLocation = {
-        latitude: 37.7749,
-        longitude: -122.4194,
-    };
-    const userLocation = {
-        latitude: 37.7849,
-        longitude: -122.4294,
-    };
-
-    const steps = [
-        { id: 1, title: 'Order Confirmed', time: '5:30 PM', sub: 'We have received your order' },
-        { id: 2, title: 'Preparing', time: '5:35 PM', sub: 'Chef is cooking your meal' },
-        { id: 3, title: 'Picked Up', time: '5:50 PM', sub: 'Rider is on the way' },
-        { id: 4, title: 'Out for Delivery', time: 'On the way', sub: 'Arriving in 10 mins' },
-        { id: 5, title: 'Delivered', time: '---', sub: 'Enjoy your meal!' },
-    ];
-
-    const getActiveStep = () => {
-        if (currentState === 'preparing') return 2;
-        if (currentState === 'tracking') return 4;
-        return 5;
-    };
-    const activeStep = getActiveStep();
-
-    const getStatusText = () => {
-        if (currentState === 'preparing') return 'Preparing your delicious meal...';
-        if (currentState === 'tracking') return 'Heading to your location!';
-        return 'Arrived!';
-    };
-
-    // Animations
-    useEffect(() => {
-        // Pulse animation for rider marker
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(pulseAnim, {
-                    toValue: 1.2,
-                    duration: 1000,
-                    easing: Easing.inOut(Easing.ease),
-                    useNativeDriver: true,
-                }),
-                Animated.timing(pulseAnim, {
-                    toValue: 1,
-                    duration: 1000,
-                    easing: Easing.inOut(Easing.ease),
-                    useNativeDriver: true,
-                }),
-            ])
-        ).start();
-
-        // Fade in main view
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-        }).start();
-
-    }, [currentState]);
-
-    // Rider movement simulation
-    useEffect(() => {
-        if (currentState === 'tracking') {
-            const interval = setInterval(() => {
-                setRiderLocation(prev => ({
-                    latitude: prev.latitude + (Math.random() - 0.5) * 0.0005,
-                    longitude: prev.longitude + (Math.random() - 0.5) * 0.0005,
-                }));
-            }, 3000);
-            return () => clearInterval(interval);
-        }
-    }, [currentState]);
-
-    // Auto-open bottom sheet
-    useEffect(() => {
-        if (currentState !== 'delivered') {
-            setTimeout(() => bottomSheetRef.current?.open(1), 500);
-        }
-    }, [currentState]);
-
-    const routeCoordinates = currentState === 'tracking' ? [
-        restaurantLocation,
-        riderLocation,
-        userLocation,
-    ] : [];
-
-    // --- RENDER HELPERS ---
-
-    const renderTimeline = () => (
-        <View style={styles.timelineContainer}>
-            {steps.map((step, index) => {
-                const isActive = activeStep === step.id;
-                const isCompleted = activeStep > step.id;
-                const isLast = index === steps.length - 1;
-
-                return (
-                    <View key={step.id} style={styles.timelineItem}>
-                        {/* Line */}
-                        {!isLast && (
-                            <View style={[
-                                styles.timelineLine,
-                                { backgroundColor: isCompleted ? COLORS.primary : '#E0E0E0' }
-                            ]} />
-                        )}
-
-                        {/* Dot */}
-                        <View style={[
-                            styles.timelineDot,
-                            (isActive || isCompleted) && styles.timelineDotActive,
-                            isActive && styles.timelineDotPulse
-                        ]}>
-                            {isCompleted && <Ionicons name="checkmark" size={12} color="white" />}
-                            {isActive && <View style={styles.innerDot} />}
-                        </View>
-
-                        {/* Content */}
-                        <View style={styles.timelineContent}>
-                            <Text style={[
-                                styles.stepTitle,
-                                (isActive || isCompleted) && styles.stepTitleActive
-                            ]}>{step.title}</Text>
-                            <Text style={styles.stepSub}>{step.sub}</Text>
-                        </View>
-                        <Text style={styles.stepTime}>{step.time}</Text>
-                    </View>
-                )
-            })}
-        </View>
-    );
-
-    if (currentState === 'delivered') {
-        return (
-            <View style={styles.container}>
-                <LinearGradient
-                    colors={[COLORS.primary, '#7e22ce']}
-                    style={styles.deliveredContainer}
-                >
-                    <SafeAreaView style={styles.deliveredSafeArea}>
-                        <Animated.View style={[styles.successContent, { opacity: fadeAnim, transform: [{ scale: fadeAnim }] }]}>
-                            <View style={styles.checkCircle}>
-                                <Ionicons name="checkmark" size={80} color={COLORS.primary} />
-                            </View>
-                            <Text style={styles.deliveredTitle}>Enjoy Your Meal!</Text>
-                            <Text style={styles.deliveredSub}>Order delivered successfully by Ravi.</Text>
-
-                            <View style={styles.ratingCard}>
-                                <Text style={styles.rateTitle}>Rate your Delivery</Text>
-                                <View style={styles.starsRow}>
-                                    {[1, 2, 3, 4, 5].map(s => (
-                                        <Ionicons key={s} name="star-outline" size={32} color="#FFD700" style={{ marginHorizontal: 4 }} />
-                                    ))}
-                                </View>
-                            </View>
-
-                            <TouchableOpacity
-                                style={styles.homeButton}
-                                onPress={() => navigation?.goBack()}
-                            >
-                                <Text style={styles.homeButtonText}>Back to Home</Text>
-                            </TouchableOpacity>
-                        </Animated.View>
-                    </SafeAreaView>
-                </LinearGradient>
-            </View>
-        );
-    }
-
-    return (
-        <View style={styles.container}>
-            <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
-
-            {/* --- MAP --- */}
-            <MapView
-                style={styles.map}
-                initialRegion={{
-                    latitude: userLocation.latitude,
-                    longitude: userLocation.longitude,
-                    latitudeDelta: 0.015,
-                    longitudeDelta: 0.015,
-                }}
-                customMapStyle={mapStyle} // Minimalist aesthetic
-                provider={PROVIDER_GOOGLE}
-            >
-                <Marker coordinate={restaurantLocation}>
-                    <View style={styles.markerContainer}>
-                        <View style={[styles.markerIcon, { backgroundColor: COLORS.white }]}>
-                            <Ionicons name="restaurant" size={20} color={COLORS.primary} />
-                        </View>
-                        <View style={styles.markerArrow} />
-                    </View>
-                </Marker>
-
-                <Marker coordinate={userLocation}>
-                    <View style={styles.markerContainer}>
-                        <View style={[styles.markerIcon, { backgroundColor: COLORS.primary }]}>
-                            <Ionicons name="home" size={20} color={COLORS.white} />
-                        </View>
-                        <View style={[styles.markerArrow, { borderTopColor: COLORS.primary }]} />
-                    </View>
-                </Marker>
-
-                {currentState === 'tracking' && (
-                    <Marker coordinate={riderLocation} anchor={{ x: 0.5, y: 0.5 }}>
-                        <Animated.View style={[
-                            styles.riderMarkerWrap,
-                            { transform: [{ scale: pulseAnim }] }
-                        ]}>
-                            <View style={styles.riderHalo} />
-                            <View style={styles.riderIcon}>
-                                <Ionicons name="bicycle" size={18} color="white" />
-                            </View>
-                        </Animated.View>
-                    </Marker>
-                )}
-
-                {currentState === 'tracking' && (
-                    <Polyline
-                        coordinates={routeCoordinates}
-                        strokeColor={COLORS.primary}
-                        strokeWidth={4}
-                    />
-                )}
-            </MapView>
-
-            {/* --- TOP BAR (SafeArea Aware) --- */}
-            <View style={[styles.topBar, { top: insets.top + 10 }]}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => navigation?.goBack()}
-                >
-                    <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
-                </TouchableOpacity>
-                <View style={styles.topBarLabel}>
-                    <Text style={styles.topBarTitle}>Order #{order.id.replace('#', '')}</Text>
-                    <View style={styles.statusPill}>
-                        <View style={styles.statusDot} />
-                        <Text style={styles.statusPillText}>{currentState === 'tracking' ? 'On the way' : 'Preparing'}</Text>
-                    </View>
-                </View>
-                <TouchableOpacity style={styles.helpButton}>
-                    <Text style={styles.helpText}>Help</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* --- BOTTOM SHEET --- */}
-            <CustomBottomSheet
-                ref={bottomSheetRef}
-                snapPoints={['18%', '45%', '85%']}
-                initialSnapIndex={1}
-                containerStyle={styles.sheetContainer}
-                handleIndicatorStyle={styles.sheetHandle}
-                backdropComponent={false}
-            >
-                <SafeAreaView edges={['bottom']} style={{ flex: 1 }}>
-                    <ScrollView
-                        style={styles.sheetContent}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        {/* Header: ETA & Status */}
-                        <View style={styles.sheetHeader}>
-                            <View>
-                                <Text style={styles.etaActive}>{order.eta}</Text>
-                                <Text style={styles.etaLabel}>{getStatusText()}</Text>
-                            </View>
-                            <Image
-                                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png' }}
-                                style={styles.headerIcon}
-                            />
-                        </View>
-
-                        <View style={styles.divider} />
-
-                        {/* Rider Card */}
-                        <View style={styles.riderCard}>
-                            <View style={styles.riderInfo}>
-                                <Image source={{ uri: rider.photo }} style={styles.riderAvatar} />
-                                <View style={{ marginLeft: 12 }}>
-                                    <Text style={styles.riderName}>{rider.name}</Text>
-                                    <Text style={styles.riderPlate}>{rider.vehicle} • {rider.plate}</Text>
-                                    <View style={styles.ratingBadge}>
-                                        <Ionicons name="star" size={12} color="#FFF" />
-                                        <Text style={styles.ratingVal}>{rider.rating}</Text>
-                                    </View>
-                                </View>
-                            </View>
-                            <View style={styles.riderActions}>
-                                <TouchableOpacity style={styles.callResult}>
-                                    <Ionicons name="call" size={24} color={COLORS.primary} />
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.messageResult}>
-                                    <Ionicons name="chatbubble" size={24} color={COLORS.white} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Timeline */}
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Timeline</Text>
-                        </View>
-                        {renderTimeline()}
-
-                        {/* Order Details */}
-                        <View style={styles.detailsBox}>
-                            <Text style={styles.sectionTitle}>Order Summary</Text>
-                            <Text style={styles.detailResName}>{order.restaurant}</Text>
-                            {order.items.map((item, i) => (
-                                <Text key={i} style={styles.detailItem}>• {item}</Text>
-                            ))}
-                            <View style={styles.divider} />
-                            <View style={styles.totalRow}>
-                                <Text style={styles.totalLabel}>Total Bill</Text>
-                                <Text style={styles.totalValue}>{order.total}</Text>
-                            </View>
-                        </View>
-
-                        {/* Debug Buttons */}
-                        <TouchableOpacity
-                            style={styles.debugBtn}
-                            onPress={() => {
-                                if (currentState === 'preparing') setCurrentState('tracking');
-                                else if (currentState === 'tracking') setCurrentState('delivered');
-                                else setCurrentState('preparing');
-                            }}
-                        >
-                            <Text style={styles.debugText}>Simulate Next Step ({currentState})</Text>
-                        </TouchableOpacity>
-
-                        {/* Space for scrolling */}
-                        <View style={{ height: 100 }} />
-                    </ScrollView>
-                </SafeAreaView>
-            </CustomBottomSheet>
-        </View>
-    );
+// --- COORDINATES FOR TRACKING (UNCHANGED) ---
+const COORDINATES = {
+  RESTAURANT: { latitude: 23.4345, longitude: 85.322 } as Coordinate,
+  USER: { latitude: 23.4385, longitude: 85.328 } as Coordinate,
 };
 
-// --- STYLES ---
-
-const mapStyle = [
-    {
-        "elementType": "geometry",
-        "stylers": [
-            { "color": "#f5f5f5" }
-        ]
-    },
-    {
-        "elementType": "labels.icon",
-        "stylers": [
-            { "visibility": "off" }
-        ]
-    },
-    {
-        "elementType": "labels.text.fill",
-        "stylers": [
-            { "color": "#616161" }
-        ]
-    },
-    {
-        "elementType": "labels.text.stroke",
-        "stylers": [
-            { "color": "#f5f5f5" }
-        ]
-    },
-    {
-        "featureType": "administrative.land_parcel",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            { "color": "#bdbdbd" }
-        ]
-    },
-    {
-        "featureType": "poi",
-        "elementType": "geometry",
-        "stylers": [
-            { "color": "#eeeeee" }
-        ]
-    },
-    {
-        "featureType": "poi",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            { "color": "#757575" }
-        ]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "geometry",
-        "stylers": [
-            { "color": "#e5e5e5" }
-        ]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            { "color": "#9e9e9e" }
-        ]
-    },
-    {
-        "featureType": "road",
-        "elementType": "geometry",
-        "stylers": [
-            { "color": "#ffffff" }
-        ]
-    },
-    {
-        "featureType": "road.arterial",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            { "color": "#757575" }
-        ]
-    },
-    {
-        "featureType": "road.highway",
-        "elementType": "geometry",
-        "stylers": [
-            { "color": "#dadada" }
-        ]
-    },
-    {
-        "featureType": "road.highway",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            { "color": "#616161" }
-        ]
-    },
-    {
-        "featureType": "road.local",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            { "color": "#9e9e9e" }
-        ]
-    },
-    {
-        "featureType": "transit.line",
-        "elementType": "geometry",
-        "stylers": [
-            { "color": "#e5e5e5" }
-        ]
-    },
-    {
-        "featureType": "transit.station",
-        "elementType": "geometry",
-        "stylers": [
-            { "color": "#eeeeee" }
-        ]
-    },
-    {
-        "featureType": "water",
-        "elementType": "geometry",
-        "stylers": [
-            { "color": "#c9c9c9" }
-        ]
-    },
-    {
-        "featureType": "water",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            { "color": "#9e9e9e" }
-        ]
-    }
+// --- BANNER DATA ---
+const BANNER_DATA: BannerItem[] = [
+  { id: '1', image: 'https://imgs.search.brave.com/zjheuudkVf3hS8K-sIylJ7ICB-uIyk2D8Ez9DKrW_rA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/dGhldGFrZW91dC5j/b20vaW1nL2dhbGxl/cnkvMTUtZGlzaGVz/LXByb2Zlc3Npb25h/bC1jaGVmcy1sb3Zl/LXRvLW9yZGVyLWF0/LXJlc3RhdXJhbnRz/L2ludHJvLTE3NTE2/MjI4NjQuanBn' },
+  { id: '2', image: 'https://imgs.search.brave.com/bEIQSFJXnP5-0x1ncP74Ky2pNqfnjWdyijZEn6ceH9w/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/dGhldGFrZW91dC5j/b20vaW1nL2dhbGxl/cnkvMTUtZGlzaGVz/LXByb2Zlc3Npb25h/bC1jaGVmcy1sb3Zl/LXRvLW9yZGVyLWF0/LXJlc3RhdXJhbnRz/L3Rhc3RpbmctbWVu/dXMtMTc1MTYyMjg4/NC5qcGc' },
+  { id: '3', image: 'https://imgs.search.brave.com/zjheuudkVf3hS8K-sIylJ7ICB-uIyk2D8Ez9DKrW_rA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/dGhldGFrZW91dC5j/b20vaW1nL2dhbGxl/cnkvMTUtZGlzaGVz/LXByb2Zlc3Npb25h/bC1jaGVmcy1sb3Zl/LXRvLW9yZGVyLWF0/LXJlc3RhdXJhbnRz/L2ludHJvLTE3NTE2/MjI4NjQuanBn' },
 ];
 
+// --- ORDER ITEMS DATA ---
+const ORDER_IMAGES = [
+  'https://cdn.grofers.com/app/images/products/normal/pro_384788.jpg',
+  'https://cdn.grofers.com/app/images/products/normal/pro_392767.jpg',
+  'https://cdn.grofers.com/app/images/products/normal/pro_404832.jpg',
+  'https://cdn.grofers.com/app/images/products/normal/pro_479860.jpg',
+];
+
+// --- TIP AMOUNTS ---
+const TIP_AMOUNTS = [20, 30, 50, 100];
+
+// --- DUMMY ORDERS FOR SWITCHING ---
+const MY_ORDERS: OrderOption[] = [
+  { id: 'ORD97573829895', storeName: 'Blinkit Store - Hinoo', itemsCount: '4 items', price: '₹342', status: 'Arriving in 14 mins' },
+  { id: 'ORD88812345678', storeName: 'Blinkit Store - Lalpur', itemsCount: '2 items', price: '₹120', status: 'Packing' },
+];
+
+const BlinkitFinalClone = ({ navigation }: any) => {
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Typed Refs
+  const flatListRef = useRef<FlatList<BannerItem>>(null);
+  const mainScrollViewRef = useRef<ScrollView>(null);
+
+  // State for Banner Pagination
+  const [activeIndex, setActiveIndex] = useState<number>(0);
+
+  // --- NEW STATES ---
+  const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [selectedTip, setSelectedTip] = useState<number | null>(null);
+
+  // --- SWITCH ORDER STATES ---
+  const [isSwitchModalVisible, setSwitchModalVisible] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(MY_ORDERS[0].id);
+
+  // --- HANDLERS ---
+  const goToAddressScreen = () => {
+    navigation?.navigate('SelectAddressScreen');
+  };
+
+  const goToSupportScreen = () => {
+    navigation?.navigate('SupportScreen');
+  };
+
+  const openPhoneDialer = () => {
+    Linking.openURL('tel:70506XXXXX');
+  };
+
+  // Switch Order Handler
+  const handleSwitchOrder = (id: string) => {
+    setSelectedOrderId(id);
+    setSwitchModalVisible(false);
+  };
+
+  // --- AUTO SCROLL LOGIC ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      let nextIndex = activeIndex + 1;
+      if (nextIndex >= BANNER_DATA.length) {
+        nextIndex = 0; // Loop back to start
+      }
+
+      flatListRef.current?.scrollToIndex({
+        index: nextIndex,
+        animated: true,
+      });
+    }, 3000); // 3 Seconds
+
+    return () => clearInterval(interval);
+  }, [activeIndex]);
+
+  // --- ANIMATION CONFIGURATION ---
+
+  // FIX: Increased scroll target to 230 to hide banner completely under sticky header
+  const EXPAND_SCROLL_Y = 230;
+
+  const textOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const mapWidth = scrollY.interpolate({
+    inputRange: [0, EXPAND_SCROLL_Y], // Updated range
+    outputRange: [110, width],
+    extrapolate: 'clamp',
+  });
+
+  const mapHeight = scrollY.interpolate({
+    inputRange: [0, EXPAND_SCROLL_Y], // Updated range
+    outputRange: [110, 320],
+    extrapolate: 'clamp',
+  });
+
+  const cardHeight = scrollY.interpolate({
+    inputRange: [0, EXPAND_SCROLL_Y], // Updated range
+    outputRange: [140, 320],
+    extrapolate: 'clamp',
+  });
+
+  const initialMapX = CARD_WIDTH - 110 - 16;
+
+  const mapTranslateX = scrollY.interpolate({
+    inputRange: [0, EXPAND_SCROLL_Y], // Updated range
+    outputRange: [initialMapX, -CARD_MARGIN],
+    extrapolate: 'clamp',
+  });
+
+  const mapTranslateY = scrollY.interpolate({
+    inputRange: [0, EXPAND_SCROLL_Y], // Updated range
+    outputRange: [16, 0],
+    extrapolate: 'clamp',
+  });
+
+  // Sticky Header Fades in (Keep this starting earlier for smooth effect)
+  const stickyHeaderOpacity = scrollY.interpolate({
+    inputRange: [120, 180],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const expandIconOpacity = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const collapseIconOpacity = scrollY.interpolate({
+    inputRange: [150, EXPAND_SCROLL_Y], // Updated range
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const renderBannerItem = ({ item }: { item: BannerItem }) => (
+    <View style={styles.bannerSlide}>
+      <Image
+        source={{ uri: item.image }}
+        style={styles.bannerImage}
+        resizeMode="cover"
+      />
+      <View style={styles.bannerOverlay} />
+    </View>
+  );
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollPosition / width);
+    setActiveIndex(index);
+  };
+
+  const handleExpandMap = () => {
+    // FIX: Scroll to 230 instead of 180
+    (mainScrollViewRef.current as any)?.scrollTo({ y: EXPAND_SCROLL_Y, animated: true });
+  };
+
+  const handleCollapseMap = () => {
+    (mainScrollViewRef.current as any)?.scrollTo({ y: 0, animated: true });
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
+
+      {/* --- STICKY HEADER --- */}
+      <Animated.View
+        style={[styles.stickyHeader, { opacity: stickyHeaderOpacity }]}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <TouchableOpacity onPress={() => navigation?.popToTop()}>
+            <Ionicons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <View style={{ marginLeft: 16 }}>
+            <Text style={{ color: 'white', fontSize: 12 }}>Packing your order</Text>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+              Arriving in 14 minutes
+            </Text>
+          </View>
+        </View>
+
+        {/* Switch Order Button */}
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setSwitchModalVisible(true)}
+        >
+          <Text style={styles.switchButtonText}>SWITCH</Text>
+          <Ionicons name="chevron-down" size={12} color={COLORS.primary} />
+        </TouchableOpacity>
+      </Animated.View>
+
+      <Animated.ScrollView
+        ref={mainScrollViewRef as any}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
+      >
+        {/* --- HEADER SLIDER ANIMATION --- */}
+        <View style={styles.carouselContainer}>
+          <FlatList
+            ref={flatListRef}
+            data={BANNER_DATA}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            renderItem={renderBannerItem}
+            keyExtractor={(item) => item.id}
+            onScroll={handleScroll}
+            getItemLayout={(data, index) => ({
+              length: width,
+              offset: width * index,
+              index,
+            })}
+          />
+          <View style={styles.paginationContainer}>
+            {BANNER_DATA.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: index === activeIndex ? COLORS.white : 'rgba(255,255,255,0.5)',
+                    width: index === activeIndex ? 20 : 8,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* --- DYNAMIC MAP CARD --- */}
+        <Animated.View
+          style={[styles.dynamicCardContainer, { height: cardHeight }]}
+        >
+          {/* Static Text Layer */}
+          <Animated.View
+            style={[styles.staticTextLayer, { opacity: textOpacity }]}
+          >
+            <Text style={styles.packingText}>Packing your order</Text>
+            <Text style={styles.arrivingLabel}>Arriving in</Text>
+            <Text style={styles.arrivingTime}>14 minutes</Text>
+          </Animated.View>
+
+          {/* Animated Map Layer */}
+          <Animated.View
+            style={[
+              styles.animatedMapWrapper,
+              {
+                width: mapWidth,
+                height: mapHeight,
+                transform: [
+                  { translateX: mapTranslateX },
+                  { translateY: mapTranslateY },
+                ],
+              },
+            ]}
+          >
+            {/* INTERACTIVE MAP */}
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={{ flex: 1 }}
+              initialRegion={{
+                latitude: (COORDINATES.RESTAURANT.latitude + COORDINATES.USER.latitude) / 2,
+                longitude: (COORDINATES.RESTAURANT.longitude + COORDINATES.USER.longitude) / 2,
+                latitudeDelta: 0.015,
+                longitudeDelta: 0.015,
+              }}
+              scrollEnabled={true}
+              zoomEnabled={true}
+              pitchEnabled={true}
+              rotateEnabled={true}
+              showsUserLocation={false}
+              showsCompass={false}
+            >
+              <Polyline
+                coordinates={[COORDINATES.RESTAURANT, COORDINATES.USER]}
+                strokeColor="black"
+                strokeWidth={3}
+              />
+              <Marker coordinate={COORDINATES.RESTAURANT} title="Restaurant">
+                <View style={styles.markerStore}>
+                  <Ionicons name="restaurant" size={14} color="white" />
+                </View>
+              </Marker>
+              <Marker coordinate={COORDINATES.USER} title="You">
+                <View style={styles.markerUser}>
+                  <Ionicons name="navigate" size={14} color="white" />
+                </View>
+              </Marker>
+            </MapView>
+
+            <View style={styles.googleLogoContainer}>
+              <Text style={styles.googleText}>Google</Text>
+            </View>
+
+            {/* EXPAND ICON */}
+            <Animated.View
+              style={[
+                styles.iconContainer,
+                { opacity: expandIconOpacity },
+                { transform: [{ scale: expandIconOpacity }] }
+              ]}
+              pointerEvents="box-none"
+            >
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={handleExpandMap}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="fullscreen" size={20} color="#555" />
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* COLLAPSE ICON */}
+            <Animated.View
+              style={[
+                styles.iconContainer,
+                { opacity: collapseIconOpacity },
+                { transform: [{ scale: collapseIconOpacity }] }
+              ]}
+              pointerEvents="box-none"
+            >
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={handleCollapseMap}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="close" size={20} color="#555" />
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
+        </Animated.View>
+
+        {/* --- REST OF THE UI --- */}
+
+        {/* Forgot to Add */}
+        <View style={styles.card}>
+          <View style={{ flexDirection: 'row', padding: 16 }}>
+            <View style={styles.iconBox}>
+              <MaterialCommunityIcons name="shopping-outline" size={20} color="#666" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.cardTitle}>Forgot to add something?</Text>
+              <Text style={styles.cardSubtitle}>
+                Add more items at no extra delivery charge
+              </Text>
+            </View>
+          </View>
+          <View style={styles.alertBar}>
+            <Text style={styles.alertText}>
+              Time's up - adding more items is no longer possible
+            </Text>
+          </View>
+        </View>
+
+        {/* Delivery Partner */}
+        <View style={styles.card}>
+          <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
+            <Image
+              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/4662/4662927.png' }}
+              style={{ width: 45, height: 45, marginRight: 12 }}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>We are assigning a delivery</Text>
+              <Text style={styles.cardTitle}>partner to deliver your order</Text>
+            </View>
+          </View>
+          <View style={styles.divider} />
+        </View>
+
+        {/* Instructions */}
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setIsInstructionsOpen(!isInstructionsOpen)}
+            activeOpacity={1}
+          >
+            <View style={styles.circleIcon}>
+              <Ionicons name="mic-outline" size={20} color="#555" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.cardTitle}>Add delivery instructions</Text>
+              <Text style={styles.cardSubtitle}>Help your delivery partner reach you faster</Text>
+            </View>
+
+            <TouchableOpacity onPress={() => setIsInstructionsOpen(!isInstructionsOpen)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <MaterialIcons
+                name={isInstructionsOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                size={24}
+                color="#666"
+              />
+            </TouchableOpacity>
+          </TouchableOpacity>
+
+          {/* Collapsible Content */}
+          {isInstructionsOpen && (
+            <View style={styles.instructionContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity style={styles.instructionChip}>
+                  <MaterialCommunityIcons name="bell-off-outline" size={18} color="#444" />
+                  <Text style={styles.instructionText}>Avoid calling</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.instructionChip}>
+                  <MaterialCommunityIcons name="door-closed" size={18} color="#444" />
+                  <Text style={styles.instructionText}>Leave at door</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.instructionChip}>
+                  <MaterialCommunityIcons name="security" size={18} color="#444" />
+                  <Text style={styles.instructionText}>Security</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
+        {/* Delivery Details */}
+        <View style={styles.card}>
+          <View style={{ padding: 16, paddingBottom: 0 }}>
+            <Text style={styles.cardTitle}>Your delivery details</Text>
+          </View>
+
+          <View
+            style={[styles.row, { alignItems: 'flex-start' }]}
+          >
+            <Ionicons name="location-outline" size={24} color="#666" />
+            <View style={{ marginLeft: 12, flex: 1 }}>
+              <Text style={styles.cardTitle}>Delivery at Home</Text>
+              <Text style={styles.cardSubtitle}>
+                Ravindra Srivastava, Virat Nagar, Near Darpan Beauty parlour,
+                2nd Transfer, Iowadih, Namku...
+              </Text>
+
+              <TouchableOpacity onPress={goToAddressScreen}>
+                <Text style={[styles.cardSubtitle, { color: COLORS.primary, marginTop: 4, fontWeight: '600' }]}>
+                  Change address {'>'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.updateBanner}>
+            <Text style={styles.updateText}>
+              Now update your address effortlessly if you've ordered at an
+              incorrect location
+            </Text>
+            <TouchableOpacity style={styles.okButton}>
+              <Text style={styles.okText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity onPress={openPhoneDialer}>
+            <Text style={styles.phoneText}>Ravindra, 70506XXXXX</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Need Help */}
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.row} onPress={goToSupportScreen}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Need help?</Text>
+              <Text style={styles.cardSubtitle}>
+                Chat with us about any issue related to your order
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Order Summary */}
+        <View style={styles.card}>
+          <View style={{ padding: 16 }}>
+            <Text style={styles.cardTitle}>Order summary</Text>
+            <Text style={styles.orderId}>
+              Order id: #ORD97573829895{' '}
+              <Ionicons name="copy-outline" size={14} color="#666" />
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 16 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+            >
+              {ORDER_IMAGES.map((img, index) => (
+                <View key={index} style={styles.scrollableItemContainer}>
+                  <Image source={{ uri: img }} style={styles.itemImage} />
+                  <View style={styles.qtyBadge}>
+                    <Text style={styles.qtyText}>1</Text>
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity style={styles.seeMoreContainer}>
+                <Text style={styles.seeMoreText}>+2</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+
+          <TouchableOpacity style={{ padding: 16, paddingTop: 0 }}>
+            <Text style={styles.viewSummary}>View order summary</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Rate and Review */}
+        <View style={styles.card}>
+          <View style={{ padding: 16 }}>
+            <Text style={styles.cardTitle}>Rate and review</Text>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
+              {/* User Avatar */}
+              <Image
+                source={{ uri: 'https://img.freepik.com/free-photo/young-bearded-man-with-striped-shirt_273609-5677.jpg' }}
+                style={styles.avatar}
+              />
+
+              {/* Stars */}
+              <View style={styles.starContainer}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => setRating(star)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={rating >= star ? "star" : "star-outline"}
+                      size={32}
+                      color={rating >= star ? '#fbc02d' : "#666"}
+                      style={{ marginHorizontal: 8 }}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* --- TIP DELIVERY PARTNER --- */}
+        <View style={styles.card}>
+          <View style={{ padding: 16 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={styles.cardTitle}>Tip your delivery partner</Text>
+            </View>
+            <Text style={styles.cardSubtitle}>
+              100% of your tip goes to your partner
+            </Text>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
+              {TIP_AMOUNTS.map((amount) => (
+                <TouchableOpacity
+                  key={amount}
+                  style={[
+                    styles.tipChip,
+                    selectedTip === amount && styles.selectedTipChip
+                  ]}
+                  onPress={() => setSelectedTip(amount === selectedTip ? null : amount)}
+                >
+                  <Text style={[
+                    styles.tipText,
+                    selectedTip === amount && styles.selectedTipText
+                  ]}>₹{amount}</Text>
+                  {selectedTip === amount && (
+                    <View style={styles.selectedIcon}>
+                      <Ionicons name="checkmark-circle" size={14} color={COLORS.primary} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={styles.tipChip}>
+                <Text style={styles.tipText}>Custom</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+
+      </Animated.ScrollView>
+
+      {/* --- SWITCH ORDER POPUP (MODAL) --- */}
+      <Modal
+        visible={isSwitchModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSwitchModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setSwitchModalVisible(false)}>
+          <View style={styles.modalOverlay} />
+        </TouchableWithoutFeedback>
+
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Order</Text>
+            <TouchableOpacity onPress={() => setSwitchModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+
+          {MY_ORDERS.map((order) => {
+            const isSelected = selectedOrderId === order.id;
+            return (
+              <TouchableOpacity
+                key={order.id}
+                style={[styles.orderOption, isSelected && styles.orderOptionSelected]}
+                onPress={() => handleSwitchOrder(order.id)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {/* Radio Button */}
+                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                    {isSelected && <View style={styles.radioInner} />}
+                  </View>
+
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={styles.orderStore}>{order.storeName}</Text>
+                    <Text style={styles.orderMeta}>{order.itemsCount} | {order.price}</Text>
+                    <Text style={styles.orderStatus}>{order.status}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </Modal>
+
+    </SafeAreaView>
+  );
+};
+
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: COLORS.background,
-    },
-    map: {
-        flex: 1,
-        // The map takes full height behind everything
-    },
+  container: { flex: 1, backgroundColor: COLORS.background },
 
-    // Top Bar
-    topBar: {
-        position: 'absolute',
-        left: 20,
-        right: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 50,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 10,
-        zIndex: 99,
-    },
-    backButton: {
-        padding: 4,
-    },
-    topBarLabel: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    topBarTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    statusPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 2,
-    },
-    statusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: '#22c55e',
-        marginRight: 6,
-    },
-    statusPillText: {
-        fontSize: 12,
-        fontWeight: '500',
-        color: COLORS.textSecondary,
-    },
-    helpButton: {
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        backgroundColor: '#f3f4f6',
-        borderRadius: 20,
-    },
-    helpText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: COLORS.textSecondary,
-    },
+  // Sticky Header
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 90,
+    backgroundColor: COLORS.primary,
+    zIndex: 100,
+    paddingTop: 40,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  // Switch Button Styles
+  switchButton: {
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  switchButtonText: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+    fontSize: 12,
+    marginRight: 4,
+  },
 
-    // Markers
-    markerContainer: {
-        alignItems: 'center',
-    },
-    markerIcon: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 4,
-    },
-    markerArrow: {
-        width: 0,
-        height: 0,
-        backgroundColor: 'transparent',
-        borderStyle: 'solid',
-        borderLeftWidth: 6,
-        borderRightWidth: 6,
-        borderTopWidth: 8,
-        borderLeftColor: 'transparent',
-        borderRightColor: 'transparent',
-        borderTopColor: COLORS.white,
-        marginTop: -1,
-    },
-    riderMarkerWrap: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 60,
-        height: 60,
-    },
-    riderHalo: {
-        position: 'absolute',
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: 'rgba(135, 25, 198, 0.3)',
-    },
-    riderIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: COLORS.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'white',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 5,
-    },
+  // --- CAROUSEL / SLIDER STYLES ---
+  carouselContainer: { height: 360, marginBottom: -40, position: 'relative' },
+  bannerSlide: { width: width, height: 340 },
+  bannerImage: { width: '100%', height: '100%' },
+  bannerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
 
-    // Bottom Sheet
-    sheetContainer: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -5 },
-        shadowOpacity: 0.1,
-        shadowRadius: 15,
-        elevation: 20,
-    },
-    sheetHandle: {
-        backgroundColor: '#E0E0E0',
-        width: 50,
-        height: 5,
-    },
-    sheetContent: {
-        paddingHorizontal: 24,
-        paddingTop: 12,
-        paddingBottom: 100, // Added padding to prevent bottom sheet content from being hidden
-    },
-    sheetHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    etaActive: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: COLORS.textPrimary,
-        // fontFamily: 'Poppins-Bold', // Ensure font is available or use standard
-    },
-    etaLabel: {
-        fontSize: 15,
-        fontWeight: '500',
-        color: COLORS.textSecondary,
-        marginTop: 4,
-    },
-    headerIcon: {
-        width: 64,
-        height: 64,
-        resizeMode: 'contain',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#F3F4F6',
-        marginVertical: 20,
-    },
+  paginationContainer: {
+    position: 'absolute',
+    bottom: 60,
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 3,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
 
-    // Rider Card
-    riderCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#F9FAFB',
-        padding: 16,
-        borderRadius: 20,
-        marginBottom: 24,
-    },
-    riderInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    riderAvatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        borderWidth: 2,
-        borderColor: COLORS.white,
-    },
-    riderName: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    riderPlate: {
-        fontSize: 12,
-        color: COLORS.textSecondary,
-        marginTop: 2,
-    },
-    ratingBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.primary,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 8,
-        marginTop: 4,
-        alignSelf: 'flex-start',
-    },
-    ratingVal: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: 'white',
-        marginLeft: 2,
-    },
-    riderActions: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    callResult: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#F3E8FF', // Light purple
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    messageResult: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: COLORS.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-    },
+  // --- DYNAMIC CARD ---
+  dynamicCardContainer: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: CARD_MARGIN,
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  staticTextLayer: {
+    position: 'absolute',
+    left: 16,
+    top: 16,
+    zIndex: 1,
+  },
+  packingText: { fontSize: 13, color: '#666', fontWeight: '500' },
+  arrivingLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginTop: 4,
+  },
+  arrivingTime: { fontSize: 26, fontWeight: '800', color: COLORS.primary },
 
-    // Timeline
-    sectionHeader: {
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    timelineContainer: {
-        marginLeft: 8,
-        marginBottom: 24,
-    },
-    timelineItem: {
-        flexDirection: 'row',
-        marginBottom: 24, // Spacing between steps
-        position: 'relative',
-    },
-    timelineLine: {
-        position: 'absolute',
-        top: 20,
-        left: 9, // Center of dot
-        width: 2,
-        height: '100%',
-        zIndex: 0,
-    },
-    timelineDot: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        backgroundColor: '#E5E7EB',
-        borderWidth: 3,
-        borderColor: '#F9FAFB',
-        zIndex: 1,
-        marginRight: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    timelineDotActive: {
-        backgroundColor: COLORS.primary,
-        borderColor: '#F3E8FF', // Light purple halo
-    },
-    timelineDotPulse: {
-        // Can add pulse styles here
-    },
-    innerDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: 'white',
-    },
-    timelineContent: {
-        flex: 1,
-        marginTop: -2,
-    },
-    stepTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: COLORS.textSecondary,
-    },
-    stepTitleActive: {
-        color: COLORS.textPrimary,
-        fontWeight: '800',
-    },
-    stepSub: {
-        fontSize: 12,
-        color: '#9CA3AF',
-        marginTop: 2,
-    },
-    stepTime: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: COLORS.textSecondary,
-        minWidth: 50,
-        textAlign: 'right',
-    },
+  // Animated Map
+  animatedMapWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  markerStore: {
+    backgroundColor: COLORS.primary,
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'white',
+    elevation: 2,
+  },
+  markerUser: {
+    backgroundColor: '#0049AD',
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'white',
+    elevation: 2,
+  },
+  googleLogoContainer: {
+    position: 'absolute',
+    bottom: 5,
+    left: 5,
+    backgroundColor: 'white',
+    paddingHorizontal: 5,
+    borderRadius: 2,
+  },
+  googleText: { color: '#808080', fontSize: 10, fontWeight: 'bold' },
 
-    // Details Box
-    detailsBox: {
-        backgroundColor: '#F9FAFB',
-        padding: 20,
-        borderRadius: 24,
-        marginBottom: 20,
-    },
-    detailResName: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-        marginTop: 8,
-        marginBottom: 8,
-    },
-    detailItem: {
-        fontSize: 14,
-        color: COLORS.textSecondary,
-        marginBottom: 4,
-    },
-    totalRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    totalLabel: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    totalValue: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: COLORS.primary,
-    },
-    debugBtn: {
-        alignSelf: 'center',
-        marginTop: 10,
-        padding: 10,
-    },
-    debugText: {
-        color: COLORS.muted,
-        fontSize: 12,
-    },
+  // Icon Styles
+  iconContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 10,
+  },
+  controlButton: {
+    backgroundColor: 'white',
+    padding: 6,
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
 
-    // Delivered Screen
-    deliveredContainer: {
-        flex: 1,
-    },
-    deliveredSafeArea: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 24,
-    },
-    successContent: {
-        width: '100%',
-        backgroundColor: 'white',
-        borderRadius: 32,
-        padding: 32,
-        alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 20 },
-        shadowOpacity: 0.2,
-        shadowRadius: 30,
-        elevation: 20,
-    },
-    checkCircle: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: '#F3E8FF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    deliveredTitle: {
-        fontSize: 26,
-        fontWeight: '800',
-        color: COLORS.textPrimary,
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    deliveredSub: {
-        fontSize: 16,
-        color: COLORS.textSecondary,
-        textAlign: 'center',
-        marginBottom: 32,
-        lineHeight: 24,
-    },
-    ratingCard: {
-        width: '100%',
-        alignItems: 'center',
-        marginBottom: 32,
-    },
-    rateTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: COLORS.muted,
-        marginBottom: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    starsRow: {
-        flexDirection: 'row',
-    },
-    homeButton: {
-        width: '100%',
-        backgroundColor: COLORS.primary,
-        paddingVertical: 18,
-        borderRadius: 20,
-        alignItems: 'center',
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 10,
-    },
-    homeButtonText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: 'white',
-    },
+  // Common Card Styles
+  card: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: 12,
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 1,
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  cardSubtitle: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
+  alertBar: {
+    backgroundColor: '#FEE2E2',
+    padding: 10,
+    alignItems: 'center',
+  },
+  alertText: { color: '#b91c1c', fontSize: 11, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: '#f0f0f0' },
+  row: { flexDirection: 'row', padding: 16, alignItems: 'center' },
+  smallText: { fontSize: 12, color: COLORS.textPrimary },
+  circleIcon: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Delivery Details
+  updateBanner: {
+    backgroundColor: '#DBEAFE',
+    marginHorizontal: 16,
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  updateText: { flex: 1, color: '#0049AD', fontSize: 12 },
+  okButton: {
+    backgroundColor: '#0049AD',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  okText: { color: 'white', fontWeight: 'bold' },
+  phoneText: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 16,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+  },
+
+  // Order Summary
+  orderId: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
+  viewSummary: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
+
+  // --- STYLES FOR ORDER ITEMS SCROLL ---
+  scrollableItemContainer: { marginRight: 12, position: 'relative' },
+  itemImage: { width: 60, height: 60, borderRadius: 8, borderWidth: 1, borderColor: '#f0f0f0' },
+  qtyBadge: { position: 'absolute', bottom: -5, right: -5, backgroundColor: COLORS.white, paddingHorizontal: 6, borderRadius: 10, borderWidth: 1, borderColor: '#eee', elevation: 2 },
+  qtyText: { fontSize: 10, fontWeight: 'bold', color: COLORS.primary },
+  seeMoreContainer: { width: 60, height: 60, borderRadius: 8, backgroundColor: '#f9f9f9', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
+  seeMoreText: { fontSize: 16, fontWeight: 'bold', color: COLORS.muted },
+
+  // --- STYLES FOR INSTRUCTIONS ---
+  instructionContainer: { paddingHorizontal: 16, paddingBottom: 16 },
+  instructionChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f5f5', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: '#eee' },
+  instructionText: { fontSize: 12, color: '#333', marginLeft: 6, fontWeight: '500' },
+
+  // --- STYLES FOR RATING ---
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#eee'
+  },
+  starContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginLeft: 16
+  },
+
+  // --- STYLES FOR TIP SECTION ---
+  tipChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginRight: 10,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  selectedTipChip: {
+    backgroundColor: '#E8F5E9',
+    borderColor: COLORS.primary,
+  },
+  tipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333'
+  },
+  selectedTipText: {
+    color: COLORS.primary
+  },
+  selectedIcon: {
+    marginLeft: 4,
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: 'white',
+    borderRadius: 10
+  },
+
+  // --- MODAL STYLES ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    minHeight: 250,
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  orderOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  orderOptionSelected: {
+    backgroundColor: '#f9f9f9',
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioOuterSelected: {
+    borderColor: COLORS.primary,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+  orderStore: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  orderMeta: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  orderStatus: {
+    fontSize: 11,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginTop: 2,
+  }
 });
 
-export default OrderTrackingScreen;
+export default BlinkitFinalClone;

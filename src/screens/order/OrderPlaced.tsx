@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -22,6 +22,12 @@ const { width, height } = Dimensions.get('window');
 
 const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    setTimeout(() => {
+      navigation.navigate('OrderTracking');
+    }, 2000);
+  }, []);
 
   return (
     <ImageBackground
