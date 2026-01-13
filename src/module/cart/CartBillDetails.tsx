@@ -1,11 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { View, Text } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from '../../theme/theme';
 import { cartStyles as styles } from './styles';
 import { useCartCalculations } from './hooks';
-import { useCartUIStore } from './store';
 
 export const CartBillDetails: React.FC = () => {
     const {
@@ -13,22 +11,12 @@ export const CartBillDetails: React.FC = () => {
         deliveryFee,
         platformFee,
         packingFee,
-        totalGstAmount,
         tipAmount,
         discountAmount,
         total,
-        // Deconstruct individual tax components if needed to pass to popup, 
-        // or pass the entire hook result if we refactor popup props.
-        // For now, let's just pass what the popup needs.
-        gstOnItemTotal,
-        gstOnDeliveryFee,
-        gstOnPlatform,
-        gstOnPackingFee,
         isElite,
         standardDeliveryFee,
     } = useCartCalculations();
-
-    const { setShowTaxPopup } = useCartUIStore();
 
     return (
         <View style={styles.subtotalSection}>
@@ -78,21 +66,6 @@ export const CartBillDetails: React.FC = () => {
                         <Text style={styles.subtotalValue}>₹{packingFee.toFixed(2)}</Text>
                     </View>
                 )}
-
-                {/* Taxes */}
-                <TouchableOpacity
-                    style={styles.subtotalRow}
-                    onPress={() => setShowTaxPopup(true)}
-                    activeOpacity={0.7}
-                >
-                    <View style={styles.taxLabelContainer}>
-                        <Text style={[styles.subtotalLabel, { color: COLORS.primary, textDecorationLine: 'underline' }]}>
-                            Taxes & GST
-                        </Text>
-                        <MaterialIcons name="info-outline" size={16} color={COLORS.primary} style={{ marginLeft: 4 }} />
-                    </View>
-                    <Text style={styles.subtotalValue}>₹{totalGstAmount.toFixed(2)}</Text>
-                </TouchableOpacity>
 
                 {/* Tip */}
                 {tipAmount > 0 && (

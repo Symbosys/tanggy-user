@@ -1,25 +1,23 @@
-import React from 'react';
-import { View, ScrollView, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '../../theme/theme';
-import { AppNavigation } from '../../types/type';
-import BottomCartPopup from '../../components/ui/popup/BottonCart';
-import TaxBreakdownPopup from '../../components/cart/TaxBreakdownPopup';
 import {
-  cartStyles as styles,
-  useCartInitialization,
-  useCartCalculations,
-  useCheckoutLogic,
-  useCartUIStore,
-  CartHeader,
-  CartEmptyState,
-  CartItemList,
-  CartTipSection,
+  AddressSelectionModal,
   CartAddressSection,
   CartBillDetails,
+  CartEmptyState,
   CartFooter,
-  AddressSelectionModal,
-} from '../../components/cart';
+  CartHeader,
+  CartItemList,
+  CartTipSection,
+  cartStyles as styles,
+  useCartCalculations,
+  useCartInitialization,
+  useCartUIStore,
+  useCheckoutLogic,
+} from '../../module/cart';
+import BottomCartPopup from '../../components/ui/popup/BottonCart';
+import { COLORS } from '../../theme/theme';
+import { AppNavigation } from '../../types/type';
 
 const CartScreen = ({ navigation }: AppNavigation) => {
 
@@ -28,11 +26,6 @@ const CartScreen = ({ navigation }: AppNavigation) => {
 
   // Calculations
   const {
-    gstOnItemTotal,
-    gstOnDeliveryFee,
-    gstOnPlatform,
-    gstOnPackingFee,
-    totalGstAmount,
     total
   } = useCartCalculations();
 
@@ -40,8 +33,6 @@ const CartScreen = ({ navigation }: AppNavigation) => {
   const {
     showCheckoutPopup,
     setShowCheckoutPopup,
-    showTaxPopup,
-    setShowTaxPopup
   } = useCartUIStore();
 
   // Checkout Logic
@@ -97,16 +88,6 @@ const CartScreen = ({ navigation }: AppNavigation) => {
       <CartFooter
         onCheckout={handleCheckout}
         onPaymentMethodPress={() => navigation.navigate('PaymentMethod')}
-      />
-
-      <TaxBreakdownPopup
-        visible={showTaxPopup}
-        onClose={() => setShowTaxPopup(false)}
-        gstOnItemTotal={gstOnItemTotal}
-        gstOnDeliveryFee={gstOnDeliveryFee}
-        gstOnPlatform={gstOnPlatform}
-        gstOnPackingFee={gstOnPackingFee}
-        totalGstAmount={totalGstAmount}
       />
     </SafeAreaView>
   );

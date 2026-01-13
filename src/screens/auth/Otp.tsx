@@ -1,5 +1,5 @@
-import {NavigationProp} from '@react-navigation/native';
-import React, {useEffect, useRef, useState} from 'react';
+import { NavigationProp } from '@react-navigation/native';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   NativeSyntheticEvent,
@@ -13,17 +13,19 @@ import {
   View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootStackParamList } from '../../types/type';
 import { ErrorMessage } from '../../utils/utils';
 import { AxiosError } from 'axios';
 import api from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { PROFILE_INCOMPLETE_KEY } from './CompleteProfile';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface OTPVerificationScreenProps {
   navigation: NavigationProp<RootStackParamList>;
-  route: {params?: {mobile?: string}};
+  route: { params?: { mobile?: string } };
 }
 
 const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
@@ -37,7 +39,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
   const inputRefs = useRef<Array<TextInput | null>>([]);
   const phoneNumber = route?.params?.mobile || '+91 7091291644';
 
-  const {login} = useAuth()
+  const { login } = useAuth()
 
 
   useEffect(() => {
@@ -116,10 +118,22 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
       if (res.data.success) {
         ToastAndroid.show(res.data.message, ToastAndroid.SHORT);
         await login(res.data?.token, res.data?.user?.id);
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'select_your_location' }],
-        });
+
+        const user = res.data?.user;
+        const isProfileIncomplete = !user?.name?.trim() || !user?.email?.trim();
+
+        if (isProfileIncomplete) {
+          await AsyncStorage.setItem(PROFILE_INCOMPLETE_KEY, 'true');
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'CompleteProfile' }],
+          });
+        } else {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'select_your_location' }],
+          });
+        }
       }
     } catch (error) {
       ErrorMessage(error as AxiosError | Error)
@@ -181,7 +195,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
           style={[
             styles.verifyButton,
             (otp.join('').length < 4 || verifyLoading) &&
-              styles.verifyButtonDisabled,
+            styles.verifyButtonDisabled,
           ]}
           onPress={handleVerify}
           disabled={otp.join('').length < 4 || verifyLoading}>
@@ -189,7 +203,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
             style={[
               styles.verifyButtonText,
               (otp.join('').length < 4 || verifyLoading) &&
-                styles.verifyButtonTextDisabled,
+              styles.verifyButtonTextDisabled,
             ]}>
             {verifyLoading ? 'Verifying...' : 'Verify'}
           </Text>
@@ -245,7 +259,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontStyle: 'italic',
     textShadowColor: '#8B008B',
-    textShadowOffset: {width: 0, height: 4},
+    textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 0,
   },
   bySwiggy: {

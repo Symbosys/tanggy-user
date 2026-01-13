@@ -17,6 +17,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useEliteMembership } from '../../api/hooks/elite_membership';
 import { useAuth } from '../../context/AuthContext';
 
+
 const { width, height } = Dimensions.get('window');
 
 const BenefitCard = ({ icon, title, subtitle, index }: { icon: string; title: string; subtitle: string; index: number }) => {
@@ -104,8 +105,7 @@ const EliteMemberScreen = () => {
     const { isAuthenticated } = useAuth();
     const scrollY = useRef(new Animated.Value(0)).current;
 
-    const { data, isLoading } = useEliteMembership();
-    console.log(data);
+    const { data, isLoading } = useEliteMembership({ enabled: isAuthenticated });
 
     // Extract membership data
     const membership = data?.data;

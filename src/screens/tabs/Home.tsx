@@ -232,7 +232,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 style={styles.profileButton}
                 onPress={() => navigation.navigate('EliteMembership')}
               >
-                <Icon name="workspace-premium" size={24} color={COLORS.primary} />
+                <Icon name="workspace-premium" size={30} color={COLORS.primary} />
               </TouchableOpacity>
             </View>
 

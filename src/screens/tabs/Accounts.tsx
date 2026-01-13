@@ -26,7 +26,7 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
     const { addresses } = useAddressStore();
     const { data: user } = useProfile();
 
-    const userName = user?.name || 'Aarav Sharma';
+    const userName = user?.name || 'New User';
     const userPhone = user?.mobile || '';
     const userEmail = user?.email || '';
     const addressesCount = addresses?.length || 0;

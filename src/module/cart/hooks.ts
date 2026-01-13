@@ -50,88 +50,48 @@ export const useCartCalculations = () => {
     0
   );
 
-  // 2. GST on Item Total (assuming 5% is additive for now based on previous logic, or if included back-calc)
-  // Previous logic: itemTotal * 0.05. Let's keep it.
-  const gstOnItemTotal = itemTotal * 0.05;
-
-  // 3. Delivery Fee
+  // 2. Delivery Fee (No GST on raw chicken products as per Indian govt)
   const standardDeliveryFee = 40;
   const deliveryFee = isElite ? 0 : standardDeliveryFee;
 
-  // 4. Platform Fee & GST
-  const platformFee = 3; // Example small fee
-  const gstOnPlatform = platformFee * 0.18;
+  // 3. Platform Fee (No GST)
+  const platformFee = 3;
 
-  // 5. Packing Fee & GST
+  // 4. Packing Fee (No GST)
   const packingFee = 10;
-  const gstOnPackingFee = packingFee * 0.18;
 
-  // 6. Tip Amount
+  // 5. Tip Amount
   const tipAmount = selectedTip || 0;
 
-  // 7. Surcharge
+  // 6. Surcharge
   const surcharge = 0;
 
-  // 8. Discount
+  // 7. Discount
   const discountAmount = 0;
 
-  // 9. Total GST Tax Amount (Sum of all GST components)
-  // Note: gstOnDeliveryFee is implicitly 18% of deliveryFee usually? 
-  // Previous code had: (deliveryFee + packingFee) * 0.18. 
-  // So let's add gstOnDelivery implicitly for the total calc.
-  // The schema doesn't explicitly list `gstOnDeliveryFee` but standard usually has it.
-  // The user prompt lists `deliveryFee` then `platformFee`+`gst`, `packingFee`+`gst`.
-  // It didn't explicitly say `gstOnDeliveryFee` but it's legally required usually.
-  // However, I will follow the user schema "like this according to my db".
-  // The DB schema snippet HAS `deliveryFee` but NO `gstOnDeliveryFee` field shown in that small snippet?
-  // Wait, let's look closely at the snippet:
-  // deliveryFee Decimal ...
-  // platformFee ... gstOnPlatform ...
-  // packingFee ... gstOnPackingFee ...
-  // It MISSES gstOnDeliveryFee in the snippet. This might mean delivery fee is inclusive or untaxed? 
-  // or just omitted in the snippet.
-  // BUT the previous code had `(deliveryFee + packingFee) * 0.18`.
-  // I will assume delivery fee is taxable to be safe, but separate the variable.
-  // Actually, let's stick to the generated fields in the return object so the UI can decide.
-  
-  // Let's assume GST on Delivery is standard 18%
-  // User requested to remove GST on delivery fee
-  const gstOnDeliveryFee = 0;
-
-  const totalGstAmount = gstOnItemTotal + gstOnPlatform + gstOnPackingFee + gstOnDeliveryFee;
-
-  // 10. Subtotal (Before Tax? Or Item total?)
-  // User Prompt: "subtotal Decimal" at the end. 
-  // Usually in apps "Subtotal" = Item Total. 
-  // Let's alias itemTotal as subtotal for display if needed, but the DB field `subtotal` often stores the pre-tax total of items.
+  // 8. Subtotal
   const subtotal = itemTotal; 
   
-  // 11. Paid Amount / Grand Total
+  // 9. Grand Total (No GST/Tax for raw chicken as per Indian govt)
   const total = 
     itemTotal + 
-    gstOnItemTotal + 
-    deliveryFee + gstOnDeliveryFee + // Including tax on delivery 
-    platformFee + gstOnPlatform + 
-    packingFee + gstOnPackingFee + 
+    deliveryFee + 
+    platformFee + 
+    packingFee + 
     tipAmount + 
     surcharge - 
     discountAmount;
 
   return {
     itemTotal,
-    gstOnItemTotal,
     deliveryFee,
-    gstOnDeliveryFee, // Added for completeness even if not in snippet explicitly, it's needed for math
     platformFee,
-    gstOnPlatform,
     packingFee,
-    gstOnPackingFee,
     tipAmount,
     surcharge,
     discountAmount,
-    totalGstAmount, // For the tax popup total
     subtotal,
-    total,          // paidAmount
+    total,
     getSellingPrice,
     isElite,
     standardDeliveryFee,

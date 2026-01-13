@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import Video from 'react-native-video';
 import { AppNavigation } from '../../types/type';
+import { PROFILE_INCOMPLETE_KEY } from '../auth/CompleteProfile';
 
 const Splash = ({ navigation }: AppNavigation) => {
   const [ready, setReady] = useState(false);
@@ -12,8 +14,22 @@ const Splash = ({ navigation }: AppNavigation) => {
   useEffect(() => {
     if (!ready) return;
 
-    const timeout = setTimeout(() => {
-      if (isAuthenticated || hasSkippedLogin) {
+    const checkNavigationTarget = async () => {
+      const profileIncomplete = await AsyncStorage.getItem(PROFILE_INCOMPLETE_KEY);
+
+      if (isAuthenticated) {
+        if (profileIncomplete === 'true') {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "CompleteProfile" }],
+          });
+        } else {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "BottomTab" }],
+          });
+        }
+      } else if (hasSkippedLogin) {
         navigation.reset({
           index: 0,
           routes: [{ name: "BottomTab" }],
@@ -24,10 +40,14 @@ const Splash = ({ navigation }: AppNavigation) => {
           routes: [{ name: "Login" }],
         });
       }
+    };
+
+    const timeout = setTimeout(() => {
+      checkNavigationTarget();
     }, 2000);
 
     return () => clearTimeout(timeout);
-  }, [ready]);
+  }, [ready, isAuthenticated, hasSkippedLogin, navigation]);
 
   return (
     <View style={styles.container}>

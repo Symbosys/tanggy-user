@@ -3,7 +3,6 @@ import { View, Text, ImageBackground, TouchableOpacity, TextInput } from 'react-
 import { cartStyles as styles } from './styles';
 import { useCartStore } from '../../store/cart';
 import { useCartActions, useCartCalculations } from './hooks';
-import { COLORS } from '../../theme/theme';
 
 export const CartItemList: React.FC = () => {
     const { cartItems } = useCartStore();

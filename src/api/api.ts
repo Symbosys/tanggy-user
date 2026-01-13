@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
   // baseURL: 'https://api.mintafresh.com/api/v1/minta-fresh',
-  baseURL: 'http://192.168.1.10:4000/api/v1/minta-fresh',
+  baseURL: 'http://192.168.1.6:4000/api/v1/minta-fresh',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

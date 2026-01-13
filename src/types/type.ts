@@ -5,6 +5,7 @@ export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
   Otp: { mobile: string };
+  CompleteProfile: undefined;
   select_your_location: undefined;
 
   EliteMembership: undefined;

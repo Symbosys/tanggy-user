@@ -76,6 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await AsyncStorage.removeItem('authToken');
       await AsyncStorage.removeItem('userId');
       await AsyncStorage.removeItem('skippedLogin');
+      await AsyncStorage.removeItem('profile_incomplete');
     } catch (error) {
       console.error('Failed to clear auth data:', error);
     }

@@ -18,15 +18,15 @@ const userProfile = async (): Promise<User> => {
     return data.data
 }
 
-const updateProfile = async (updateData: User) => {
+const updateProfile = async (updateData: Partial<User>) => {
     const {data} = await api.put('/user/update', updateData)
     return data.data
 }
 
-const queryClient = useQueryClient()
-
 export const useUpdateProfile = () => {
-    return useMutation<User, Error, User>({
+    const queryClient = useQueryClient()
+    
+    return useMutation<User, Error, Partial<User>>({
         mutationFn: updateProfile,
         onSuccess: () => {
             SuccessMessage('Profile updated successfully')

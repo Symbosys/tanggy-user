@@ -5,6 +5,7 @@ import MyAddressesScreen from '../screens/address/Address';
 import TestAddAddress from '../screens/address/TestAddress';
 import Login from '../screens/auth/Login';
 import Otp from '../screens/auth/Otp';
+import CompleteProfile from '../screens/auth/CompleteProfile';
 import CartScreen from '../screens/cart/Cart';
 import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicy';
 import TermsAndConditionsScreen from '../screens/legal/TermsAndConditions';
@@ -42,6 +43,7 @@ export default function StackNavigation() {
         <Stack.Screen name="Splash" component={Splash} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Otp" component={Otp} />
+        <Stack.Screen name="CompleteProfile" component={CompleteProfile} />
         <Stack.Screen name='select_your_location' component={SelectYourLocation} options={{ headerShown: true }} />
 
         <Stack.Screen name='EliteMembership' component={EliteMembershipScreen} />
