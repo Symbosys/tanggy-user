@@ -53,9 +53,11 @@ export type RootStackParamList = {
   ChatWithSupport: undefined;
   ReportIssue: undefined;
   AiAssistant: undefined;
+  MyTickets: undefined;
+  TicketDetails: { ticketId: string };
 };
-
 
 export type AppNavigation = {
     navigation: NavigationProp<RootStackParamList>;
+    route?: any;
 }

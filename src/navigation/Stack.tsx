@@ -30,6 +30,8 @@ import { RootStackParamList } from '../types/type';
 import BottomTab from './Bottom';
 import EliteMembershipScreen from '../screens/elite-membership/EliteMember';
 import { deeplink } from './deeplink';
+import MyTicketsScreen from '../screens/support/MyTickets';
+import TicketDetailsScreen from '../screens/support/TicketDetails';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -80,6 +82,8 @@ export default function StackNavigation() {
         <Stack.Screen name='HelpSupport' component={HelpSupportScreen} />
         <Stack.Screen name='HowToTrackOrder' component={TrackOrder} />
         <Stack.Screen name='ReportIssue' component={ReportProblemScreen} />
+        <Stack.Screen name='MyTickets' component={MyTicketsScreen} />
+        <Stack.Screen name='TicketDetails' component={TicketDetailsScreen} />
         <Stack.Screen name='AiAssistant' component={AISupportAssistantScreen} />
       </Stack.Navigator>
 

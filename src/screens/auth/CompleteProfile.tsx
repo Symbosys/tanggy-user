@@ -101,10 +101,11 @@ const CompleteProfile: React.FC<CompleteProfileProps> = ({ navigation }) => {
             </LinearGradient>
 
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={styles.keyboardView}
             >
                 <ScrollView
+                    style={{ flex: 1 }}
                     contentContainerStyle={styles.content}
                     showsVerticalScrollIndicator={false}
                 >

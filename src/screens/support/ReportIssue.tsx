@@ -9,6 +9,8 @@ import {
     Dimensions,
     StatusBar,
     Image,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -16,38 +18,72 @@ import { COLORS } from '../../theme/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppNavigation } from '../../types/type';
 import { launchImageLibrary, Asset, MediaType } from 'react-native-image-picker';
+import { useCreateTicket } from '../../api/hooks/useSupportTickets';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+// Map frontend categories to backend enum values
+const categoryMapping: { [key: string]: string } = {
+    'Order Issue': 'ORDER_ISSUE',
+    'Payment Issue': 'PAYMENT_ISSUE',
+    'Delivery Issue': 'DELIVERY_ISSUE',
+    'Account Issue': 'ACCOUNT_ISSUE',
+    'Technical Issue': 'TECHNICAL_ISSUE',
+    'Feedback': 'FEEDBACK',
+    'Complaint': 'COMPLAINT',
+    'Inquiry': 'INQUIRY',
+    'App Bug': 'BUG',
+    'Other': 'OTHER',
+};
+
 const ReportProblemScreen: React.FC<AppNavigation> = ({ navigation }) => {
     const [selectedCategory, setSelectedCategory] = useState<number>(0);
+    const [subject, setSubject] = useState<string>('');
     const [orderId, setOrderId] = useState<string>('');
     const [description, setDescription] = useState<string>('');
-    const [name, setName] = useState<string>('Alex Smith');
-    const [email, setEmail] = useState<string>('alex.smith@example.com');
-    const [showToast, setShowToast] = useState<boolean>(false);
     const [selectedImage, setSelectedImage] = useState<Asset | null>(null);
+
+    const { mutate: createTicket, isPending } = useCreateTicket();
 
     const categories: string[] = [
         'Order Issue',
-        'Delivery Problem',
-        'Payment Error',
+        'Payment Issue',
+        'Delivery Issue',
+        'Account Issue',
+        'Technical Issue',
+        'Feedback',
+        'Complaint',
+        'Inquiry',
         'App Bug',
-        'Product Quality',
+        'Other',
     ];
 
     const handleAddMedia = (): void => {
         const options = {
             mediaType: 'photo' as MediaType,
             selectionLimit: 1,
+            maxWidth: 1024,
+            maxHeight: 1024,
         };
 
         launchImageLibrary(options, (response) => {
             if (response.didCancel) {
                 return;
             }
+            if (response.errorMessage) {
+                console.error('ImagePicker Error:', response.errorMessage);
+                return;
+            }
             if (response.assets && response.assets[0]) {
-                setSelectedImage(response.assets[0]);
+                const asset = response.assets[0];
+
+                // Check file size (max 200KB)
+                if (asset.fileSize && asset.fileSize > 200 * 1024) {
+                    Alert.alert('File Too Large', 'Image size must be less than 200KB. Please choose a smaller image.');
+                    return;
+                }
+
+                setSelectedImage(asset);
             }
         });
     };
@@ -57,9 +93,59 @@ const ReportProblemScreen: React.FC<AppNavigation> = ({ navigation }) => {
     };
 
     const handleSubmit = (): void => {
-        // Simulate submission
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
+        // Validation
+        if (!description.trim()) {
+            Alert.alert('Missing Information', 'Please describe the issue');
+            return;
+        }
+
+        if (!subject.trim()) {
+            Alert.alert('Missing Information', 'Please enter a subject');
+            return;
+        }
+
+        // Get the backend category value
+        const backendCategory = categoryMapping[categories[selectedCategory]];
+
+        // Prepare ticket data
+        const ticketData: any = {
+            category: backendCategory,
+            subject: subject.trim(),
+            description: description.trim(),
+            priority: 'MEDIUM',
+            source: 'MOBILE_APP',
+        };
+
+        // Add order ID if provided
+        if (orderId.trim()) {
+            ticketData.orderId = orderId.trim();
+        }
+
+        // Add image if selected
+        if (selectedImage && selectedImage.uri) {
+            ticketData.image = {
+                uri: selectedImage.uri,
+                type: selectedImage.type || 'image/jpeg',
+                name: selectedImage.fileName || `ticket_image_${Date.now()}.jpg`,
+            };
+        }
+
+        // Submit ticket
+        createTicket(ticketData, {
+            onSuccess: () => {
+                // Reset form
+                setSelectedCategory(0);
+                setSubject('');
+                setOrderId('');
+                setDescription('');
+                setSelectedImage(null);
+
+                // Navigate back after a short delay
+                setTimeout(() => {
+                    navigation.goBack();
+                }, 1500);
+            },
+        });
     };
 
     return (
@@ -89,6 +175,7 @@ const ReportProblemScreen: React.FC<AppNavigation> = ({ navigation }) => {
                                         index === selectedCategory ? styles.selectedChip : styles.unselectedChip,
                                     ]}
                                     onPress={() => setSelectedCategory(index)}
+                                    disabled={isPending}
                                 >
                                     <Text
                                         style={[
@@ -106,6 +193,18 @@ const ReportProblemScreen: React.FC<AppNavigation> = ({ navigation }) => {
                     {/* Details Input Section */}
                     <View style={styles.inputSection}>
                         <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Subject *</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder="Brief summary of the issue"
+                                placeholderTextColor={COLORS.muted}
+                                value={subject}
+                                onChangeText={setSubject}
+                                editable={!isPending}
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
                             <Text style={styles.inputLabel}>Order ID (Optional)</Text>
                             <TextInput
                                 style={styles.textInput}
@@ -113,19 +212,21 @@ const ReportProblemScreen: React.FC<AppNavigation> = ({ navigation }) => {
                                 placeholderTextColor={COLORS.muted}
                                 value={orderId}
                                 onChangeText={setOrderId}
+                                editable={!isPending}
                             />
                         </View>
 
                         <View style={[styles.inputGroup, styles.descriptionGroup]}>
-                            <Text style={styles.inputLabel}>Description</Text>
+                            <Text style={styles.inputLabel}>Description *</Text>
                             <TextInput
                                 style={[styles.textInput, styles.textArea]}
-                                placeholder="Please describe the issue..."
+                                placeholder="Please describe the issue in detail..."
                                 placeholderTextColor={COLORS.muted}
                                 value={description}
                                 onChangeText={setDescription}
                                 multiline
                                 numberOfLines={4}
+                                editable={!isPending}
                             />
                         </View>
 
@@ -133,41 +234,43 @@ const ReportProblemScreen: React.FC<AppNavigation> = ({ navigation }) => {
                             <View style={styles.mediaContainer}>
                                 <View style={styles.previewContainer}>
                                     <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
-                                    <TouchableOpacity style={styles.removeButton} onPress={handleRemoveImage}>
-                                        <Icon name="close" size={24} color={COLORS.textPrimary} />
+                                    <TouchableOpacity
+                                        style={styles.removeButton}
+                                        onPress={handleRemoveImage}
+                                        disabled={isPending}
+                                    >
+                                        <Icon name="close" size={24} color={COLORS.white} />
                                     </TouchableOpacity>
+                                    <View style={styles.imageSizeInfo}>
+                                        <Text style={styles.imageSizeText}>
+                                            {selectedImage.fileSize
+                                                ? `${(selectedImage.fileSize / 1024).toFixed(1)} KB`
+                                                : 'Unknown size'}
+                                        </Text>
+                                    </View>
                                 </View>
                             </View>
                         ) : (
                             <View style={styles.mediaContainer}>
-                                <TouchableOpacity style={styles.addMediaButton} onPress={handleAddMedia}>
+                                <TouchableOpacity
+                                    style={styles.addMediaButton}
+                                    onPress={handleAddMedia}
+                                    disabled={isPending}
+                                >
                                     <Icon name="add-photo-alternate" size={24} color={COLORS.muted} />
-                                    <Text style={styles.addMediaText}>Add Photo/Video</Text>
+                                    <Text style={styles.addMediaText}>Add Photo (Max 200KB)</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
                     </View>
 
-                    {/* Contact Information */}
-                    <View style={styles.contactSection}>
-                        <Text style={styles.sectionTitle}>Your Contact Information</Text>
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Name</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                value={name}
-                                onChangeText={setName}
-                            />
-                        </View>
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Email</Text>
-                            <TextInput
-                                style={styles.textInput}
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                            />
+                    {/* Info Section */}
+                    <View style={styles.infoSection}>
+                        <View style={styles.infoCard}>
+                            <Icon name="info-outline" size={20} color={COLORS.primary} />
+                            <Text style={styles.infoText}>
+                                Your contact information will be automatically attached from your profile
+                            </Text>
                         </View>
                     </View>
                 </View>
@@ -176,24 +279,27 @@ const ReportProblemScreen: React.FC<AppNavigation> = ({ navigation }) => {
             {/* Submit Button */}
             <View style={styles.submitContainer}>
                 <LinearGradient
-                    colors={['#8719C6', '#b58ff0']}
+                    colors={isPending ? ['#CCCCCC', '#AAAAAA'] : ['#8719C6', '#b58ff0']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.submitButton}
                 >
-                    <TouchableOpacity style={styles.submitTouchable} onPress={handleSubmit}>
-                        <Text style={styles.submitText}>Submit Report</Text>
+                    <TouchableOpacity
+                        style={styles.submitTouchable}
+                        onPress={handleSubmit}
+                        disabled={isPending}
+                    >
+                        {isPending ? (
+                            <>
+                                <ActivityIndicator size="small" color={COLORS.white} />
+                                <Text style={styles.submitText}>Submitting...</Text>
+                            </>
+                        ) : (
+                            <Text style={styles.submitText}>Submit Report</Text>
+                        )}
                     </TouchableOpacity>
                 </LinearGradient>
             </View>
-
-            {/* Confirmation Toast */}
-            {showToast && (
-                <View style={styles.toast}>
-                    <Icon name="check-circle" size={20} color={COLORS.white} />
-                    <Text style={styles.toastText}>Your report has been submitted.</Text>
-                </View>
-            )}
         </SafeAreaView>
     );
 };
@@ -211,7 +317,7 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB', // border-gray-200/50 approx
+        borderBottomColor: '#E5E7EB',
         backgroundColor: COLORS.background,
     },
     headerLeft: {
@@ -221,12 +327,12 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     headerTitle: {
-        fontSize: 20, // text-xl
+        fontSize: 20,
         fontWeight: '800',
         color: COLORS.textPrimary,
         flex: 1,
         textAlign: 'center',
-        marginRight: 48, // pr-12 approx
+        marginRight: 48,
         letterSpacing: -0.3,
     },
     headerSpacer: {
@@ -238,46 +344,46 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 16,
-        paddingBottom: 24, // Extra for submit
+        paddingBottom: 24,
     },
     body: {
         flexGrow: 1,
     },
     section: {
-        marginBottom: 24, // space-y-6 approx
+        marginBottom: 24,
     },
     sectionTitle: {
-        fontSize: 20, // text-xl
+        fontSize: 20,
         fontWeight: '800',
         color: COLORS.textPrimary,
-        marginBottom: 12, // pb-3 pt-2 approx
-        letterSpacing: -0.3, // tracking-light approx
+        marginBottom: 12,
+        letterSpacing: -0.3,
     },
     categoriesContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12, // gap-3
+        gap: 12,
     },
     categoryChip: {
-        height: 40, // h-10
-        paddingHorizontal: 16, // pl-4 pr-4
-        borderRadius: 9999, // rounded-full
+        height: 40,
+        paddingHorizontal: 16,
+        borderRadius: 9999,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
     },
     selectedChip: {
-        backgroundColor: COLORS.primary + '32', // bg-primary/20 approx
+        backgroundColor: COLORS.primary + '32',
         borderColor: COLORS.primary,
     },
     unselectedChip: {
         backgroundColor: COLORS.white,
-        borderColor: '#E5E7EB', // border-gray-200
+        borderColor: '#E5E7EB',
     },
     categoryText: {
-        fontSize: 14, // text-sm
-        fontWeight: '600', // font-medium
+        fontSize: 14,
+        fontWeight: '600',
     },
     selectedText: {
         color: COLORS.primary,
@@ -286,26 +392,26 @@ const styles = StyleSheet.create({
         color: COLORS.muted,
     },
     inputSection: {
-        gap: 16, // space-y-4
+        gap: 16,
         flexDirection: 'column',
     },
     inputGroup: {
-        gap: 8, // pb-2 approx
+        gap: 8,
     },
     descriptionGroup: {
         marginBottom: 16,
     },
     inputLabel: {
-        fontSize: 16, // text-base
-        fontWeight: '500', // font-medium
+        fontSize: 16,
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     textInput: {
-        height: 56, // h-14
+        height: 56,
         padding: 15,
-        borderRadius: 12, // rounded-xl
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#D1D5DB', // border-gray-300
+        borderColor: '#D1D5DB',
         backgroundColor: COLORS.white,
         fontSize: 16,
         fontWeight: '400',
@@ -314,10 +420,10 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 1,
-        elevation: 1, // shadow-sm
+        elevation: 1,
     },
     textArea: {
-        minHeight: 144, // min-h-36
+        minHeight: 144,
         textAlignVertical: 'top',
     },
     mediaContainer: {
@@ -328,16 +434,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        height: 56, // py-4 approx
+        height: 56,
         borderRadius: 12,
         borderWidth: 2,
         borderStyle: 'dashed',
-        borderColor: '#D1D5DB', // border-gray-300
+        borderColor: '#D1D5DB',
         backgroundColor: COLORS.white,
     },
     addMediaText: {
-        fontSize: 14, // text-sm
-        fontWeight: '500', // font-medium
+        fontSize: 14,
+        fontWeight: '500',
         color: COLORS.muted,
     },
     previewContainer: {
@@ -358,21 +464,52 @@ const styles = StyleSheet.create({
         right: 8,
         backgroundColor: 'rgba(0,0,0,0.5)',
         borderRadius: 12,
-        width: 24,
-        height: 24,
+        width: 32,
+        height: 32,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    contactSection: {
-        gap: 16, // space-y-4
+    imageSizeInfo: {
+        position: 'absolute',
+        bottom: 8,
+        left: 8,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    imageSizeText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.white,
+    },
+    infoSection: {
+        marginTop: 24,
+    },
+    infoCard: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+        backgroundColor: '#F8F4FF',
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.primary + '30',
+    },
+    infoText: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '500',
+        color: COLORS.textPrimary,
+        lineHeight: 18,
     },
     submitContainer: {
         padding: 16,
-        paddingBottom: 24, // pb-6
+        paddingBottom: 24,
         backgroundColor: COLORS.background,
     },
     submitButton: {
-        height: 56, // h-14
+        height: 56,
         borderRadius: 12,
         overflow: 'hidden',
     },
@@ -381,39 +518,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 24, // px-6
+        paddingHorizontal: 24,
+        gap: 12,
     },
     submitText: {
-        fontSize: 16, // text-base
+        fontSize: 16,
         fontWeight: '800',
         color: COLORS.white,
-        letterSpacing: 0.5, // tracking-wide approx
-    },
-    toast: {
-        position: 'absolute',
-        bottom: 96, // bottom-24 approx (6rem=96px)
-        left: screenWidth / 2 - 120, // Approximate centering, adjust as needed
-        right: screenWidth / 2 + 120 - screenWidth, // Wait, better use transform
-        // For exact: use transform: [{ translateX: -width/2 }]
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        backgroundColor: '#111827', // bg-gray-900
-        paddingHorizontal: 24, // px-6
-        paddingVertical: 12, // py-3
-        borderRadius: 9999, // rounded-full
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 8, // shadow-lg approx
-        minWidth: 240, // To fit content
-        transform: [{ translateX: -screenWidth / 2 }],
-    },
-    toastText: {
-        fontSize: 14, // text-sm
-        fontWeight: '500', // font-medium
-        color: COLORS.white,
+        letterSpacing: 0.5,
     },
 });
 

@@ -54,3 +54,19 @@ export const COLORS = {
 
 
 use this color which is located in ../../theme/theme and if you need beyond this theme color and hardcode them  wrap entire code with safeareview import from safearea context
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
