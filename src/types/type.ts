@@ -21,6 +21,7 @@ export type RootStackParamList = {
   Discount: undefined;
 
   AddAddress: undefined;
+  EditAddress: { id: number };
   Address: undefined;
 
   // Order

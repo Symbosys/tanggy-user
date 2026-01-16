@@ -1,122 +1,143 @@
-import React from 'react';
 import {
+    ScrollView,
+    StatusBar,
     StyleSheet,
-    View,
     Text,
     TouchableOpacity,
-    ScrollView,
-    Image,
+    View
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '../../theme/theme'; // As requested
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
 
-// Note: The HTML uses `bg-white` and `dark:bg-black/20` for cards.
-// I am using `COLORS.white` as per the light theme.
-const cardBackground = COLORS.white;
-const lightBorder = '#E5E7EB'; // Approximation for gray-200, or use COLORS.muted
-
 const TrackOrder = ({ navigation }: AppNavigation) => {
+    const trackingSteps = [
+        {
+            icon: 'shopping-bag',
+            title: 'Open Orders Tab',
+            description: 'Navigate to Orders from the bottom menu',
+        },
+        {
+            icon: 'touch-app',
+            title: 'Select Active Order',
+            description: 'Tap on your current order card',
+        },
+        {
+            icon: 'map',
+            title: 'View Live Map',
+            description: 'See real-time location and ETA',
+        },
+    ];
+
+    const relatedQuestions = [
+        'What if my order is late?',
+        'Can I change my delivery address?',
+        'How do I contact the driver?',
+    ];
+
     return (
-        <SafeAreaView style={styles.safeArea}>
-            {/* Header Section */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.headerIconContainer} onPress={() => navigation.goBack()}>
-                    <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+            {/* Header */}
+            <LinearGradient
+                colors={[COLORS.primary, '#9B4DCA']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.header}
+            >
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.goBack()}
+                >
+                    <Icon name="arrow-back" size={24} color={COLORS.white} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle} numberOfLines={1}>
-                    How do I track my order?
-                </Text>
-            </View>
+                <Text style={styles.headerTitle}>Track Your Order</Text>
+                <View style={{ width: 44 }} />
+            </LinearGradient>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* FAQ Answer Content */}
-                <View style={styles.contentContainer}>
-                    <Text style={styles.paragraph}>
-                        Tracking your order is easy! Once your order is confirmed and the
-                        restaurant starts preparing it, a live tracking map will become
-                        available. You can follow these steps to see exactly where your
-                        delivery is:
-                    </Text>
-
-                    {/* Manual Ordered List */}
-                    <View style={styles.list}>
-                        <View style={styles.listItem}>
-                            <Text style={styles.listNumber}>1.</Text>
-                            <Text style={styles.listText}>
-                                Navigate to the 'Orders' tab from the bottom menu.
-                            </Text>
-                        </View>
-                        <View style={styles.listItem}>
-                            <Text style={styles.listNumber}>2.</Text>
-                            <Text style={styles.listText}>
-                                Tap on your current, active order card.
-                            </Text>
-                        </View>
-                        <View style={styles.listItem}>
-                            <Text style={styles.listNumber}>3.</Text>
-                            <Text style={styles.listText}>
-                                You will see a map with the real-time location of your delivery
-                                driver.
-                            </Text>
-                        </View>
+            <ScrollView
+                style={styles.scrollView}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                {/* Introduction */}
+                <View style={styles.introSection}>
+                    <View style={styles.introIconWrapper}>
+                        <Icon name="my-location" size={32} color={COLORS.primary} />
                     </View>
-
-                    <Text style={styles.paragraph}>
-                        You'll also receive push notifications for key updates, such as
-                        'Order picked up' and 'Arriving soon'.
+                    <Text style={styles.introTitle}>Real-time Order Tracking</Text>
+                    <Text style={styles.introText}>
+                        Track your delivery from preparation to your doorstep with live updates
                     </Text>
-
-                    {/* Media Embed */}
-                    <View style={styles.imageContainer}>
-                        <Image
-                            style={styles.image}
-                            source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAHJQWBotz4wV3bBvw0rzYgYjKSLEssz8RFJiNDJLj0kJlwxubeBp_XTyqgjFrp2z-g5XJ5FL2IWb_n6DFBTu7uEUcDPH4y8xzFtclE96KJysSzCunFdiBA7ifPUS-mnDK77fQivMrX6eAkF-r9IT_7aeZiyb0gh9YUeGiOvT5trKaCqdRsFhpclZjcAhplYsDgLq679HeuE63kjB9SZYNBKxJgQWjkLIkmKfiYC3Uxy6agKtcekJUZrRMsLpbGB5XFLvPQTtyK0dUL' }}
-                            // A more appropriate placeholder
-                            // source={{ uri: 'https://via.placeholder.com/1600x900' }}
-                            resizeMode="cover"
-                        />
-                    </View>
                 </View>
 
-                {/* Divider */}
-                <View style={styles.dividerContainer}>
-                    <View style={styles.divider} />
+                {/* Steps */}
+                <View style={styles.stepsContainer}>
+                    {trackingSteps.map((step, index) => (
+                        <View key={index} style={styles.stepItem}>
+                            <View style={styles.stepLeft}>
+                                <View style={styles.stepIconCircle}>
+                                    <Icon name={step.icon} size={24} color={COLORS.primary} />
+                                </View>
+                                {index < trackingSteps.length - 1 && (
+                                    <View style={styles.stepLine} />
+                                )}
+                            </View>
+                            <View style={styles.stepContent}>
+                                <View style={styles.stepHeader}>
+                                    <Text style={styles.stepNumber}>Step {index + 1}</Text>
+                                </View>
+                                <Text style={styles.stepTitle}>{step.title}</Text>
+                                <Text style={styles.stepDescription}>{step.description}</Text>
+                            </View>
+                        </View>
+                    ))}
                 </View>
 
-                {/* Related FAQs Section */}
-                <View style={styles.relatedContainer}>
+                {/* Info Card */}
+                <View style={styles.infoCard}>
+                    <View style={styles.infoIconWrapper}>
+                        <Icon name="notifications-active" size={20} color="#F59E0B" />
+                    </View>
+                    <Text style={styles.infoText}>
+                        You'll receive push notifications at every step of your delivery
+                    </Text>
+                </View>
+
+                {/* Related Questions */}
+                <View style={styles.relatedSection}>
                     <Text style={styles.relatedTitle}>Related Questions</Text>
-
-                    <TouchableOpacity style={styles.relatedItem}>
-                        <Text style={styles.relatedItemText} numberOfLines={1}>
-                            What if my order is late?
-                        </Text>
-                        <View style={styles.relatedItemIcon}>
-                            <Icon name="chevron-right" size={24} color={COLORS.textSecondary} />
-                        </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.relatedItem}>
-                        <Text style={styles.relatedItemText} numberOfLines={1}>
-                            Can I change my delivery address?
-                        </Text>
-                        <View style={styles.relatedItemIcon}>
-                            <Icon name="chevron-right" size={24} color={COLORS.textSecondary} />
-                        </View>
-                    </TouchableOpacity>
+                    {relatedQuestions.map((question, index) => (
+                        <TouchableOpacity
+                            key={index}
+                            style={styles.relatedItem}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.relatedQuestion}>{question}</Text>
+                            <Icon name="chevron-right" size={20} color={COLORS.muted} />
+                        </TouchableOpacity>
+                    ))}
                 </View>
             </ScrollView>
 
-            {/* Contact Support Prompt (Sticky Footer) */}
+            {/* Footer */}
             <View style={styles.footer}>
-                <View style={styles.footerContent}>
-                    <Text style={styles.footerText}>Still need help?</Text>
-                    <TouchableOpacity style={styles.chatButton}>
-                        <Text style={styles.chatButtonText}>Chat with Us</Text>
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                    style={styles.chatButton}
+                    activeOpacity={0.8}
+                >
+                    <LinearGradient
+                        colors={[COLORS.primary, '#9B4DCA']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.chatButtonGradient}
+                    >
+                        <Icon name="chat" size={18} color={COLORS.white} />
+                        <Text style={styles.chatButtonText}>Chat with Support</Text>
+                    </LinearGradient>
+                </TouchableOpacity>
             </View>
         </SafeAreaView>
     );
@@ -125,145 +146,211 @@ const TrackOrder = ({ navigation }: AppNavigation) => {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor: '#FAFBFC',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16, // p-4
-        paddingBottom: 8, // pb-2
-        borderBottomWidth: 1,
-        borderBottomColor: lightBorder,
-        backgroundColor: COLORS.background, // sticky
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
     },
-    headerIconContainer: {
-        width: 40, // size-10
-        height: 40, // size-10
-        alignItems: 'center',
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
+        alignItems: 'center',
     },
     headerTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: COLORS.white,
+    },
+    scrollView: {
         flex: 1,
-        textAlign: 'center',
-        fontSize: 18, // text-lg
-        fontWeight: '800', // Per user request
-        color: COLORS.textPrimary,
-        paddingRight: 40, // pr-10 (to balance the icon)
     },
     scrollContent: {
-        paddingBottom: 120, // To make sure content doesn't hide behind footer
+        paddingBottom: 100,
     },
-    contentContainer: {
-        padding: 16, // p-4
-        gap: 16, // space-y-4
+    introSection: {
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingTop: 32,
+        paddingBottom: 24,
     },
-    paragraph: {
-        fontSize: 16, // text-base
-        fontWeight: '400', // font-normal
-        lineHeight: 24, // leading-relaxed
+    introIconWrapper: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: COLORS.primary + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    introTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        marginBottom: 8,
+    },
+    introText: {
+        fontSize: 14,
+        fontWeight: '500',
         color: COLORS.textSecondary,
+        textAlign: 'center',
+        lineHeight: 22,
     },
-    list: {
-        marginLeft: 16, // list-inside approximation
-        gap: 8, // space-y-2
+    stepsContainer: {
+        paddingHorizontal: 24,
+        paddingVertical: 8,
     },
-    listItem: {
+    stepItem: {
         flexDirection: 'row',
+        marginBottom: 8,
     },
-    listNumber: {
-        fontSize: 16,
-        color: COLORS.textSecondary,
-        width: 20,
+    stepLeft: {
+        alignItems: 'center',
+        marginRight: 16,
     },
-    listText: {
+    stepIconCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: COLORS.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: COLORS.primary + '30',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    stepLine: {
+        width: 2,
         flex: 1,
+        backgroundColor: '#E5E7EB',
+        marginVertical: 4,
+    },
+    stepContent: {
+        flex: 1,
+        paddingBottom: 24,
+    },
+    stepHeader: {
+        marginBottom: 4,
+    },
+    stepNumber: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: COLORS.primary,
+        textTransform: 'uppercase',
+    },
+    stepTitle: {
         fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        marginBottom: 4,
+    },
+    stepDescription: {
+        fontSize: 14,
+        fontWeight: '500',
         color: COLORS.textSecondary,
-        lineHeight: 24,
+        lineHeight: 20,
     },
-    imageContainer: {
-        paddingVertical: 12, // py-3
-        width: '100%',
+    infoCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFBEB',
+        borderRadius: 12,
+        padding: 16,
+        marginHorizontal: 24,
+        marginTop: 8,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: '#FEF3C7',
     },
-    image: {
-        width: '100%',
-        aspectRatio: 16 / 9,
-        borderRadius: 32, // rounded-lg (from user's config)
-        backgroundColor: COLORS.muted, // placeholder bg
+    infoIconWrapper: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: COLORS.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
     },
-    dividerContainer: {
-        paddingHorizontal: 16, // px-4
-        paddingVertical: 8, // py-2
+    infoText: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#92400E',
+        lineHeight: 20,
     },
-    divider: {
-        borderTopWidth: 1,
-        borderColor: lightBorder,
-    },
-    relatedContainer: {
-        padding: 16, // p-4
-        gap: 12, // space-y-3
+    relatedSection: {
+        paddingHorizontal: 24,
     },
     relatedTitle: {
+        fontSize: 16,
+        fontWeight: '800',
         color: COLORS.textPrimary,
-        fontSize: 18, // text-lg
-        fontWeight: '800', // font-bold per user request
+        marginBottom: 12,
     },
     relatedItem: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: cardBackground,
-        borderRadius: 16, // rounded
-        padding: 12, // p-3
-        minHeight: 56, // min-h-14
-        gap: 16, // gap-4
+        backgroundColor: COLORS.white,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    relatedItemText: {
+    relatedQuestion: {
         flex: 1,
+        fontSize: 14,
+        fontWeight: '600',
         color: COLORS.textPrimary,
-        fontSize: 16, // text-base
-        fontWeight: '400', // font-normal
-    },
-    relatedItemIcon: {
-        width: 28, // size-7
-        height: 28, // size-7
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     footer: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: COLORS.background,
-        padding: 16, // p-4
+        backgroundColor: COLORS.white,
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 12,
         borderTopWidth: 1,
-        borderTopColor: lightBorder,
-        marginTop: 24, // mt-6
-    },
-    footerContent: {
-        alignItems: 'center',
-        gap: 12, // gap-3
-    },
-    footerText: {
-        fontSize: 14, // text-sm
-        fontWeight: '500', // font-medium
-        color: COLORS.textSecondary,
+        borderTopColor: '#F1F5F9',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 5,
     },
     chatButton: {
-        width: '100%',
-        paddingHorizontal: 24, // px-6
-        paddingVertical: 12, // py-3
-        backgroundColor: COLORS.primary,
-        borderRadius: 9999, // rounded-full
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    chatButtonGradient: {
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 14,
     },
     chatButtonText: {
+        fontSize: 15,
+        fontWeight: '800',
         color: COLORS.white,
-        fontSize: 16, // Matches HTML (default button font size)
-        fontWeight: '800', // font-bold per user request
     },
 });
 

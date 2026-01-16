@@ -8,12 +8,16 @@ import {
     ActivityIndicator,
     RefreshControl,
     FlatList,
+    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
-import { useGetAllTickets, SupportTicket } from '../../api/hooks/useSupportTickets';
+import { useGetAllTickets, useGetTicketStats, SupportTicket } from '../../api/hooks/useSupportTickets';
+
+const { width } = Dimensions.get('window');
 
 const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
     const {
@@ -27,9 +31,9 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
         isFetchingNextPage
     } = useGetAllTickets();
 
-    const tickets = useMemo(() => data?.pages.flatMap(page => page.tickets) || [], [data]);
+    const { data: stats, isLoading: statsLoading } = useGetTicketStats();
 
-    console.log("tickets", tickets)
+    const tickets = useMemo(() => data?.pages.flatMap(page => page.tickets) || [], [data]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -84,6 +88,57 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
         }
     };
 
+    const StatsCard = ({ icon, label, value, color, gradient }: { icon: string; label: string; value: number; color: string; gradient: string[] }) => (
+        <LinearGradient
+            colors={gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.statCard}
+        >
+            <View style={[styles.statIconContainer, { backgroundColor: color + '30' }]}>
+                <Icon name={icon} size={20} color={color} />
+            </View>
+            <Text style={styles.statValue}>{statsLoading ? '-' : value}</Text>
+            <Text style={styles.statLabel}>{label}</Text>
+        </LinearGradient>
+    );
+
+    const renderHeader = () => (
+        <View style={styles.statsSection}>
+            <Text style={styles.statsSectionTitle}>Ticket Overview</Text>
+            <View style={styles.statsGrid}>
+                <StatsCard
+                    icon="inbox"
+                    label="Total"
+                    value={stats?.total || 0}
+                    color="#6366F1"
+                    gradient={['#EEF2FF', '#E0E7FF']}
+                />
+                <StatsCard
+                    icon="fiber-new"
+                    label="Open"
+                    value={stats?.open || 0}
+                    color="#3B82F6"
+                    gradient={['#EFF6FF', '#DBEAFE']}
+                />
+                <StatsCard
+                    icon="hourglass-empty"
+                    label="In Progress"
+                    value={stats?.inProgress || 0}
+                    color="#F59E0B"
+                    gradient={['#FFFBEB', '#FEF3C7']}
+                />
+                <StatsCard
+                    icon="check-circle"
+                    label="Resolved"
+                    value={stats?.resolved || 0}
+                    color="#10B981"
+                    gradient={['#ECFDF5', '#D1FAE5']}
+                />
+            </View>
+        </View>
+    );
+
     const renderTicketCard = ({ item: ticket }: { item: SupportTicket }) => (
         <TouchableOpacity
             key={ticket.id}
@@ -93,10 +148,12 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
         >
             <View style={styles.ticketHeader}>
                 <View style={styles.ticketNumberContainer}>
-                    <Icon name="confirmation-number" size={16} color={COLORS.primary} />
+                    <View style={styles.ticketIconWrapper}>
+                        <Icon name="confirmation-number" size={16} color={COLORS.primary} />
+                    </View>
                     <Text style={styles.ticketNumber}>{ticket.ticketNumber}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ticket.status) + '20' }]}>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ticket.status) + '15' }]}>
                     <Icon name={getStatusIcon(ticket.status)} size={14} color={getStatusColor(ticket.status)} />
                     <Text style={[styles.statusText, { color: getStatusColor(ticket.status) }]}>
                         {ticket.status.replace('_', ' ')}
@@ -112,22 +169,33 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
                 {ticket.description}
             </Text>
 
+            <View style={styles.ticketDivider} />
+
             <View style={styles.ticketFooter}>
                 <View style={styles.categoryContainer}>
-                    <Icon name="label-outline" size={14} color={COLORS.muted} />
+                    <View style={styles.categoryIconWrapper}>
+                        <Icon name="label" size={12} color={COLORS.primary} />
+                    </View>
                     <Text style={styles.categoryText}>
                         {ticket.category.replace(/_/g, ' ')}
                     </Text>
                 </View>
-                <Text style={styles.dateText}>{formatDate(ticket.createdAt)}</Text>
+                <View style={styles.dateContainer}>
+                    <Icon name="access-time" size={12} color={COLORS.muted} />
+                    <Text style={styles.dateText}>{formatDate(ticket.createdAt)}</Text>
+                </View>
             </View>
 
             {ticket.attachments && (
                 <View style={styles.attachmentIndicator}>
-                    <Icon name="attach-file" size={14} color={COLORS.muted} />
+                    <Icon name="attach-file" size={14} color={COLORS.primary} />
                     <Text style={styles.attachmentText}>Has attachment</Text>
                 </View>
             )}
+
+            <View style={styles.ticketArrow}>
+                <Icon name="chevron-right" size={20} color={COLORS.muted} />
+            </View>
         </TouchableOpacity>
     );
 
@@ -136,23 +204,34 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
         return (
             <View style={styles.footerLoader}>
                 <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={styles.footerLoaderText}>Loading more...</Text>
             </View>
         );
     };
 
     const renderEmpty = () => (
         <View style={styles.emptyState}>
-            <Icon name="support-agent" size={64} color="#D1D5DB" />
+            <View style={styles.emptyIconWrapper}>
+                <Icon name="support-agent" size={48} color={COLORS.primary} />
+            </View>
             <Text style={styles.emptyTitle}>No Support Tickets</Text>
             <Text style={styles.emptyText}>
-                You haven't created any support tickets yet.
+                You haven't created any support tickets yet. We're here to help!
             </Text>
             <TouchableOpacity
                 style={styles.createButton}
                 onPress={() => navigation.navigate('ReportIssue')}
+                activeOpacity={0.8}
             >
-                <Icon name="add-circle-outline" size={20} color={COLORS.white} />
-                <Text style={styles.createButtonText}>Create Ticket</Text>
+                <LinearGradient
+                    colors={[COLORS.primary, '#9B4DCA']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.createButtonGradient}
+                >
+                    <Icon name="add-circle" size={20} color={COLORS.white} />
+                    <Text style={styles.createButtonText}>Create New Ticket</Text>
+                </LinearGradient>
             </TouchableOpacity>
         </View>
     );
@@ -160,14 +239,22 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
     if (isLoading) {
         return (
             <SafeAreaView style={styles.container} edges={['top']}>
-                <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-                <View style={styles.header}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+                <LinearGradient
+                    colors={[COLORS.primary, '#9B4DCA']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.header}
+                >
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+                        <Icon name="arrow-back" size={24} color={COLORS.white} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>My Tickets</Text>
-                    <View style={{ width: 40 }} />
-                </View>
+                    <View style={styles.headerCenter}>
+                        <Text style={styles.headerTitle}>My Issues</Text>
+                        <Text style={styles.headerSubtitle}>Your support history</Text>
+                    </View>
+                    <View style={{ width: 44 }} />
+                </LinearGradient>
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
                     <Text style={styles.loadingText}>Loading your tickets...</Text>
@@ -179,20 +266,38 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
     if (error) {
         return (
             <SafeAreaView style={styles.container} edges={['top']}>
-                <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-                <View style={styles.header}>
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+                <LinearGradient
+                    colors={[COLORS.primary, '#9B4DCA']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.header}
+                >
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+                        <Icon name="arrow-back" size={24} color={COLORS.white} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>My Tickets</Text>
-                    <View style={{ width: 40 }} />
-                </View>
+                    <View style={styles.headerCenter}>
+                        <Text style={styles.headerTitle}>My Issues</Text>
+                        <Text style={styles.headerSubtitle}>Your support history</Text>
+                    </View>
+                    <View style={{ width: 44 }} />
+                </LinearGradient>
                 <View style={styles.centerContainer}>
-                    <Icon name="error-outline" size={64} color="#EF4444" />
+                    <View style={styles.errorIconWrapper}>
+                        <Icon name="error-outline" size={48} color="#EF4444" />
+                    </View>
                     <Text style={styles.errorTitle}>Failed to load tickets</Text>
                     <Text style={styles.errorText}>Please check your connection and try again</Text>
                     <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-                        <Text style={styles.retryButtonText}>Try Again</Text>
+                        <LinearGradient
+                            colors={[COLORS.primary, '#9B4DCA']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.retryButtonGradient}
+                        >
+                            <Icon name="refresh" size={18} color={COLORS.white} />
+                            <Text style={styles.retryButtonText}>Try Again</Text>
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -201,21 +306,29 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
-            {/* Header */}
-            <View style={styles.header}>
+            {/* Premium Gradient Header */}
+            <LinearGradient
+                colors={[COLORS.primary, '#9B4DCA']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.header}
+            >
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+                    <Icon name="arrow-back" size={24} color={COLORS.white} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>My Tickets</Text>
+                <View style={styles.headerCenter}>
+                    <Text style={styles.headerTitle}>My Tickets</Text>
+                    <Text style={styles.headerSubtitle}>Your support history</Text>
+                </View>
                 <TouchableOpacity
                     onPress={() => navigation.navigate('ReportIssue')}
                     style={styles.addButton}
                 >
-                    <Icon name="add" size={24} color={COLORS.primary} />
+                    <Icon name="add" size={24} color={COLORS.white} />
                 </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             <FlatList
                 data={tickets}
@@ -223,6 +336,7 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={[styles.scrollContent, tickets.length === 0 && styles.emptyContent]}
                 showsVerticalScrollIndicator={false}
+                ListHeaderComponent={tickets.length > 0 ? renderHeader : null}
                 refreshControl={
                     <RefreshControl
                         refreshing={isFetching && !isFetchingNextPage}
@@ -237,6 +351,7 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={renderFooter}
                 ListEmptyComponent={renderEmpty}
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
             />
         </SafeAreaView>
     );
@@ -245,41 +360,89 @@ const MyTicketsScreen: React.FC<AppNavigation> = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#F5F7FA',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        paddingVertical: 20,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
     },
     backButton: {
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
-        alignItems: 'flex-start',
+        alignItems: 'center',
     },
-    addButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'flex-end',
+    headerCenter: {
+        flex: 1,
+        marginLeft: 16,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 22,
         fontWeight: '800',
-        color: COLORS.textPrimary,
+        color: COLORS.white,
+        letterSpacing: -0.3,
     },
-    scrollView: {
-        flex: 1,
+    headerSubtitle: {
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.8)',
+        marginTop: 2,
+    },
+    addButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     scrollContent: {
         padding: 16,
-        paddingBottom: 24,
+        paddingBottom: 32,
+    },
+    statsSection: {
+        marginBottom: 20,
+    },
+    statsSectionTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        marginBottom: 14,
+    },
+    statsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    statCard: {
+        width: (width - 42) / 2,
+        padding: 16,
+        borderRadius: 16,
+        alignItems: 'flex-start',
+    },
+    statIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    statValue: {
+        fontSize: 28,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        marginBottom: 4,
+    },
+    statLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
     },
     centerContainer: {
         flex: 1,
@@ -291,11 +454,19 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         fontWeight: '600',
-        color: COLORS.textPrimary,
+        color: COLORS.textSecondary,
+    },
+    errorIconWrapper: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#FEE2E2',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
     },
     errorTitle: {
-        marginTop: 16,
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: '800',
         color: COLORS.textPrimary,
     },
@@ -308,59 +479,69 @@ const styles = StyleSheet.create({
     },
     retryButton: {
         marginTop: 24,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    retryButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
         paddingHorizontal: 24,
-        paddingVertical: 12,
-        backgroundColor: COLORS.primary,
-        borderRadius: 8,
+        paddingVertical: 14,
     },
     retryButtonText: {
         fontSize: 15,
         fontWeight: '700',
         color: COLORS.white,
     },
-    ticketsList: {
-        gap: 12,
-    },
     ticketCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        padding: 18,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+        position: 'relative',
     },
     ticketHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 14,
     },
     ticketNumberContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 8,
+    },
+    ticketIconWrapper: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: COLORS.primary + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     ticketNumber: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '700',
         color: COLORS.primary,
     },
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
+        gap: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
     },
     statusText: {
         fontSize: 11,
         fontWeight: '700',
         textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     ticketSubject: {
         fontSize: 16,
@@ -368,13 +549,19 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
         marginBottom: 8,
         lineHeight: 22,
+        paddingRight: 20,
     },
     ticketDescription: {
         fontSize: 14,
-        fontWeight: '400',
-        color: COLORS.muted,
-        marginBottom: 12,
+        fontWeight: '500',
+        color: COLORS.textSecondary,
+        marginBottom: 14,
         lineHeight: 20,
+    },
+    ticketDivider: {
+        height: 1,
+        backgroundColor: '#F1F5F9',
+        marginBottom: 14,
     },
     ticketFooter: {
         flexDirection: 'row',
@@ -384,32 +571,51 @@ const styles = StyleSheet.create({
     categoryContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+    },
+    categoryIconWrapper: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        backgroundColor: COLORS.primary + '10',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     categoryText: {
         fontSize: 12,
         fontWeight: '600',
-        color: COLORS.muted,
+        color: COLORS.textSecondary,
         textTransform: 'capitalize',
+    },
+    dateContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     dateText: {
         fontSize: 12,
-        fontWeight: '500',
+        fontWeight: '600',
         color: COLORS.muted,
     },
     attachmentIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        marginTop: 8,
-        paddingTop: 8,
+        gap: 6,
+        marginTop: 12,
+        paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+        borderTopColor: '#F1F5F9',
     },
     attachmentText: {
         fontSize: 12,
-        fontWeight: '500',
-        color: COLORS.muted,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    ticketArrow: {
+        position: 'absolute',
+        right: 16,
+        top: '50%',
+        marginTop: -10,
     },
     emptyState: {
         flex: 1,
@@ -418,32 +624,47 @@ const styles = StyleSheet.create({
         paddingVertical: 80,
         paddingHorizontal: 32,
     },
+    emptyIconWrapper: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: COLORS.primary + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
     emptyTitle: {
-        marginTop: 16,
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: '800',
         color: COLORS.textPrimary,
     },
     emptyText: {
-        marginTop: 8,
-        fontSize: 14,
+        marginTop: 10,
+        fontSize: 15,
         fontWeight: '500',
-        color: COLORS.muted,
+        color: COLORS.textSecondary,
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 22,
     },
     createButton: {
-        marginTop: 24,
+        marginTop: 28,
+        borderRadius: 14,
+        overflow: 'hidden',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    createButtonGradient: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        backgroundColor: COLORS.primary,
-        borderRadius: 8,
+        gap: 10,
+        paddingHorizontal: 28,
+        paddingVertical: 16,
     },
     createButtonText: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '700',
         color: COLORS.white,
     },
@@ -451,6 +672,14 @@ const styles = StyleSheet.create({
         marginTop: 16,
         alignItems: 'center',
         paddingVertical: 16,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    footerLoaderText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.muted,
     },
     emptyContent: {
         flexGrow: 1,

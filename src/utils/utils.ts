@@ -36,11 +36,11 @@ export function calculateDiscount(
 export const ErrorMessage = (error: AxiosError | Error) => {
   if (error instanceof AxiosError) {
     ToastAndroid.show(
-      error.response?.data?.message || 'An error occurred',
+      error.response?.data?.message || 'Something went wrong',
       ToastAndroid.LONG,
     );
   } else {
-    ToastAndroid.show('An error occurred', ToastAndroid.LONG);
+    ToastAndroid.show('Something went wrong', ToastAndroid.LONG);
   }
 };
 

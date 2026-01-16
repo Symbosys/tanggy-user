@@ -105,21 +105,8 @@ const UpdateProfile = () => {
                         </View>
                     </View>
 
-                    {/* Non-editable Mobile Field (Optional, for context) */}
-                    {user?.mobile && (
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>Mobile Number</Text>
-                            <View style={[styles.inputContainer, styles.disabledInput]}>
-                                <Icon name="phone" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
-                                <TextInput
-                                    style={[styles.input, { color: COLORS.textSecondary }]}
-                                    value={user.mobile}
-                                    editable={false}
-                                />
-                            </View>
-                            <Text style={styles.helperText}>Mobile number cannot be changed.</Text>
-                        </View>
-                    )}
+
+
 
                 </ScrollView>
 

@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 import api from '../api/api';
 
-type Address = {
+export type Address = {
   id: number;
   type: string;
   mainAddress: string;
@@ -12,6 +12,8 @@ type Address = {
   landMark?: string;
   floor?: string;
   instructions?: string;
+  latitude?: number;
+  longitude?: number;
   isDefault: boolean;
 };
 
@@ -24,6 +26,7 @@ type AddressStore = {
   fetchAddresses: () => Promise<void>;
   deleteAddress: (id: number) => Promise<void>;
   createAddress: (data: Partial<Address>) => Promise<void>;
+  updateAddress: (id: number, data: Partial<Address>) => Promise<void>;
   setDefaultAddress: (id: number) => Promise<void>;
 };
 
@@ -61,6 +64,20 @@ export const useAddressStore = create<AddressStore>((set, get) => ({
     } catch (err: any) {
       set({
         error: err.response?.data?.message || 'Failed to add address',
+        loading: false,
+      });
+    }
+  },
+
+  updateAddress: async (id, data) => {
+    try {
+      set({loading: true});
+      const res = await api.put(`/user/address/${id}`, data);
+      await get().fetchAddresses();
+      set({loading: false});
+    } catch (err: any) {
+      set({
+        error: err.response?.data?.message || 'Failed to update address',
         loading: false,
       });
     }

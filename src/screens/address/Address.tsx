@@ -45,7 +45,7 @@ const MyAddressesScreen: React.FC<AppNavigation> = ({ navigation }) => {
     const hasAddresses = addresses && addresses.length > 0;
 
     const handleEditAddress = (id: number) => {
-        // navigation.navigate('EditAddress', { id });
+        navigation.navigate('EditAddress', { id });
     };
 
     const handleDeleteAddress = (id: number) => {

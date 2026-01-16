@@ -15,7 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from '../../theme/theme';
 import TopicDetailsModal from '../../components/modal/BrowseTopic';
-import { AppNavigation } from '../../types/type';
+import { AppNavigation, RootStackParamList } from '../../types/type';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -27,7 +27,7 @@ interface FaqItem {
 interface QuickHelpItem {
     icon: string;
     title: string;
-    navigation: keyof AppNavigation['navigate'];
+    navigation: keyof RootStackParamList;
 }
 
 const HelpSupportScreen = ({ navigation }: AppNavigation) => {
@@ -37,7 +37,7 @@ const HelpSupportScreen = ({ navigation }: AppNavigation) => {
     const quickHelpItems: readonly QuickHelpItem[] = [
         { icon: 'history', title: 'Order History', navigation: 'MyOrders' },
         { icon: 'location-on', title: 'Track Order', navigation: 'HowToTrackOrder' },
-        { icon: 'confirmation-number', title: 'My Tickets', navigation: 'MyTickets' },
+        { icon: 'confirmation-number', title: 'My Issues', navigation: 'MyTickets' },
         { icon: 'report-problem', title: 'Report Issue', navigation: 'ReportIssue' },
     ];
 
@@ -132,7 +132,7 @@ const HelpSupportScreen = ({ navigation }: AppNavigation) => {
                             <TouchableOpacity
                                 key={index}
                                 style={styles.quickItem}
-                                onPress={() => navigation.navigate(item.navigation)}
+                                onPress={() => navigation.navigate(item.navigation as any)}
                                 activeOpacity={0.6}
                             >
                                 <View style={styles.quickIconBox}>

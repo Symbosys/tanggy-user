@@ -1,12 +1,14 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import GlobalAlert from '../components/alert/GlobalAlert';
+import AddAddresses from '../screens/address/AddAddresses';
+import EditAddress from '../screens/address/EditAddress';
 import MyAddressesScreen from '../screens/address/Address';
-import TestAddAddress from '../screens/address/TestAddress';
+import CompleteProfile from '../screens/auth/CompleteProfile';
 import Login from '../screens/auth/Login';
 import Otp from '../screens/auth/Otp';
-import CompleteProfile from '../screens/auth/CompleteProfile';
 import CartScreen from '../screens/cart/Cart';
+import EliteMembershipScreen from '../screens/elite-membership/EliteMember';
 import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicy';
 import TermsAndConditionsScreen from '../screens/legal/TermsAndConditions';
 import SelectYourLocation from '../screens/location/Location';
@@ -23,15 +25,14 @@ import UpdateProfile from '../screens/profile/UpdateProfile';
 import CategoryResults from '../screens/results/CategoryResults';
 import AISupportAssistantScreen from '../screens/support/AiAssistant';
 import HelpSupportScreen from '../screens/support/HelpAndSupport';
+import MyTicketsScreen from '../screens/support/MyTickets';
 import ReportProblemScreen from '../screens/support/ReportIssue';
+import TicketDetailsScreen from '../screens/support/TicketDetails';
 import TrackOrder from '../screens/support/TrackOrder';
 import MyWalletScreen from '../screens/wallet/Wallet';
 import { RootStackParamList } from '../types/type';
 import BottomTab from './Bottom';
-import EliteMembershipScreen from '../screens/elite-membership/EliteMember';
 import { deeplink } from './deeplink';
-import MyTicketsScreen from '../screens/support/MyTickets';
-import TicketDetailsScreen from '../screens/support/TicketDetails';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -57,7 +58,8 @@ export default function StackNavigation() {
         <Stack.Screen name='CategoryResults' component={CategoryResults} />
 
         <Stack.Screen name='Address' component={MyAddressesScreen} />
-        <Stack.Screen name='AddAddress' component={TestAddAddress} />
+        <Stack.Screen name='AddAddress' component={AddAddresses} />
+        <Stack.Screen name='EditAddress' component={EditAddress} />
 
         {/* Order  */}
         <Stack.Screen name='PaymentCallback' component={PaymentButton} />

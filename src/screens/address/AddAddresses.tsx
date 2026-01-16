@@ -328,6 +328,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
+import { useAddressStore } from '../../store/address';
 
 const { height, width } = Dimensions.get('window');
 
@@ -353,7 +354,8 @@ interface PlaceDetails {
     };
 }
 
-function TestAddAddress({ navigation }: AppNavigation) {
+function AddAddresses({ navigation }: AppNavigation) {
+    const { createAddress } = useAddressStore();
     const insets = useSafeAreaInsets();
     const [showBottomSheet, setShowBottomSheet] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
@@ -946,7 +948,7 @@ function TestAddAddress({ navigation }: AppNavigation) {
                                     if (!isFormValid) return;
                                     try {
                                         setFormSubmitting(true);
-                                        const res = await api.post('/user/address/create', {
+                                        await createAddress({
                                             type: selectedTag.toUpperCase(),
                                             mainAddress: currentAddress || 'Unknown',
                                             completeAddress,
@@ -959,26 +961,25 @@ function TestAddAddress({ navigation }: AppNavigation) {
                                             latitude: selectedCoords?.latitude,
                                             longitude: selectedCoords?.longitude,
                                         });
-                                        if (res.data.success) {
+
+                                        const error = useAddressStore.getState().error;
+                                        if (!error) {
                                             ToastAndroid.show(
-                                                `${res.data.message || 'Address added successfully'}`,
+                                                'Address added successfully',
                                                 ToastAndroid.LONG,
                                             );
                                             navigation.goBack();
-                                        }
-                                    } catch (error) {
-                                        if (error instanceof AxiosError) {
-                                            ToastAndroid.show(
-                                                error.response?.data?.message ||
-                                                'Failed to add address',
-                                                ToastAndroid.LONG,
-                                            );
                                         } else {
                                             ToastAndroid.show(
-                                                'Failed to add address',
+                                                error,
                                                 ToastAndroid.LONG,
                                             );
                                         }
+                                    } catch (error) {
+                                        ToastAndroid.show(
+                                            'Failed to add address',
+                                            ToastAndroid.LONG,
+                                        );
                                     } finally {
                                         setFormSubmitting(false);
                                     }
@@ -1563,7 +1564,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
 });
-export default TestAddAddress;
+export default AddAddresses;
 
 const initialRegion: Region = {
     latitude: 23.374006327619544,

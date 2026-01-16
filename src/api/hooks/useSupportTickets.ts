@@ -72,6 +72,27 @@ export interface TicketsResponse {
     pagination: Pagination;
 }
 
+export interface UpdateTicketData {
+    subject?: string;
+    description?: string;
+    category?: string;
+    priority?: string;
+}
+
+export interface TicketMessage {
+    id: string;
+    ticketId: string;
+    senderType: 'USER' | 'ADMIN';
+    senderId: string;
+    isAdminReply: boolean;
+    message: string;
+    attachments: TicketAttachment | null;
+    isRead: boolean;
+    readAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // Create ticket with optional image upload
 const createTicket = async (ticketData: CreateTicketData): Promise<SupportTicket> => {
     const formData = new FormData();
@@ -146,8 +167,8 @@ const addMessage = async ({ ticketId, messageData }: { ticketId: string; message
 };
 
 // Reopen ticket
-const reopenTicket = async (ticketId: string): Promise<SupportTicket> => {
-    const { data } = await api.post(`/support/user/tickets/${ticketId}/reopen`);
+const reopenTicket = async ({ ticketId, reason }: { ticketId: string; reason: string }): Promise<SupportTicket> => {
+    const { data } = await api.post(`/support/user/tickets/${ticketId}/reopen`, { reason });
     return data.data;
 };
 
@@ -166,6 +187,18 @@ const closeTicket = async (ticketId: string): Promise<SupportTicket> => {
     return data.data;
 };
 
+// Update ticket
+const updateTicket = async ({ ticketId, ticketData }: { ticketId: string; ticketData: UpdateTicketData }): Promise<SupportTicket> => {
+    const { data } = await api.put(`/support/user/tickets/${ticketId}`, ticketData);
+    return data.data;
+};
+
+// Get all messages by ticket ID
+const getTicketMessages = async (ticketId: string): Promise<TicketMessage[]> => {
+    const { data } = await api.get(`/support/user/tickets/${ticketId}/messages`);
+    return data.data.messages;
+};
+
 // ============================================
 // REACT QUERY HOOKS
 // ============================================
@@ -180,8 +213,8 @@ export const useCreateTicket = () => {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             queryClient.invalidateQueries({ queryKey: ['ticketStats'] });
         },
-        onError: (error: any) => {
-            ErrorMessage(error?.response?.data?.message || error.message || 'Failed to create ticket');
+        onError: (error) => {
+            ErrorMessage(error);
         },
     });
 };
@@ -216,6 +249,31 @@ export const useGetTicketStats = () => {
     });
 };
 
+export const useUpdateTicket = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation<SupportTicket, Error, { ticketId: string; ticketData: UpdateTicketData }>({
+        mutationFn: updateTicket,
+        onSuccess: (_, variables) => {
+            SuccessMessage('Ticket updated successfully');
+            queryClient.invalidateQueries({ queryKey: ['ticket', variables.ticketId] });
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        },
+        onError: (error) => {
+            ErrorMessage(error);
+        },
+    });
+};
+
+export const useGetTicketMessages = (ticketId: string, enabled: boolean = true) => {
+    return useQuery<TicketMessage[], Error>({
+        queryKey: ['ticketMessages', ticketId],
+        queryFn: () => getTicketMessages(ticketId),
+        enabled: enabled && !!ticketId,
+        staleTime: 1 * 60 * 1000, // 1 minute
+    });
+};
+
 export const useAddMessage = () => {
     const queryClient = useQueryClient();
 
@@ -224,6 +282,7 @@ export const useAddMessage = () => {
         onSuccess: (_, variables) => {
             SuccessMessage('Message sent successfully');
             queryClient.invalidateQueries({ queryKey: ['ticket', variables.ticketId] });
+            queryClient.invalidateQueries({ queryKey: ['ticketMessages', variables.ticketId] });
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
         },
         onError: (error) => {
@@ -235,10 +294,11 @@ export const useAddMessage = () => {
 export const useReopenTicket = () => {
     const queryClient = useQueryClient();
 
-    return useMutation<SupportTicket, Error, string>({
+    return useMutation<SupportTicket, Error, { ticketId: string; reason: string }>({
         mutationFn: reopenTicket,
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             SuccessMessage('Ticket reopened successfully');
+            queryClient.invalidateQueries({ queryKey: ['ticket', variables.ticketId] });
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             queryClient.invalidateQueries({ queryKey: ['ticketStats'] });
         },

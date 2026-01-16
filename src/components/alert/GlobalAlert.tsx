@@ -1,8 +1,6 @@
-// src/components/ui/GlobalAlert.tsx
-import React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
-import { COLORS } from '../../theme/theme';
+import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAlertStore } from '../../store/alert.store';
+import { COLORS } from '../../theme/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -109,6 +107,8 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
         marginBottom: 24,
+        width: '100%',
+        flexWrap: 'wrap',
     },
     buttonContainer: {
         flexDirection: 'row',
@@ -130,12 +130,12 @@ const styles = StyleSheet.create({
     },
     cancelText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '800',
         color: '#666666',
     },
     confirmText: {
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '800',
         color: '#FFFFFF',
     },
 });
