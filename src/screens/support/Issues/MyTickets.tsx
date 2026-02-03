@@ -13,9 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import { COLORS } from '../../theme/theme';
-import { AppNavigation } from '../../types/type';
-import { useGetAllTickets, useGetTicketStats, SupportTicket } from '../../api/hooks/useSupportTickets';
+import { COLORS } from '../../../theme/theme';
+import { AppNavigation } from '../../../types/type';
+import { useGetAllTickets, useGetTicketStats, SupportTicket } from '../../../api/hooks/useSupportTickets';
 
 const { width } = Dimensions.get('window');
 

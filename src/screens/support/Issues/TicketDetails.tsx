@@ -16,8 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { COLORS } from '../../theme/theme';
-import { AppNavigation } from '../../types/type';
+import { COLORS } from '../../../theme/theme';
+import { AppNavigation } from '../../../types/type';
 import {
     useGetTicketById,
     useAddMessage,
@@ -28,9 +28,9 @@ import {
     useSubmitFeedback,
     TicketMessage,
     UpdateTicketData
-} from '../../api/hooks/useSupportTickets';
+} from '../../../api/hooks/useSupportTickets';
 import LinearGradient from 'react-native-linear-gradient';
-import { useAlertStore } from '../../store/alert.store';
+import { useAlertStore } from '../../../store/alert.store';
 
 const { width, height } = Dimensions.get('window');
 

@@ -15,14 +15,14 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import { COLORS } from '../../theme/theme';
+import { COLORS } from '../../../theme/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppNavigation } from '../../types/type';
+import { AppNavigation } from '../../../types/type';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
-import { useCreateTicket } from '../../api/hooks/useSupportTickets';
+import { useCreateTicket } from '../../../api/hooks/useSupportTickets';
 import ImageResizer from 'react-native-image-resizer';
 import RNFS from 'react-native-fs';
-import { useAlertStore } from '../../store/alert.store';
+import { useAlertStore } from '../../../store/alert.store';
 
 
 // Map frontend categories to backend enum values
