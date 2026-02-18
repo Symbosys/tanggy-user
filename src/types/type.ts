@@ -43,6 +43,7 @@ export type RootStackParamList = {
   UpdateProfile: undefined;
 
   // Legal screen
+  About: undefined;
   TermsAndConditions: undefined;
   PrivacyPolicy: undefined;
 

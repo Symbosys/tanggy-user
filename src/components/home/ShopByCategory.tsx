@@ -47,7 +47,7 @@ const ShopByCategory = ({ navigation }: AppNavigation) => {
       <Text style={styles.sectionSubtitle}>Freshest meats and much more!</Text>
       <View style={styles.categoryGrid}>
         {category.map((category, index) => (
-          <TouchableOpacity key={index} style={styles.categoryItem} onPress={() => navigation.navigate("CategoryResults")}>
+          <TouchableOpacity key={index} style={styles.categoryItem} onPress={() => navigation.navigate("CategoryResults", {categoryId: category.id, categoryName: category.name})} onLongPress={() => navigation.navigate("Category")}>
             <Image source={{uri: category.image.url}} style={styles.categoryImage} />
             <Text style={styles.categoryName}>{category.name}</Text>
             {category.name === 'Heat & Eat' && (

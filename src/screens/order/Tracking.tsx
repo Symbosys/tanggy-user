@@ -402,26 +402,6 @@ const BlinkitFinalClone = ({ navigation }: any) => {
 
         {/* --- REST OF THE UI --- */}
 
-        {/* Forgot to Add */}
-        <View style={styles.card}>
-          <View style={{ flexDirection: 'row', padding: 16 }}>
-            <View style={styles.iconBox}>
-              <MaterialCommunityIcons name="shopping-outline" size={20} color="#666" />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.cardTitle}>Forgot to add something?</Text>
-              <Text style={styles.cardSubtitle}>
-                Add more items at no extra delivery charge
-              </Text>
-            </View>
-          </View>
-          <View style={styles.alertBar}>
-            <Text style={styles.alertText}>
-              Time's up - adding more items is no longer possible
-            </Text>
-          </View>
-        </View>
-
         {/* Delivery Partner */}
         <View style={styles.card}>
           <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>

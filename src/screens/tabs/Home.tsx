@@ -272,6 +272,38 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             {/* Categories Section */}
             <CategoryList categories={category} navigation={navigation} />
 
+            {/* Bestsellers Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Bestsellers 🔥</Text>
+                <TouchableOpacity
+                  style={styles.seeAllButton}
+                  onPress={() =>
+                    navigation.navigate('CategoryResults', {
+                      categoryName: 'Bestsellers',
+                    })
+                  }
+                >
+                  <Text style={styles.seeAllText}>See All</Text>
+                  <Icon name="arrow-forward" size={16} color={COLORS.primary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.productScroll}
+              >
+                {bestsellerProducts.map(product => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onPress={() => handleNavigateToDetails(product)}
+                    showBestsellerBadge={true}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+
             {/* Recommended Section */}
             {isAuthenticated && (
               <View style={styles.section}>
@@ -305,38 +337,6 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 </ScrollView>
               </View>
             )}
-
-            {/* Bestsellers Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Bestsellers 🔥</Text>
-                <TouchableOpacity
-                  style={styles.seeAllButton}
-                  onPress={() =>
-                    navigation.navigate('CategoryResults', {
-                      categoryName: 'Bestsellers',
-                    })
-                  }
-                >
-                  <Text style={styles.seeAllText}>See All</Text>
-                  <Icon name="arrow-forward" size={16} color={COLORS.primary} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.productScroll}
-              >
-                {bestsellerProducts.map(product => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onPress={() => handleNavigateToDetails(product)}
-                    showBestsellerBadge={true}
-                  />
-                ))}
-              </ScrollView>
-            </View>
 
             {/* Bottom Spacer */}
             {!isAuthenticated && <EliteMemberShipCard />}

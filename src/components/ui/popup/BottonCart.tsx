@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Easing, Platform, Dimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, Easing, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { COLORS } from '../../../theme/theme';
 
-const { width } = Dimensions.get('window');
 
 interface BottomCartPopupProps {
     visible: boolean;
@@ -45,7 +44,7 @@ const BottomCartPopup: React.FC<BottomCartPopupProps> = ({ visible, onClose, onC
 
     useEffect(() => {
         if (visible) {
-            setTimeLeft(3);
+            setTimeLeft(2);
             progress.setValue(0);
 
             // Start the countdown
@@ -65,7 +64,7 @@ const BottomCartPopup: React.FC<BottomCartPopupProps> = ({ visible, onClose, onC
             // Let's make it shrink: widthInterpolated maps 0->100% and 1->0%.
             Animated.timing(progress, {
                 toValue: 1,
-                duration: 3000,
+                duration: 2000,
                 easing: Easing.linear,
                 useNativeDriver: false,
             }).start();

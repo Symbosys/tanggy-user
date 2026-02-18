@@ -33,6 +33,7 @@ import MyWalletScreen from '../screens/wallet/Wallet';
 import { RootStackParamList } from '../types/type';
 import BottomTab from './Bottom';
 import { deeplink } from './deeplink';
+import AboutUs from '../screens/legal/About';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -76,6 +77,7 @@ export default function StackNavigation() {
 
 
         {/* Legal Screen  */}
+        <Stack.Screen name='About' component={AboutUs} />
         <Stack.Screen name='TermsAndConditions' component={TermsAndConditionsScreen} />
         <Stack.Screen name='PrivacyPolicy' component={PrivacyPolicyScreen} />
 

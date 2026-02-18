@@ -25,7 +25,8 @@ const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
 
   useEffect(() => {
     setTimeout(() => {
-      navigation.navigate('OrderTracking');
+      // navigation.navigate('OrderTracking');
+      navigation.reset({ index: 0, routes: [{ name: 'OrderTracking' }] });
     }, 2000);
   }, []);
 

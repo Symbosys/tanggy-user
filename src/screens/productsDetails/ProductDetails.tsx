@@ -296,19 +296,28 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                             <Text style={styles.addToCartText}>Add to Cart</Text>
                         </TouchableOpacity>
                     ) : (
-                        <View style={styles.quantityControlContainer}>
+                        <View style={styles.bottomControlsRow}>
+                            <View style={styles.quantityControlContainer}>
+                                <TouchableOpacity
+                                    style={styles.quantityButtonLarge}
+                                    onPress={handleDecrement}
+                                >
+                                    <Icon name="remove" size={20} color={COLORS.white} />
+                                </TouchableOpacity>
+                                <Text style={styles.quantityLarge}>{cartQuantity}</Text>
+                                <TouchableOpacity
+                                    style={styles.quantityButtonLarge}
+                                    onPress={handleIncrement}
+                                >
+                                    <Icon name="add" size={20} color={COLORS.white} />
+                                </TouchableOpacity>
+                            </View>
+
                             <TouchableOpacity
-                                style={styles.quantityButtonLarge}
-                                onPress={handleDecrement}
+                                style={styles.viewCartSmallButton}
+                                onPress={() => navigation.navigate('Cart')}
                             >
-                                <Icon name="remove" size={20} color={COLORS.white} />
-                            </TouchableOpacity>
-                            <Text style={styles.quantityLarge}>{cartQuantity}</Text>
-                            <TouchableOpacity
-                                style={styles.quantityButtonLarge}
-                                onPress={handleIncrement}
-                            >
-                                <Icon name="add" size={20} color={COLORS.white} />
+                                <Text style={styles.viewCartSmallText}>View Cart</Text>
                             </TouchableOpacity>
                         </View>
                     )}
@@ -643,5 +652,46 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
         minWidth: 30,
         textAlign: 'center',
+    },
+    bottomControlsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    viewCartButton: {
+        backgroundColor: COLORS.primary,
+        paddingVertical: 14,
+        borderRadius: 9999,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    viewCartText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: 'white',
+    },
+    viewCartSmallButton: {
+        backgroundColor: COLORS.primary,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 9999,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    viewCartSmallText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: 'white',
     },
 });
