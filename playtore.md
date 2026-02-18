@@ -37,4 +37,4 @@ Minta Fresh Website
 next 3 
 memo deploy
 minta restro server deploy
-
+minta restro app new resturant image and food
