@@ -19,6 +19,8 @@ import { parseToDecimal } from '../../utils/utils';
 import { getAllProducts } from '../../services/product.service';
 import { LoadingOverlay } from '../../components/ui/loader/LoaderOverLay';
 import { InlineLoading } from '../../components/ui/loader/InlineLoading';
+import { useAuth } from '../../context/AuthContext';
+import { useLocationStore } from '../../store/location';
 
 const SearchScreen = ({ navigation }: AppNavigation) => {
   const [searchText, setSearchText] = useState('');
@@ -38,6 +40,8 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
     return String(value) || 'Unknown';
   };
 
+  const {latitude, longitude} = useLocationStore();
+
   const fetchProducts = useCallback(async (query: string) => {
     if (!query.trim()) {
       setProducts([]);
@@ -46,7 +50,7 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await getAllProducts({ search: query });
+      const response = await getAllProducts({ search: query, lat: latitude ?? undefined, lng: longitude ?? undefined });
       console.log("search data", response.data.products)
       if (response.success) {
         setProducts(response.data.products);

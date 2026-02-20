@@ -3,6 +3,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './context/AuthContext';
 import StackNavigation from './navigation/Stack';
+import { StatusBar } from 'react-native';
 
 const queryClient = new QueryClient(
   {
@@ -21,6 +22,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" />
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <StackNavigation />
