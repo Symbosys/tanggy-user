@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import GlobalAlert from '../components/alert/GlobalAlert';
+import { navigationRef } from './NavigationService';
 import AddAddresses from '../screens/address/AddAddresses';
 import EditAddress from '../screens/address/EditAddress';
 import MyAddressesScreen from '../screens/address/Address';
@@ -39,7 +40,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function StackNavigation() {
   return (
-    <NavigationContainer linking={deeplink}>
+    <NavigationContainer ref={navigationRef} linking={deeplink}>
       <Stack.Navigator
         // initialRouteName='OrderTracking'
 
