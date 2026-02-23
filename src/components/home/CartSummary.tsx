@@ -9,10 +9,6 @@ const CartSummary = ({ navigation }: AppNavigation) => {
 
   const totalCartItems = useCartStore(state => state.totalItems);
   const subTotal = useCartStore(state => state.subtotal);
-
-  console.log("🚀 ~ file: CartSummary.tsx ~ line 19 ~ CartSummary ~ totalCartItems", totalCartItems)
-  console.log("🚀 ~ file: CartSummary.tsx ~ line 20 ~ CartSummary ~ subTotal", subTotal)
-
   
   return (
     <View style={styles.container}>

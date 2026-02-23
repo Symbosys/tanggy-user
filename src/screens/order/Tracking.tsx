@@ -20,8 +20,6 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { COLORS } from '../../theme/theme';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- TYPES ---
 interface Coordinate {
@@ -46,6 +44,23 @@ const { width, height } = Dimensions.get('window');
 const CARD_MARGIN = 12;
 const CARD_WIDTH = width - CARD_MARGIN * 2;
 
+import { COLORS as THEME_COLORS } from '../../theme/theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+// --- UPDATED THEME COLORS ---
+const COLORS = {
+  ...THEME_COLORS,
+  secondary: '#fbc02d',    // Yellow for Stars/Ratings
+  blue: THEME_COLORS.primary,         // User Location (Matched to Primary)
+  bg: THEME_COLORS.background,           // Default background
+  black: '#000000',
+  text: THEME_COLORS.textPrimary,         // Text Primary
+  gray: THEME_COLORS.muted,         // Muted
+  lightRed: '#FEE2E2',     // SOFT_RED (Alert Backgrounds)
+  redText: '#b91c1c',      // RED (Alert Text)
+  lightYellow: '#DBEAFE',  // SOFT_BLUE
+  orange: THEME_COLORS.primary,       // Mapped to Primary
+};
 
 // --- COORDINATES FOR TRACKING (UNCHANGED) ---
 const COORDINATES = {
@@ -222,11 +237,6 @@ const BlinkitFinalClone = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="transparent"
-        translucent
-      />
 
       {/* --- STICKY HEADER --- */}
       <Animated.View
@@ -400,8 +410,6 @@ const BlinkitFinalClone = ({ navigation }: any) => {
           </Animated.View>
         </Animated.View>
 
-        {/* --- REST OF THE UI --- */}
-
         {/* Delivery Partner */}
         <View style={styles.card}>
           <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
@@ -573,7 +581,7 @@ const BlinkitFinalClone = ({ navigation }: any) => {
                     <Ionicons
                       name={rating >= star ? "star" : "star-outline"}
                       size={32}
-                      color={rating >= star ? '#fbc02d' : "#666"}
+                      color={rating >= star ? COLORS.secondary : "#666"}
                       style={{ marginHorizontal: 8 }}
                     />
                   </TouchableOpacity>
@@ -673,7 +681,7 @@ const BlinkitFinalClone = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: COLORS.bg },
 
   // Sticky Header
   stickyHeader: {
@@ -780,7 +788,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   markerUser: {
-    backgroundColor: '#0049AD',
+    backgroundColor: COLORS.blue,
     padding: 6,
     borderRadius: 20,
     borderWidth: 2,
@@ -824,25 +832,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     elevation: 1,
   },
-  iconBox: {
-    width: 36,
-    height: 36,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  cardSubtitle: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
-  alertBar: {
-    backgroundColor: '#FEE2E2',
-    padding: 10,
-    alignItems: 'center',
-  },
-  alertText: { color: '#b91c1c', fontSize: 11, fontWeight: '600' },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text },
+  cardSubtitle: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
   divider: { height: 1, backgroundColor: '#f0f0f0' },
   row: { flexDirection: 'row', padding: 16, alignItems: 'center' },
-  smallText: { fontSize: 12, color: COLORS.textPrimary },
+  smallText: { fontSize: 12, color: COLORS.text },
   circleIcon: {
     width: 32,
     height: 32,
@@ -854,7 +848,7 @@ const styles = StyleSheet.create({
 
   // Delivery Details
   updateBanner: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: COLORS.lightYellow,
     marginHorizontal: 16,
     marginTop: 8,
     padding: 12,
@@ -862,9 +856,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  updateText: { flex: 1, color: '#0049AD', fontSize: 12 },
+  updateText: { flex: 1, color: COLORS.orange, fontSize: 12 },
   okButton: {
-    backgroundColor: '#0049AD',
+    backgroundColor: COLORS.orange,
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 20,
@@ -876,11 +870,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.textPrimary,
+    color: COLORS.text,
   },
 
   // Order Summary
-  orderId: { fontSize: 12, color: COLORS.muted, marginTop: 4 },
+  orderId: { fontSize: 12, color: COLORS.gray, marginTop: 4 },
   viewSummary: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
 
   // --- STYLES FOR ORDER ITEMS SCROLL ---
@@ -889,7 +883,7 @@ const styles = StyleSheet.create({
   qtyBadge: { position: 'absolute', bottom: -5, right: -5, backgroundColor: COLORS.white, paddingHorizontal: 6, borderRadius: 10, borderWidth: 1, borderColor: '#eee', elevation: 2 },
   qtyText: { fontSize: 10, fontWeight: 'bold', color: COLORS.primary },
   seeMoreContainer: { width: 60, height: 60, borderRadius: 8, backgroundColor: '#f9f9f9', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
-  seeMoreText: { fontSize: 16, fontWeight: 'bold', color: COLORS.muted },
+  seeMoreText: { fontSize: 16, fontWeight: 'bold', color: COLORS.gray },
 
   // --- STYLES FOR INSTRUCTIONS ---
   instructionContainer: { paddingHorizontal: 16, paddingBottom: 16 },
