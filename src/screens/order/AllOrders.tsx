@@ -86,17 +86,17 @@ export default function AllOrdersScreen() {
                 },
             });
 
-            const backendOrders: Order[] = response.data.orders;
+            const backendOrders: Order[] = response.data?.orders || [];
             const totalOrder = response.data.totalOrder;
 
             const uiOrders: OrderItemUI[] = backendOrders?.filter((order: Order) => {
-                    const status = order.status;
-                    if (isOngoing) {
-                        return ONGOING_STATUSES.includes(status);
-                    } else {
-                        return PAST_STATUSES.includes(status);
-                    }
-                })
+                const status = order.status;
+                if (isOngoing) {
+                    return ONGOING_STATUSES.includes(status);
+                } else {
+                    return PAST_STATUSES.includes(status);
+                }
+            })
                 .map((order: Order) => ({
                     id: order.id.toString(),
                     restaurant: order.vendorBroadcasts?.[0]?.vendor?.name || 'Unknown Vendor', // Assuming vendor included; adjust if needed
@@ -115,7 +115,7 @@ export default function AllOrdersScreen() {
                 if (isOngoing) {
                     setOngoingOrders(uiOrders);
                     setOngoingPage(1);
-                    setHasMoreOngoing(backendOrders.length === LIMIT);
+                    setHasMoreOngoing(backendOrders?.length === LIMIT);
                 } else {
                     setPastOrders(uiOrders);
                     setPastPage(1);
@@ -124,10 +124,10 @@ export default function AllOrdersScreen() {
             } else {
                 if (isOngoing) {
                     setOngoingOrders(prev => [...prev, ...uiOrders]);
-                    setHasMoreOngoing(backendOrders.length === LIMIT);
+                    setHasMoreOngoing(backendOrders?.length === LIMIT);
                 } else {
                     setPastOrders(prev => [...prev, ...uiOrders]);
-                    setHasMorePast(backendOrders.length === LIMIT);
+                    setHasMorePast(backendOrders?.length === LIMIT);
                 }
             }
         } catch (error) {
@@ -268,9 +268,9 @@ export default function AllOrdersScreen() {
 
     // Fixed useEffect to prevent infinite calls - only fetch if data is empty for the current tab
     useEffect(() => {
-        if (selectedTab === 'Ongoing' && ongoingOrders.length === 0) {
+        if (selectedTab === 'Ongoing' && ongoingOrders?.length === 0) {
             fetchOrders(1, true, true);
-        } else if (selectedTab === 'Past Orders' && pastOrders.length === 0) {
+        } else if (selectedTab === 'Past Orders' && pastOrders?.length === 0) {
             fetchOrders(1, false, true);
         }
     }, [selectedTab]); // Only depend on selectedTab, and check if data is empty

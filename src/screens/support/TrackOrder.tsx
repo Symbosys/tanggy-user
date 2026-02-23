@@ -4,8 +4,12 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
+    LayoutAnimation,
+    Platform,
+    UIManager
 } from 'react-native';
+import React, { useState } from 'react';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -31,11 +35,31 @@ const TrackOrder = ({ navigation }: AppNavigation) => {
         },
     ];
 
-    const relatedQuestions = [
-        'What if my order is late?',
-        'Can I change my delivery address?',
-        'How do I contact the driver?',
+    const faqData = [
+        {
+            question: 'What if my order is late?',
+            answer: 'Delivery times can vary due to traffic or high order volume. You can check the live tracking map for real-time updates. If your order is significantly delayed, we will notify you immediately.',
+        },
+        {
+            question: 'Can I change my delivery address?',
+            answer: 'Delivery addresses cannot be changed once an order is placed to ensure timely delivery. Please double-check your address before confirming your order.',
+        },
+        {
+            question: 'How do I contact the driver?',
+            answer: "Once the driver is assigned to your order, their contact information and a call button will appear on the live tracking screen.",
+        },
     ];
+
+    const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+    const toggleQuestion = (index: number) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setExpandedIndex(expandedIndex === index ? null : index);
+    };
+
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
 
     return (
         <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -106,39 +130,35 @@ const TrackOrder = ({ navigation }: AppNavigation) => {
                     </Text>
                 </View>
 
-                {/* Related Questions */}
-                <View style={styles.relatedSection}>
+                {/* Related Questions / FAQ */}
+                <View style={[styles.relatedSection, { paddingBottom: 40 }]}>
                     <Text style={styles.relatedTitle}>Related Questions</Text>
-                    {relatedQuestions.map((question, index) => (
-                        <TouchableOpacity
-                            key={index}
-                            style={styles.relatedItem}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.relatedQuestion}>{question}</Text>
-                            <Icon name="chevron-right" size={20} color={COLORS.muted} />
-                        </TouchableOpacity>
+                    {faqData.map((item, index) => (
+                        <View key={index} style={styles.faqWrapper}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.relatedItem,
+                                    expandedIndex === index && styles.relatedItemActive
+                                ]}
+                                activeOpacity={0.7}
+                                onPress={() => toggleQuestion(index)}
+                            >
+                                <Text style={styles.relatedQuestion}>{item.question}</Text>
+                                <Icon
+                                    name={expandedIndex === index ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                                    size={24}
+                                    color={expandedIndex === index ? COLORS.primary : COLORS.muted}
+                                />
+                            </TouchableOpacity>
+                            {expandedIndex === index && (
+                                <View style={styles.answerContainer}>
+                                    <Text style={styles.answerText}>{item.answer}</Text>
+                                </View>
+                            )}
+                        </View>
                     ))}
                 </View>
             </ScrollView>
-
-            {/* Footer */}
-            <View style={styles.footer}>
-                <TouchableOpacity
-                    style={styles.chatButton}
-                    activeOpacity={0.8}
-                >
-                    <LinearGradient
-                        colors={[COLORS.primary, '#9B4DCA']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.chatButtonGradient}
-                    >
-                        <Icon name="chat" size={18} color={COLORS.white} />
-                        <Text style={styles.chatButtonText}>Chat with Support</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
         </SafeAreaView>
     );
 };
@@ -306,51 +326,39 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.white,
         borderRadius: 12,
         padding: 16,
-        marginBottom: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2,
     },
+    relatedItemActive: {
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        backgroundColor: '#F8FAFC',
+    },
     relatedQuestion: {
         flex: 1,
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '700',
         color: COLORS.textPrimary,
     },
-    footer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: COLORS.white,
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 5,
-    },
-    chatButton: {
+    faqWrapper: {
+        marginBottom: 12,
         borderRadius: 12,
         overflow: 'hidden',
     },
-    chatButtonGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 14,
+    answerContainer: {
+        backgroundColor: '#F8FAFC',
+        paddingHorizontal: 16,
+        paddingBottom: 16,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12,
     },
-    chatButtonText: {
-        fontSize: 15,
-        fontWeight: '800',
-        color: COLORS.white,
+    answerText: {
+        fontSize: 13,
+        color: COLORS.textSecondary,
+        lineHeight: 20,
     },
 });
 

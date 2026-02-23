@@ -106,7 +106,7 @@ const EliteMemberScreen = () => {
     const scrollY = useRef(new Animated.Value(0)).current;
 
     const { data, isLoading } = useEliteMembership({ enabled: isAuthenticated });
-
+console.log("data", data)
     // Extract membership data
     const membership = data?.data;
     const plan = membership?.plan;
