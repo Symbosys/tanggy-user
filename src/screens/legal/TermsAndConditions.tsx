@@ -1,18 +1,18 @@
-import React, { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import {
-    View,
-    Text,
-    ScrollView,
-    TouchableOpacity,
-    StyleSheet,
     Dimensions,
-    NativeSyntheticEvent,
     NativeScrollEvent,
+    NativeSyntheticEvent,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LinearGradient from "react-native-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { COLORS, FONTS } from "../../theme/theme";
+import { COLORS } from "../../theme/theme";
 import { AppNavigation } from "../../types/type";
 
 const { width: screenWidth } = Dimensions.get("window");

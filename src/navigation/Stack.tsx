@@ -35,6 +35,7 @@ import { RootStackParamList } from '../types/type';
 import BottomTab from './Bottom';
 import { deeplink } from './deeplink';
 import AboutUs from '../screens/legal/About';
+import RefundAndReturnPolicy from '../screens/legal/ReturnRefundPolicy';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -81,6 +82,7 @@ export default function StackNavigation() {
         <Stack.Screen name='About' component={AboutUs} />
         <Stack.Screen name='TermsAndConditions' component={TermsAndConditionsScreen} />
         <Stack.Screen name='PrivacyPolicy' component={PrivacyPolicyScreen} />
+        <Stack.Screen name='RefundPolicy' component={RefundAndReturnPolicy} />
 
 
         {/* Help And Support */}

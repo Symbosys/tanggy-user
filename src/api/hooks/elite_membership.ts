@@ -7,7 +7,7 @@ interface UseEliteMembershipOptions {
 
 export const useEliteMembership = (options: UseEliteMembershipOptions = {}) => {
     const { enabled = true } = options;
-    
+
     return useQuery({
         queryKey: ['elite-membership'],
         queryFn: async () => {

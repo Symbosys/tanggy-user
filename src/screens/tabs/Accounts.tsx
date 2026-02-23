@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import { AppNavigation } from '../../types/type';
 import { useAddressStore } from '../../store/address';
 import { useProfile } from '../../api/hooks/useProfile';
+import { useEliteMembership } from '../../api/hooks/elite_membership';
 import { COLORS } from '../../theme/theme';
 import { ScrollView } from 'react-native-gesture-handler';
 import { getInitials } from '../../utils/utils';
@@ -25,11 +26,15 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
   const { logout, isAuthenticated } = useAuth();
   const { addresses } = useAddressStore();
   const { data: user } = useProfile();
+  const { data: eliteData } = useEliteMembership({ enabled: isAuthenticated });
 
   const userName = user?.name || 'New User';
   const userPhone = user?.mobile || '';
   const userEmail = user?.email || '';
   const addressesCount = addresses?.length || 0;
+
+  const isEliteMember = eliteData?.isElite || false;
+  const expiryDays = eliteData?.daysRemaining || 0;
 
   console.log({ user });
 
@@ -147,6 +152,24 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
                 <Text style={styles.profileName}>{userName}</Text>
                 <Text style={styles.profilePhone}>{userPhone}</Text>
                 <Text style={styles.profileEmail}>{userEmail}</Text>
+
+                {/* Membership Badge/Option */}
+                {isEliteMember ? (
+                  <View style={styles.eliteBadge}>
+                    <MaterialCommunityIcons name="crown" size={16} color="#FFD700" />
+                    <Text style={styles.eliteBadgeText}>
+                      Elite Member • {expiryDays} days left
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.renewButton}
+                    onPress={() => navigation.navigate('EliteMembership')}
+                  >
+                    <MaterialCommunityIcons name="crown-outline" size={16} color={COLORS.primary} />
+                    <Text style={styles.renewButtonText}>Get Elite Membership</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               <TouchableOpacity
                 style={styles.editProfileButton}
@@ -295,6 +318,23 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
             <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
           </TouchableOpacity>
           <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('RefundPolicy')}
+          >
+            <View style={styles.menuItemContent}>
+              <View
+                style={[
+                  styles.menuIconContainer,
+                  { backgroundColor: 'rgba(135, 25, 198, 0.1)' },
+                ]}
+              >
+                <MaterialIcons name="policy" size={24} color="#8719C6" />
+              </View>
+              <Text style={styles.menuItemTitle}>Retrun & Refund Policy</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={28} color="#6b7280" />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.menuItemBottom}
             onPress={handleLogout}
           >
@@ -310,7 +350,7 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
 
         {/* Footer */}
         <View style={[styles.footer, { marginBottom: 70 }]}>
-          <Text style={styles.footerVersion}>Version 1.0.2</Text>
+          <Text style={styles.footerVersion}>Version 1.0.0</Text>
           <Text style={styles.footerText}>Made with ❤️ in India</Text>
         </View>
       </SafeAreaView>
@@ -426,7 +466,7 @@ const styles = StyleSheet.create({
   // --- EXISTING AUTHENTICATED STYLES ---
   headerBackground: {
     width: '100%',
-    height: 260,
+    height: 320,
     justifyContent: 'flex-end',
   },
   textureOverlay: {
@@ -437,7 +477,7 @@ const styles = StyleSheet.create({
   headerGradient: {
     flex: 1,
     padding: 16,
-    paddingBottom: 48,
+    paddingBottom: 64,
     borderBottomLeftRadius: 48,
     borderBottomRightRadius: 48,
     justifyContent: 'flex-end',
@@ -624,6 +664,41 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#9ca3af',
     textAlign: 'center',
+  },
+  eliteBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 8,
+    gap: 4,
+  },
+  eliteBadgeText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  renewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 8,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  renewButtonText: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 

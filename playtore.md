@@ -20,6 +20,8 @@ MINTA FRESH APP
 <!-- 8. remove the section foget to add some thing -->
 
 
+ewzc kdcm wgdo zdeg  ==> jan kalyan app password
+
 
 Minta Fresh Website
 1. logo in navbar
