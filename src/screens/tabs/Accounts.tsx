@@ -282,7 +282,7 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
         {/* ── Footer ── */}
         <View style={styles.footer}>
           <Text style={styles.footerVersion}>Version 1.0.0</Text>
-          <Text style={styles.footerMade}>Made with ❤️ in India</Text>
+          <Text style={styles.footerMade}>Make in India</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

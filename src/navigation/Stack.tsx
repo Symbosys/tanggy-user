@@ -43,7 +43,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer ref={navigationRef} linking={deeplink}>
       <Stack.Navigator
-        // initialRouteName='OrderTracking'
+        initialRouteName='Wallet'
 
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />
