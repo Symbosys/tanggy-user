@@ -41,7 +41,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const videoRef = useRef<VideoRef>(null);
-  const { latitude, longitude, primaryLocation, secondaryLocation } =
+  const { latitude, longitude, primaryLocation, secondaryLocation, initializeLocation } =
     useLocationStore();
   const { userId, isAuthenticated } = useAuth();
   const {
@@ -127,6 +127,10 @@ export default function HomeScreen({ navigation }: AppNavigation) {
     loadData();
   }, [latitude, longitude, userId]);
 
+  useEffect(() => {
+    initializeLocation();
+  }, [initializeLocation]);
+
   // Ensure video starts playing once ready
   useEffect(() => {
     if (isVideoReady && videoRef.current) {
@@ -200,7 +204,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
               {/* --- LOCATION SECTION --- */}
               <TouchableOpacity
                 style={styles.locationContainer}
-                onPress={() => navigation.navigate('select_your_location')}
+                onPress={() => navigation.navigate('SelectLocation')}
                 activeOpacity={0.8}
               >
                 <Icon name="location-on" size={28} color={COLORS.primary} />

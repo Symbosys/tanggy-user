@@ -131,7 +131,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
         } else {
           navigation.reset({
             index: 0,
-            routes: [{ name: 'select_your_location' }],
+            routes: [{ name: 'BottomTab' }],
           });
         }
       }

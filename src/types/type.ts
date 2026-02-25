@@ -7,6 +7,7 @@ export type RootStackParamList = {
   Otp: { mobile: string };
   CompleteProfile: undefined;
   select_your_location: undefined;
+  SelectLocation: undefined;
 
   EliteMembership: undefined;
 

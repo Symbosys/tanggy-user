@@ -1,18 +1,20 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import GlobalAlert from '../components/alert/GlobalAlert';
-import { navigationRef } from './NavigationService';
 import AddAddresses from '../screens/address/AddAddresses';
-import EditAddress from '../screens/address/EditAddress';
 import MyAddressesScreen from '../screens/address/Address';
+import EditAddress from '../screens/address/EditAddress';
 import CompleteProfile from '../screens/auth/CompleteProfile';
 import Login from '../screens/auth/Login';
 import Otp from '../screens/auth/Otp';
 import CartScreen from '../screens/cart/Cart';
 import EliteMembershipScreen from '../screens/elite-membership/EliteMember';
+import AboutUs from '../screens/legal/About';
 import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicy';
+import RefundAndReturnPolicy from '../screens/legal/ReturnRefundPolicy';
 import TermsAndConditionsScreen from '../screens/legal/TermsAndConditions';
 import SelectYourLocation from '../screens/location/Location';
+import SelectLocation from '../screens/location/SelectLocation';
 import AllOrdersScreen from '../screens/order/AllOrders';
 import ChatScreen from '../screens/order/Chat';
 import OrderDetailsScreen from '../screens/order/OrderDetails';
@@ -34,8 +36,7 @@ import MyWalletScreen from '../screens/wallet/Wallet';
 import { RootStackParamList } from '../types/type';
 import BottomTab from './Bottom';
 import { deeplink } from './deeplink';
-import AboutUs from '../screens/legal/About';
-import RefundAndReturnPolicy from '../screens/legal/ReturnRefundPolicy';
+import { navigationRef } from './NavigationService';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -43,7 +44,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer ref={navigationRef} linking={deeplink}>
       <Stack.Navigator
-        initialRouteName='Wallet'
+        // initialRouteName='Wallet'
 
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />
@@ -51,6 +52,7 @@ export default function StackNavigation() {
         <Stack.Screen name="Otp" component={Otp} />
         <Stack.Screen name="CompleteProfile" component={CompleteProfile} />
         <Stack.Screen name='select_your_location' component={SelectYourLocation} options={{ headerShown: true }} />
+        <Stack.Screen name='SelectLocation' component={SelectLocation} />
 
         <Stack.Screen name='EliteMembership' component={EliteMembershipScreen} />
 

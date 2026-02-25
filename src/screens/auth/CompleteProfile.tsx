@@ -72,7 +72,7 @@ const CompleteProfile: React.FC<CompleteProfileProps> = ({ navigation }) => {
 
                     navigation.reset({
                         index: 0,
-                        routes: [{ name: 'select_your_location' }],
+                        routes: [{ name: 'BottomTab' }],
                     });
                 },
             }

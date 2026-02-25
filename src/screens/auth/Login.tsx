@@ -110,7 +110,7 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
         <TouchableOpacity
           onPress={async () => {
             await skipLogin();
-            navigation.reset({ index: 0, routes: [{ name: 'select_your_location' }] });
+            navigation.reset({ index: 0, routes: [{ name: 'BottomTab' }] });
           }}
           style={styles.skipButton}>
           <Text style={styles.skipText}>Skip</Text>
@@ -175,7 +175,7 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
                   onPress={async () => {
                     await skipLogin();
                     handleCloseModal();
-                    navigation.reset({ index: 0, routes: [{ name: 'select_your_location' }] });
+                    navigation.reset({ index: 0, routes: [{ name: 'BottomTab' }] });
                   }}
                   // DYNAMIC POSITION: Ensures button is never covered by status bar
                   style={[styles.skipButtonModal, { top: insets.top + 12 }]}>

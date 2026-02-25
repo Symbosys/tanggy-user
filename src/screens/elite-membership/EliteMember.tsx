@@ -106,12 +106,10 @@ const EliteMemberScreen = () => {
     const scrollY = useRef(new Animated.Value(0)).current;
 
     const { data, isLoading } = useEliteMembership({ enabled: isAuthenticated });
-console.log("data", data)
+    console.log("data", data)
     // Extract membership data
     const membership = data?.data;
     const plan = membership?.plan;
-    const isActive = membership?.status === 'ACTIVE';
-    const isTrial = membership?.isTrial;
 
     // Format dates
     const formatDate = (dateString: string) => {
@@ -130,11 +128,16 @@ console.log("data", data)
         return Math.max(0, diffDays);
     };
 
+    const daysRemaining = getDaysRemaining();
+    const isActive = membership?.status === 'ACTIVE' && daysRemaining > 0;
+    const isTrial = membership?.isTrial;
+
     // Get status text
     const getStatusText = () => {
         if (!membership) return 'NOT ACTIVE';
         if (isActive && isTrial) return 'FREE TRIAL';
         if (isActive) return 'ACTIVE PASS';
+        if (membership?.status === 'ACTIVE' && daysRemaining <= 0) return 'EXPIRED';
         return membership.status || 'INACTIVE';
     };
 
@@ -221,26 +224,24 @@ console.log("data", data)
                                 </Text>
                                 <View style={styles.priceContainer}>
                                     <Text style={styles.currency}>₹</Text>
-                                    <Text style={styles.priceValue}>
-                                        {isTrial ? '0' : '1'}
-                                    </Text>
+                                    <Text style={styles.priceValue}>1</Text>
                                     <View style={styles.priceDetail}>
                                         <Text style={styles.pricePeriod}>/month</Text>
-                                        {!isTrial && <Text style={styles.priceOld}>₹999</Text>}
+                                        <Text style={styles.priceOld}>₹999</Text>
                                     </View>
                                 </View>
 
                                 {isTrial && (
                                     <View style={styles.promoBanner}>
-                                        <MaterialCommunityIcons name="gift-outline" size={16} color="#FFD700" />
-                                        <Text style={styles.promoText}>Free Trial Active!</Text>
+                                        <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
+                                        <Text style={styles.promoText}>Premium Plan Active</Text>
                                     </View>
                                 )}
 
                                 {!isAuthenticated && (
                                     <View style={styles.promoBanner}>
-                                        <MaterialCommunityIcons name="gift-outline" size={16} color="#FFD700" />
-                                        <Text style={styles.promoText}>Login for 1 Month FREE Access</Text>
+                                        <MaterialCommunityIcons name="lightning-bolt" size={16} color="#FFD700" />
+                                        <Text style={styles.promoText}>Join Elite for just ₹1 / month</Text>
                                     </View>
                                 )}
                             </View>
@@ -359,13 +360,15 @@ console.log("data", data)
                         <View style={styles.ctaPriceRow}>
                             {isActive ? (
                                 <Text style={[styles.ctaPriceValue, { color: '#00FF00', fontSize: 18 }]}>
-                                    {getDaysRemaining()} days left
+                                    {daysRemaining} days left
                                 </Text>
                             ) : (
                                 <>
-                                    <Text style={styles.ctaPriceCurrency}>₹</Text>
-                                    <Text style={styles.ctaPriceValue}>{isAuthenticated ? '1' : '0'}</Text>
-                                    <Text style={styles.ctaPriceUnit}>/mo</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                                        <Text style={styles.ctaPriceCurrency}>₹</Text>
+                                        <Text style={styles.ctaPriceValue}>1</Text>
+                                        <Text style={styles.ctaPriceUnit}>/mo</Text>
+                                    </View>
                                 </>
                             )}
                         </View>
@@ -379,6 +382,10 @@ console.log("data", data)
                                 navigation.navigate('Login');
                             } else if (isActive) {
                                 navigation.navigate('BottomTab');
+                            } else {
+                                // Add logic to handle purchase process here
+                                // For example, navigating to a payment or confirmation screen
+                                console.log('Initiating Elite purchase...');
                             }
                         }}
                     >
@@ -389,7 +396,7 @@ console.log("data", data)
                             style={styles.buyGradient}
                         >
                             <Text style={styles.buyBtnText}>
-                                {!isAuthenticated ? 'LOGIN FOR FREE' : isActive ? 'START SHOPPING' : 'GET ELITE NOW'}
+                                {!isAuthenticated ? 'LOGIN & JOIN' : isActive ? 'START SHOPPING' : 'BUY ELITE'}
                             </Text>
                             <MaterialCommunityIcons
                                 name={isActive ? "shopping" : "lightning-bolt"}

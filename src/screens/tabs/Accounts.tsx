@@ -60,8 +60,6 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
 
   // ── Elite Membership Logic ──
   const membership = eliteData?.data;
-  const isEliteMember = membership?.status === 'ACTIVE';
-
   const getDaysRemaining = () => {
     if (!membership?.endDate) return 0;
     const endDate = new Date(membership.endDate);
@@ -71,6 +69,8 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
     return Math.max(0, diffDays);
   };
   const expiryDays = getDaysRemaining();
+  const isEliteMember = membership?.status === 'ACTIVE' && expiryDays > 0;
+
 
   const handleLogout = async () => {
     await logout();
@@ -240,7 +240,7 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
           {[
             { icon: 'receipt-long', label: 'Orders', route: 'MyOrders', color: '#6366f1' },
             { icon: 'account-balance-wallet', label: 'Wallet', route: 'Wallet', color: '#0d9488' },
-            { icon: 'headset-mic', label: 'Support', route: 'HelpSupport', color: '#2563eb' },
+            { icon: 'headset-mic', label: 'Support', route: 'AiAssistant', color: '#2563eb' },
             { icon: 'star-outline', label: 'Elite', route: 'EliteMembership', color: '#d97706' },
           ].map((a) => (
             <TouchableOpacity
