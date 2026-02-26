@@ -9,15 +9,16 @@ npm install react-native-signature-canvas
 
 
 MINTA FRESH APP
+1. chatbot
+<!-- 2. track order and view product button remove from order placed screen -->
+<!-- 3. order tracking screen remove the need help replace with support system -->
+<!-- 4. remove skip button and when user not loged in then remove elite membership stuff -->
 
-<!-- 1. best seller upar hoga recomended for you niche hoga -->
-<!-- 2. products detail page me view cart option directly show when user view cart -->
-<!-- 3. oder confirm 3 sec to 2 sec -->
-<!-- 4. when in order tacking screen and go back then user will be rediected to home screen -->
-<!-- 5. address to move below in account screen -->
-6. chatbot
-<!-- 7. status bar fixed -->
-<!-- 8. remove the section foget to add some thing -->
+
+
+MINTA FRESH VENDOR APP
+1. remove add money from wallet
+2. 
 
 
 

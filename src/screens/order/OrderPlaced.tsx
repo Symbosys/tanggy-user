@@ -120,7 +120,7 @@ const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
       </View>
 
       {/* CTA Buttons */}
-      <View style={[styles.ctaContainer, { paddingBottom: insets.bottom + 16 }]}>
+      {/* <View style={[styles.ctaContainer, { paddingBottom: insets.bottom + 16 }]}>
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={() => navigation.navigate('OrderTracking')}
@@ -144,7 +144,7 @@ const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
         >
           <Text style={styles.secondaryBtnText}>Continue Shopping</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </ImageBackground>
   );
 };

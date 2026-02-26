@@ -514,7 +514,7 @@ const BlinkitFinalClone = ({ navigation }: any) => {
         <View style={styles.card}>
           <TouchableOpacity style={styles.row} onPress={goToSupportScreen}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>Need help?</Text>
+              <Text style={styles.cardTitle}>support system</Text>
               <Text style={styles.cardSubtitle}>
                 Chat with us about any issue related to your order
               </Text>

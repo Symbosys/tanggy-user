@@ -107,14 +107,14 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
 
       <View style={styles.container}>
         {/* Main Screen Skip Button */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={async () => {
             await skipLogin();
             navigation.reset({ index: 0, routes: [{ name: 'BottomTab' }] });
           }}
           style={styles.skipButton}>
           <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* Top Section with Logo */}
         <View style={styles.topSection}>
