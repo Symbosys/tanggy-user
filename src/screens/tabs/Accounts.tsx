@@ -189,48 +189,22 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
           {/* Elite Membership Section */}
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('EliteMembership')}
             style={styles.eliteCard}
           >
-            <View style={styles.eliteCardTop}>
-              <View style={styles.eliteCrownWrap}>
-                <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                {isEliteMember ? (
-                  <>
-                    <View style={styles.eliteActiveBadge}>
-                      <View style={styles.eliteActiveDot} />
-                      <Text style={styles.eliteActiveBadgeText}>ACTIVE</Text>
-                    </View>
-                    <Text style={styles.eliteCardTitle}>Elite Member</Text>
-                    <Text style={styles.eliteCardSub}>
-                      {expiryDays} {expiryDays === 1 ? 'day' : 'days'} remaining
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.eliteCardTitle}>Become an Elite Member</Text>
-                    <Text style={styles.eliteCardSub}>
-                      Free delivery, discounts & priority support
-                    </Text>
-                  </>
-                )}
-              </View>
-              <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.5)" />
-            </View>
-
-            <View style={styles.eliteBenefitsRow}>
-              {[
-                { icon: 'truck-delivery', text: 'Free Delivery' },
-                { icon: 'brightness-percent', text: '10% Off' },
-                { icon: 'headset', text: 'VIP Support' },
-              ].map((b) => (
-                <View key={b.text} style={styles.eliteBenefitItem}>
-                  <MaterialCommunityIcons name={b.icon} size={15} color="#FFD700" />
-                  <Text style={styles.eliteBenefitText}>{b.text}</Text>
-                </View>
-              ))}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialCommunityIcons
+                name="truck-delivery"
+                size={20}
+                color="#FFD700"
+              />
+              <Text style={{
+                marginLeft: 10,
+                fontSize: 16,
+                fontWeight: '600',
+                color: '#fff'
+              }}>
+                Experience Free Delivery
+              </Text>
             </View>
           </TouchableOpacity>
         </LinearGradient>
@@ -241,7 +215,7 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
             { icon: 'receipt-long', label: 'Orders', route: 'MyOrders', color: '#6366f1' },
             { icon: 'account-balance-wallet', label: 'Wallet', route: 'Wallet', color: '#0d9488' },
             { icon: 'headset-mic', label: 'Support', route: 'AiAssistant', color: '#2563eb' },
-            { icon: 'star-outline', label: 'Elite', route: 'EliteMembership', color: '#d97706' },
+            // { icon: 'star-outline', label: 'Elite', route: 'EliteMembership', color: '#d97706' },
           ].map((a) => (
             <TouchableOpacity
               key={a.route}

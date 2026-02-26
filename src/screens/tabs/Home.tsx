@@ -232,12 +232,12 @@ export default function HomeScreen({ navigation }: AppNavigation) {
               </TouchableOpacity>
               {/* --------------------------------- */}
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.profileButton}
                 onPress={() => navigation.navigate('EliteMembership')}
               >
                 <Icon name="workspace-premium" size={30} color={COLORS.primary} />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <View style={styles.heroSection}>

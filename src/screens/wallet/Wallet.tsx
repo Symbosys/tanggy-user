@@ -62,7 +62,7 @@ const MyWalletScreen: React.FC = () => {
                 {/* Sticky Section - Kept exactly as is */}
                 <View style={styles.stickySection}>
                     <View style={styles.historyHeader}>
-                        <Text style={styles.historyTitle}>Adjusted Transaction History</Text>
+                        <Text style={styles.historyTitle}>Recent Transaction History</Text>
                     </View>
                 </View>
 

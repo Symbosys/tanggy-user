@@ -156,18 +156,9 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.title}>Enter verification code</Text>
-
-        <View style={styles.phoneNumberContainer}>
-          <Text style={styles.phoneNumberText}>Sent to {phoneNumber}</Text>
-          <TouchableOpacity>
-            <Icon
-              name="edit"
-              size={20}
-              color="#8719C6"
-              style={styles.editIcon}
-            />
-          </TouchableOpacity>
+        <View style={styles.otpTopContainer}>
+          <Text style={styles.otpSubtitle}>We've sent a verification code to</Text>
+          <Text style={styles.otpPhoneText}>{phoneNumber}</Text>
         </View>
 
         {/* OTP Input Boxes */}
@@ -190,6 +181,8 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
           ))}
         </View>
 
+        <Text style={styles.resendText}>Resend OTP in {timer}</Text>
+
         {/* Verify Button */}
         <TouchableOpacity
           style={[
@@ -211,13 +204,6 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
 
         {/* Footer */}
         <View style={styles.footer}>
-          <View style={styles.timerContainer}>
-            <Text style={styles.timerText}>
-              Get verification code again in{' '}
-              <Text style={styles.timerValue}>{formatTime(timer)}</Text>
-            </Text>
-          </View>
-
           <View style={styles.buttonsContainer}>
             <TouchableOpacity
               style={[styles.button, timer > 0 && styles.buttonDisabled]}
@@ -282,49 +268,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 30,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#000000',
-    marginBottom: 15,
-  },
-  phoneNumberContainer: {
-    flexDirection: 'row',
+  otpTopContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 40,
   },
-  phoneNumberText: {
-    fontSize: 16,
-    color: '#666666',
-    marginRight: 8,
+  otpSubtitle: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginBottom: 6,
+    fontWeight: '400',
   },
-  editIcon: {
-    marginTop: 2,
+  otpPhoneText: {
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '600',
   },
   otpContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 40,
-    paddingHorizontal: 5,
+    justifyContent: 'center',
+    marginBottom: 30,
   },
   otpBox: {
-    width: (width - 80) / 4,
-    height: (width - 80) / 4,
-    borderRadius: (width - 80) / 4 / 2,
-    borderWidth: 3,
-    borderColor: '#8719C6',
+    width: 60,
+    height: 60,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    marginHorizontal: 8,
   },
   otpInput: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000000',
+    fontSize: 24,
+    fontWeight: '400',
+    color: '#374151',
     textAlign: 'center',
     width: '100%',
     height: '100%',
     padding: 0,
+  },
+  resendText: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 30,
   },
   verifyButton: {
     backgroundColor: '#8719C6',
@@ -349,18 +335,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     paddingBottom: 40,
   },
-  timerContainer: {
-    marginBottom: 20,
-  },
-  timerText: {
-    fontSize: 15,
-    color: '#666666',
-    textAlign: 'center',
-  },
-  timerValue: {
-    color: '#8719C6',
-    fontWeight: '700',
-  },
+
   buttonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',

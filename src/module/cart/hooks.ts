@@ -9,7 +9,6 @@ import { useAlertStore } from '../../store/alert.store';
 import { CartItem } from './types';
 import { RootStackParamList } from '../../types/type';
 import { NavigationProp } from '@react-navigation/native';
-import { useEliteMembership } from '../../api/hooks/elite_membership';
 
 export const useCartInitialization = () => {
   const { fetchCart, cartItems, loading } = useCartStore();
@@ -36,10 +35,6 @@ export const useCartCalculations = () => {
   const { cartItems } = useCartStore();
   const { selectedTip } = useCartUIStore();
   
-  // Elite Membership Check
-  const { data: eliteData } = useEliteMembership();
-  const isElite = eliteData?.data?.status === 'ACTIVE';
-
   const getSellingPrice = useCallback((item: CartItem | any): number => {
     return parseToDecimal(item?.product?.sellingPrice) || 0;
   }, []);
@@ -52,7 +47,7 @@ export const useCartCalculations = () => {
 
   // 2. Delivery Fee (No GST on raw chicken products as per Indian govt)
   const standardDeliveryFee = 40;
-  const deliveryFee = isElite ? 0 : standardDeliveryFee;
+  const deliveryFee = standardDeliveryFee;
 
   // 3. Platform Fee (No GST)
   const platformFee = 3;
@@ -93,8 +88,6 @@ export const useCartCalculations = () => {
     subtotal,
     total,
     getSellingPrice,
-    isElite,
-    standardDeliveryFee,
   };
 };
 
