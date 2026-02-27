@@ -2,6 +2,7 @@ import { AxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
+  ImageBackground,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -192,10 +193,8 @@ export default function HomeScreen({ navigation }: AppNavigation) {
         >
           {/* Header with Gradient Background */}
           <View style={styles.headerContainer}>
-            <LottieView
-              source={require('../../assets/lottie/hero/Christmas_Tree.json')}
-              autoPlay
-              loop={true}
+            <ImageBackground
+              source={require('../../assets/hero/Welcome.png')}
               style={styles.lottie}
               resizeMode="cover"
             />

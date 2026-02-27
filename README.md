@@ -70,3 +70,4 @@ use this color which is located in ../../theme/theme and if you need beyond this
 
 
 
+1. fix the hero section of minta fresh

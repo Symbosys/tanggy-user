@@ -88,8 +88,8 @@ const TIP_AMOUNTS = [20, 30, 50, 100];
 
 // --- DUMMY ORDERS FOR SWITCHING ---
 const MY_ORDERS: OrderOption[] = [
-  { id: 'ORD97573829895', storeName: 'Blinkit Store - Hinoo', itemsCount: '4 items', price: '₹342', status: 'Arriving in 14 mins' },
-  { id: 'ORD88812345678', storeName: 'Blinkit Store - Lalpur', itemsCount: '2 items', price: '₹120', status: 'Packing' },
+  { id: 'ORD97573829895', storeName: 'Minta Store - Hinoo', itemsCount: '4 items', price: '₹342', status: 'Arriving in 14 mins' },
+  { id: 'ORD88812345678', storeName: 'Minta Store - Lalpur', itemsCount: '2 items', price: '₹120', status: 'Packing' },
 ];
 
 const BlinkitFinalClone = ({ navigation }: any) => {
