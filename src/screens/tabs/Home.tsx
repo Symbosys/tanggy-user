@@ -191,83 +191,69 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             />
           }
         >
-          {/* Header with Gradient Background */}
-          <View style={styles.headerContainer}>
-            <ImageBackground
-              source={require('../../assets/hero/Welcome.png')}
-              style={styles.lottie}
-              resizeMode="cover"
-            />
-            {/* <View style={styles.videoOverlay} /> */}
+          {/* Systematic & Professional Header */}
+          <View style={styles.topHeaderContainer}>
+            {/* Location & Notification Bar */}
             <View style={styles.topBar}>
-              {/* --- LOCATION SECTION --- */}
               <TouchableOpacity
-                style={styles.locationContainer}
+                style={styles.locationSection}
                 onPress={() => navigation.navigate('SelectLocation')}
-                activeOpacity={0.8}
+                activeOpacity={0.7}
               >
-                <Icon name="location-on" size={28} color={COLORS.primary} />
-                <View style={styles.locationTextContainer}>
-                  {/* Primary Location (Top) */}
+                <View style={styles.locationCircle}>
+                  <Icon name="place" size={24} color={COLORS.primary} />
+                </View>
+                <View style={styles.locationInfo}>
                   <View style={styles.locationRow}>
-                    <Text
-                      style={styles.primaryLocationText}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
+                    <Text style={styles.primaryLocationText} numberOfLines={1}>
                       {primaryLocation || 'Select Location'}
                     </Text>
-                    <Icon name="expand-more" size={20} color={COLORS.primary} />
+                    <Icon name="keyboard-arrow-down" size={20} color={COLORS.textPrimary} />
                   </View>
-                  {/* Secondary Location (Bottom) */}
-                  <Text
-                    style={styles.secondaryLocationText}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
+                  <Text style={styles.secondaryLocationText} numberOfLines={1}>
                     {secondaryLocation || 'Tap to set address'}
                   </Text>
                 </View>
               </TouchableOpacity>
-              {/* --------------------------------- */}
 
-              {/* <TouchableOpacity
-                style={styles.profileButton}
-                onPress={() => navigation.navigate('EliteMembership')}
+              <TouchableOpacity 
+                style={styles.notificationButton}
+                onPress={() => {}} // Placeholder for notification
+                activeOpacity={0.7}
               >
-                <Icon name="workspace-premium" size={30} color={COLORS.primary} />
-              </TouchableOpacity> */}
+                <Icon name="notifications-none" size={28} color={COLORS.textPrimary} />
+                <View style={styles.notificationBadge} />
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.heroSection}>
-              {/* <Text style={styles.heroTitle}>Fresh, Fast & Delivered</Text>
-            <Text style={styles.heroSubtitle}>
-              The best quality meat, delivered to your doorstep.
-            </Text> */}
+            {/* Search Bar */}
+            <View style={styles.searchSection}>
+              <TouchableOpacity
+                style={styles.searchBar}
+                onPress={handleSearchPress}
+                activeOpacity={0.9}
+              >
+                <Icon
+                  name="search"
+                  size={24}
+                  color={COLORS.muted}
+                  style={styles.searchIcon}
+                />
+                <Text style={styles.searchPlaceholderText}>
+                  Search for chicken, meat, or dishes…
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <TouchableOpacity
-              style={styles.searchBar}
-              onPress={handleSearchPress}
-              activeOpacity={0.7}
-            >
-              <Icon
-                name="search"
-                size={24}
-                color={COLORS.muted}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search for chicken, meat, or dishes…"
-                placeholderTextColor={COLORS.muted}
-                editable={false}
-                pointerEvents="none"
-              />
-            </TouchableOpacity>
+          {/* Banner/Header Image Section */}
+          <View style={styles.bannerSection}>
+            <ImageBackground
+              source={require('../../assets/hero/Welcome.png')}
+              style={styles.bannerImage}
+              imageStyle={{ borderRadius: 16 }}
+              resizeMode="cover"
+            />
           </View>
 
           {/* Main Content */}
@@ -373,126 +359,98 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  headerContainer: {
-    // backgroundColor: COLORS.primary,
+  topHeaderContainer: {
     paddingTop: 16,
-    paddingBottom: 48,
-    position: 'relative',
-    overflow: 'hidden',
-    height: 350,
-  },
-  lottie: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
-  },
-  videoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    paddingBottom: 20,
+    backgroundColor: COLORS.background,
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 8,
-    position: 'relative',
-    zIndex: 10,
+    marginBottom: 20,
   },
-  // --- Location Styles ---
-  locationContainer: {
-    flex: 1,
+  locationSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  locationTextContainer: {
     flex: 1,
-    flexDirection: 'column',
-    marginLeft: 8,
+    marginRight: 16,
+  },
+  locationCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3E8FF', // Light lavender
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locationInfo: {
+    marginLeft: 12,
+    flex: 1,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   primaryLocationText: {
-    color: COLORS.primary,
-    fontSize: 16,
+    color: '#000000',
+    fontSize: 22,
     fontWeight: '800',
     marginRight: 4,
-    maxWidth: '80%',
   },
   secondaryLocationText: {
-    color: COLORS.primary,
-    // Reduced font size so more text fits before truncating
-    fontSize: 11,
+    color: COLORS.muted,
+    fontSize: 13,
     fontWeight: '500',
     marginTop: 2,
-    maxWidth: '90%',
   },
-  // -------------------------------
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroSection: {
-    paddingHorizontal: 16,
-    paddingTop: 100,
-    alignItems: 'center',
+  notificationButton: {
     position: 'relative',
-    zIndex: 10,
+    padding: 4,
   },
-  heroTitle: {
-    color: COLORS.background,
-    fontSize: 30,
-    fontWeight: '900',
-    textAlign: 'center',
-    marginBottom: 16,
+  notificationBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF3B30', // Vibrant red
+    borderWidth: 1.5,
+    borderColor: COLORS.background,
   },
-  heroSubtitle: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  searchContainer: {
+  searchSection: {
     paddingHorizontal: 16,
-    marginTop: -24,
-    zIndex: 10,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 28,
-    height: 56,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    paddingHorizontal: 8,
+    backgroundColor: '#F1F5F9', // Light grey search bar background
+    borderRadius: 16,
+    height: 60,
+    paddingHorizontal: 16,
   },
   searchIcon: {
-    paddingLeft: 12,
+    marginRight: 12,
   },
-  searchInput: {
+  searchPlaceholderText: {
     flex: 1,
     fontSize: 16,
-    color: COLORS.textPrimary,
-    paddingHorizontal: 8,
+    color: COLORS.muted,
+    fontWeight: '500',
+  },
+  bannerSection: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  bannerImage: {
+    width: '100%',
+    height: 350,
+    overflow: 'hidden',
   },
   mainContent: {
-    paddingTop: 32,
+    paddingTop: 8,
   },
   section: {
     marginBottom: 32,
