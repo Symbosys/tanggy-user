@@ -37,6 +37,7 @@ import { RootStackParamList } from '../types/type';
 import BottomTab from './Bottom';
 import { deeplink } from './deeplink';
 import { navigationRef } from './NavigationService';
+import ProfileScreen from '../screens/tabs/Accounts';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -53,6 +54,7 @@ export default function StackNavigation() {
         <Stack.Screen name="CompleteProfile" component={CompleteProfile} />
         <Stack.Screen name='select_your_location' component={SelectYourLocation} options={{ headerShown: true }} />
         <Stack.Screen name='SelectLocation' component={SelectLocation} />
+        <Stack.Screen name='Profile' component={ProfileScreen} />
 
         <Stack.Screen name='EliteMembership' component={EliteMembershipScreen} />
 

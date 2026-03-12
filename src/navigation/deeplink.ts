@@ -14,10 +14,8 @@ export const deeplink: LinkingOptions<RootStackParamList> = {
       BottomTab: {
         screens: {
           Home: 'home',
-          Category: 'category',
-          Search: 'search',
-          Profile: 'profile',
           Discount: 'discount',
+          Category: 'category',
         },
       },
 

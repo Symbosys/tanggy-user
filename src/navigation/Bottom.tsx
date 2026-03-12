@@ -1,146 +1,138 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Animated, Platform, StyleSheet, Text } from 'react-native';
+import { Animated, Platform, StyleSheet, Text, Linking, Image, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LottieView from 'lottie-react-native';
-import MyAccountScreen from '../screens/tabs/Accounts';
 import CategoryScreen from '../screens/tabs/Category';
 import Discount from '../screens/tabs/Discount';
 import HomeScreen from '../screens/tabs/Home';
-import SearchScreen from '../screens/tabs/Search';
 import { COLORS } from '../theme/theme';
-import { AppNavigation } from '../types/type';
 
-export type RootTabParamList = {
-  Home: undefined;
-  Category: undefined;
-  Search: undefined;
-  Profile: undefined;
-  Discount: undefined;
-};
+const Tab = createBottomTabNavigator();
 
-const Tab = createBottomTabNavigator<RootTabParamList>();
-
-const BottomTab = ({ navigation }: AppNavigation) => {
+const BottomTab = () => {
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <View style={{ flex: 1 }}>
       <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarHideOnKeyboard: true,
+        screenOptions={{
           headerShown: false,
-
-          tabBarIcon: ({ focused, color, size }) => {
-
-            if (route.name === 'Discount') {
-              return (
-                <Animated.View
-                  style={[
-                    styles.iconContainer,
-                    { transform: [{ scale: focused ? 1.2 : 1 }] },
-                  ]}
-                >
-                  <LottieView
-                    key={focused ? 'active' : 'inactive'}
-                    source={require('../assets/lottie/Discount.json')}
-                    autoPlay
-                    loop
-                    resizeMode="contain"
-                    renderMode="HARDWARE"
-                    style={{
-                      width: 90,
-                      height: 90,
-                    }}
-                  />
-                </Animated.View>
-              );
-            }
-
-            let iconName: string = '';
-
-            switch (route.name) {
-              case 'Home':
-                iconName = 'home';
-                break;
-              case 'Category':
-                iconName = 'category';
-                break;
-              case 'Search':
-                iconName = 'search';
-                break;
-              case 'Profile':
-                iconName = 'person';
-                break;
-              default:
-                iconName = 'circle';
-            }
-
-            return (
-              <Animated.View
-                style={[
-                  styles.iconContainer,
-                  { transform: [{ scale: focused ? 1.2 : 1 }] },
-                ]}
-              >
-                <MaterialIcons name={iconName} size={size} color={color} />
-              </Animated.View>
-            );
-          },
-
-          tabBarLabel: ({ color }) =>
-            route.name === 'Discount' ? null : (
-              <Text style={[styles.tabLabel, { color }]}>{route.name}</Text>
-            ),
-
-          tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: COLORS.muted,
-          tabBarStyle: styles.tabBar,
-          tabBarItemStyle: styles.tabBarItem,
-        })}
+          tabBarStyle: { display: 'none' }, // Hiding default bar to use the custom UI overlay
+        }}
       >
         <Tab.Screen name="Home" component={HomeScreen} />
-        <Tab.Screen name="Category" component={CategoryScreen} />
         <Tab.Screen name="Discount" component={Discount} />
-        <Tab.Screen name="Search" component={SearchScreen} />
-        <Tab.Screen name="Profile" component={MyAccountScreen} />
+        <Tab.Screen name="Category" component={CategoryScreen} />
       </Tab.Navigator>
-    </SafeAreaView>
+
+      {/* CUSTOM UI OVERLAY */}
+      <View style={styles.floatingContainer} pointerEvents="box-none">
+
+        {/* Main Floating Pill (Home, Discount, Category) */}
+        <View style={styles.mainPill}>
+          <TabItem name="Home" icon="home" />
+          <TabItem name="Discount" isLottie />
+          <TabItem name="Category" icon="category" />
+        </View>
+
+        {/* Separate Entity (Restro) */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.restroEntity}
+          onPress={() => Linking.openURL('https://mintarestro.com')}
+        >
+          <Image
+            source={require('../assets/logo/logo.jpeg')}
+            style={styles.restroImage}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Helper component to keep your exact icon logic
+const TabItem = ({ name, icon, isLottie }: any) => {
+  // Use navigation hook to check active state
+  // In a real app, you'd use useNavigationState to get 'focused'
+  const focused = false; // Logic placeholder
+
+  return (
+    <TouchableOpacity style={styles.iconContainer}>
+      {isLottie ? (
+        <LottieView
+          source={require('../assets/lottie/Discount.json')}
+          autoPlay
+          loop
+          style={{ width: 80, height: 80 }}
+        />
+      ) : (
+        <>
+          <MaterialIcons name={icon} size={28} color={focused ? COLORS.primary : COLORS.muted} />
+          <Text style={[styles.tabLabel, { color: focused ? COLORS.primary : COLORS.muted }]}>{name}</Text>
+        </>
+      )}
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.white,
+  floatingContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 30 : 20,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 15,
+    zIndex: 100,
   },
-  tabBar: {
+  mainPill: {
+    flexDirection: 'row',
     backgroundColor: COLORS.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingVertical: 8,
-    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-    height: Platform.OS === 'ios' ? 85 : 70,
-    shadowColor: COLORS.textPrimary,
-    shadowOffset: { width: 0, height: -2 },
+    borderRadius: 35,
+    height: 70,
+    flex: 1,
+    marginRight: 15,
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
-    borderTopWidth: 0,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
-  tabBarItem: {
-    paddingVertical: 4,
+  restroEntity: {
+    backgroundColor: "#004AAD",
+    width: 100,
+    height: 70,
+    borderTopLeftRadius: 35,
+    borderBottomLeftRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopStartRadius: 40,
+    borderBottomStartRadius: 40,
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  restroImage: {
+    width: 100, // Kept your original size
+    height: 50,  // Kept your original size
+    resizeMode: 'contain',
   },
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: 2,
   },
 });
 

@@ -218,10 +218,10 @@ export default function HomeScreen({ navigation }: AppNavigation) {
 
               <TouchableOpacity 
                 style={styles.notificationButton}
-                onPress={() => {}} // Placeholder for notification
+                onPress={() => {navigation.navigate('Profile')}}
                 activeOpacity={0.7}
               >
-                <Icon name="notifications-none" size={28} color={COLORS.textPrimary} />
+                <Icon name="person" size={35} color={COLORS.textPrimary} />
                 <View style={styles.notificationBadge} />
               </TouchableOpacity>
             </View>
@@ -378,15 +378,15 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   locationCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F3E8FF', // Light lavender
     justifyContent: 'center',
     alignItems: 'center',
   },
   locationInfo: {
-    marginLeft: 12,
+    marginLeft: 8,
     flex: 1,
   },
   locationRow: {
@@ -395,15 +395,15 @@ const styles = StyleSheet.create({
   },
   primaryLocationText: {
     color: '#000000',
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: '800',
     marginRight: 4,
   },
   secondaryLocationText: {
     color: COLORS.muted,
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 1,
   },
   notificationButton: {
     position: 'relative',
