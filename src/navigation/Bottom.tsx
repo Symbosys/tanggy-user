@@ -41,7 +41,7 @@ const BottomTab = () => {
           onPress={() => Linking.openURL('https://mintarestro.com')}
         >
           <Image
-            source={require('../assets/logo/logo.jpeg')}
+            source={require('../assets/logo/restroLogo.jpeg')}
             style={styles.restroImage}
           />
         </TouchableOpacity>
