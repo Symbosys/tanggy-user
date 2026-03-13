@@ -1,46 +1,64 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
+  Keyboard,
   StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Dimensions,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
+  TouchableWithoutFeedback
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { COLORS } from '../../theme/theme';
+import { InlineLoading } from '../../components/ui/loader/InlineLoading';
+import { getAllProducts } from '../../services/product.service';
+import { useLocationStore } from '../../store/location';
+import { COLORS, FONTS } from '../../theme/theme';
 import { Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
 import { parseToDecimal } from '../../utils/utils';
-import { getAllProducts } from '../../services/product.service';
-import { LoadingOverlay } from '../../components/ui/loader/LoaderOverLay';
-import { InlineLoading } from '../../components/ui/loader/InlineLoading';
-import { useAuth } from '../../context/AuthContext';
-import { useLocationStore } from '../../store/location';
+
+const { width, height } = Dimensions.get('window');
 
 const SearchScreen = ({ navigation }: AppNavigation) => {
   const [searchText, setSearchText] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const inputRef = useRef<TextInput>(null);
+  const timeoutRef = useRef<any | null>(null);
+  const { latitude, longitude } = useLocationStore();
 
-  const darkPrimary = '#7a2cc3'; // Darker shade for gradients
+  const TRENDING = [
+    { id: '1', name: 'Chicken', icon: 'restaurant' },
+    { id: '2', name: 'Fish', icon: 'water' },
+    { id: '3', name: 'Mutton', icon: 'outdoor-grill' },
+    { id: '4', name: 'Eggs', icon: 'egg' },
+  ];
 
-  // Function to safely extract string value from potentially object fields
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const getStringValue = (value: any): string => {
     if (typeof value === 'string') return value;
     if (typeof value === 'object' && value !== null) {
-      // Try common language keys like 'en'
       return value.en || value['en'] || Object.values(value)[0] || JSON.stringify(value);
     }
     return String(value) || 'Unknown';
   };
-
-  const {latitude, longitude} = useLocationStore();
 
   const fetchProducts = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -50,39 +68,34 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await getAllProducts({ search: query, lat: latitude ?? undefined, lng: longitude ?? undefined });
-      console.log("search data", response.data.products)
+      const response = await getAllProducts({ 
+        search: query, 
+        lat: latitude ?? undefined, 
+        lng: longitude ?? undefined 
+      });
       if (response.success) {
         setProducts(response.data.products);
       } else {
         setError('Failed to fetch products');
       }
     } catch (err) {
-      console.error('Error fetching products:', err);
       setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [latitude, longitude]);
 
-  // Proper debounce implementation using useRef
-  const timeoutRef = useRef<any | null>(null);
   const debouncedFetch = useCallback((query: string) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       fetchProducts(query);
-    }, 1000);
+    }, 500);
   }, [fetchProducts]);
 
   useEffect(() => {
     debouncedFetch(searchText);
-
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [searchText, debouncedFetch]);
 
@@ -90,214 +103,480 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
     navigation.navigate('ProductDetails', { product });
   };
 
-  const renderProductItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-        padding: 16,
-        borderRadius: 16,
-        backgroundColor: COLORS.white,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 4,
-        borderWidth: 1,
-        borderColor: 'rgba(135, 25, 198, 0.1)',
-        marginTop: 20,
-      }}
-      activeOpacity={0.9}
-      onPress={() => handleProductPress(item)}>
-      <View
-        style={{
-          width: 72,
-          height: 72,
-          borderRadius: 36,
-          overflow: 'hidden',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 2,
-        }}>
-        <Image
-          source={{ uri: item.images[0]?.image.url || '' }}
-          style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
-        />
-      </View>
-      <View style={{ flex: 1, paddingRight: 8 }}>
-        <Text
-          style={{
-            fontSize: 18,
-            fontWeight: '800',
-            color: COLORS.textPrimary,
-            marginBottom: 4,
-            lineHeight: 22,
-          }}
-          numberOfLines={2}>
-          {getStringValue(item.name)}
-        </Text>
-        <Text
-          style={{
-            fontSize: 14,
-            color: COLORS.muted,
-            marginBottom: 8,
-            lineHeight: 18,
-          }}
-          numberOfLines={1}>
-          {getStringValue(item.weight)} {item.pieces ? `| ${getStringValue(item.pieces)}` : ''}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text
-            style={{
-              fontSize: 20,
-              fontWeight: '800',
-              color: COLORS.primary,
-              lineHeight: 24,
-            }}>
-            ₹{parseToDecimal(item.sellingPrice).toFixed(2)}
-          </Text>
-          {item.marketPrice && item.marketPrice > item.sellingPrice && (
-            <Text
-              style={{
-                fontSize: 14,
-                color: COLORS.muted,
-                textDecorationLine: 'line-through',
-                textDecorationStyle: 'solid',
-              }}>
-              ₹{parseToDecimal(item.marketPrice).toFixed(2)}
-            </Text>
+  const clearSearch = () => {
+    setSearchText('');
+    setProducts([]);
+    inputRef.current?.focus();
+  };
+
+  const renderProductItem = ({ item }: { item: Product }) => {
+    const originalPrice = parseToDecimal(item.marketPrice);
+    const sellingPrice = parseToDecimal(item.sellingPrice);
+    const discount = originalPrice > sellingPrice 
+      ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) 
+      : 0;
+
+    return (
+      <TouchableOpacity
+        style={styles.productCard}
+        activeOpacity={0.8}
+        onPress={() => handleProductPress(item)}>
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: item.images[0]?.image.url || 'https://via.placeholder.com/150' }}
+            style={styles.productImage}
+          />
+          {discount > 0 && (
+            <View style={styles.promoBadge}>
+              <Text style={styles.promoText}>{discount}% OFF</Text>
+            </View>
           )}
         </View>
-      </View>
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: COLORS.primary,
-          alignItems: 'center',
-          justifyContent: 'center',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 4,
-          elevation: 3,
-        }}>
-        <Icon name="arrow-forward" size={20} color="white" />
-      </View>
-    </TouchableOpacity>
-  );
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
-      <StatusBar barStyle="dark-content" />
-      <View style={{ flex: 1 }}>
-        {/* Sticky Top Search Bar */}
-        <View
-          style={{
-            position: 'relative',
-            zIndex: 20,
-            backgroundColor: COLORS.background,
-            paddingTop: 16,
-            paddingBottom: 16,
-            paddingHorizontal: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 2,
-            elevation: 1,
-          }}>
-          <View style={{ flex: 1 }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: '#F3F4F6',
-                borderRadius: 9999,
-                height: 48,
-                paddingHorizontal: 16,
-              }}>
-              <Icon name="search" size={24} color={COLORS.muted} />
-              <TextInput
-                autoFocus={true}
-                value={searchText}
-                onChangeText={setSearchText}
-                placeholder="Search for chicken, meat, or dishes..."
-                placeholderTextColor={COLORS.muted}
-                style={{
-                  flex: 1,
-                  paddingVertical: 0,
-                  marginLeft: 8,
-                  fontSize: 16,
-                  color: "black",
-                }}
-              />
+        
+        <View style={styles.productDetails}>
+          <View>
+            <Text style={styles.itemName} numberOfLines={1}>
+              {getStringValue(item.name)}
+            </Text>
+            <Text style={styles.itemMeta} numberOfLines={1}>
+              {getStringValue(item.weight)} {item.pieces ? `• ${getStringValue(item.pieces)} pcs` : ''}
+            </Text>
+          </View>
+          
+          <View style={styles.priceActionRow}>
+            <View>
+              <Text style={styles.priceTag}>₹{sellingPrice.toFixed(0)}</Text>
+              {discount > 0 && (
+                <Text style={styles.oldPrice}>₹{originalPrice.toFixed(0)}</Text>
+              )}
             </View>
+            <TouchableOpacity 
+              style={styles.addBtnSmall}
+              onPress={() => handleProductPress(item)}
+            >
+              <Text style={styles.addBtnText}>View</Text>
+            </TouchableOpacity>
           </View>
         </View>
+      </TouchableOpacity>
+    );
+  };
 
-        {/* Main Content */}
-        <View style={{ flex: 1 }}>
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>      
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        {/* Fixed Top Section */}
+        <View style={styles.topSection}>
+          <LinearGradient
+            colors={[COLORS.primary, '#802BB1']}
+            style={styles.headerGrad}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.navRow}>
+              <TouchableOpacity 
+                style={styles.circleBack} 
+                onPress={() => navigation.goBack()}
+              >
+                <Icon name="chevron-left" size={28} color="white" />
+              </TouchableOpacity>
+              <Text style={styles.navTitle}>Search</Text>
+            </View>
+
+            <View style={styles.searchBox}>
+              <Icon name="search" size={22} color={COLORS.muted} />
+              <TextInput
+                ref={inputRef}
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder="Search chicken, meat, fish..."
+                placeholderTextColor="#94A3B8"
+                style={styles.inputField}
+                selectionColor={COLORS.primary}
+                returnKeyType="search"
+                onSubmitEditing={() => Keyboard.dismiss()}
+              />
+              {searchText.length > 0 && (
+                <TouchableOpacity onPress={clearSearch} style={styles.clearIcon}>
+                  <Icon name="close" size={18} color="#64748B" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Dynamic Content Area */}
+        <View style={styles.contentArea}>
           {loading ? (
-            <InlineLoading visible />
+            <View style={styles.fullCenter}>
+              <InlineLoading visible />
+              <Text style={styles.mutedLabel}>Looking for results...</Text>
+            </View>
           ) : error ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-              <Text style={{ fontSize: 16, color: COLORS.muted, textAlign: 'center' }}>
-                {error}
-              </Text>
-              <TouchableOpacity
-                style={{
-                  marginTop: 16,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  backgroundColor: COLORS.primary,
-                  borderRadius: 8,
-                }}
-                onPress={() => setSearchText('')}>
-                <Text style={{ color: 'white', fontWeight: '800' }}>Clear Search</Text>
+            <View style={styles.fullCenter}>
+              <View style={styles.errorCircle}>
+                <Icon name="wifi-off" size={40} color="#F87171" />
+              </View>
+              <Text style={styles.errorMsg}>{error}</Text>
+              <TouchableOpacity style={styles.actBtn} onPress={() => fetchProducts(searchText)}>
+                <Text style={styles.actBtnText}>Retry</Text>
               </TouchableOpacity>
             </View>
           ) : products.length === 0 ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+            <ScrollView 
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               {searchText.trim() === '' ? (
-                <>
-                  <Icon name="search" size={80} color={COLORS.muted} />
-                  <Text style={{ fontSize: 24, fontWeight: '800', color: COLORS.textPrimary, marginTop: 24, textAlign: 'center' }}>
-                    Search Your Favorite Products
-                  </Text>
-                  <Text style={{ fontSize: 16, color: COLORS.muted, textAlign: 'center', marginTop: 8, lineHeight: 22 }}>
-                    Discover fresh chicken, mutton, fish, and more. Start typing to explore!
-                  </Text>
-                </>
+                <View style={styles.introBox}>
+                  <View style={styles.heroDeco}>
+                        <Icon name="set-meal" size={50} color={COLORS.primary} />
+                  </View>
+                  <Text style={styles.introTitle}>Craving something fresh?</Text>
+                  <Text style={styles.introSub}>Search and order premium quality meat delivered in 30 mins.</Text>
+                  
+                  <View style={styles.trendingSection}>
+                    <Text style={styles.sectionHeading}>Trending Searches</Text>
+                    <View style={styles.trendingGrid}>
+                      {[
+                        { id: '1', name: 'Chicken', icon: 'restaurant' },
+                        { id: '2', name: 'Fish', icon: 'water' },
+                        { id: '3', name: 'Mutton', icon: 'outdoor-grill' },
+                        { id: '4', name: 'Eggs', icon: 'egg' },
+                      ].map(item => (
+                        <TouchableOpacity 
+                          key={item.id} 
+                          style={styles.trendChip}
+                          onPress={() => setSearchText(item.name)}
+                        >
+                          <Icon name={item.icon} size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+                          <Text style={styles.trendText}>{item.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.emptyIllustrationSpace} />
+                </View>
               ) : (
-                <>
-                  <Icon name="search-off" size={64} color={COLORS.muted} />
-                  <Text style={{ fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, marginTop: 16 }}>
-                    No products found
-                  </Text>
-                  <Text style={{ fontSize: 14, color: COLORS.muted, textAlign: 'center', marginTop: 8 }}>
-                    Try searching for something else
-                  </Text>
-                </>
+                <View style={styles.fullCenter}>
+                  <Icon name="sentiment-dissatisfied" size={70} color="#CBD5E1" />
+                  <Text style={styles.emptyHead}>No matches found</Text>
+                  <Text style={styles.emptySide}>We couldn't find "{searchText}". Please try another keyword.</Text>
+                  <TouchableOpacity style={styles.ghostBtn} onPress={clearSearch}>
+                    <Text style={styles.ghostBtnText}>Clear Search</Text>
+                  </TouchableOpacity>
+                </View>
               )}
-            </View>
+            </ScrollView>
           ) : (
             <FlatList
               data={products}
               renderItem={renderProductItem}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
+              contentContainerStyle={styles.itemList}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             />
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
+  topSection: {
+    backgroundColor: '#F8FAFC',
+  },
+  headerGrad: {
+    paddingTop: 12,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  circleBack: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navTitle: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: '800',
+    marginLeft: 16,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 18,
+    height: 56,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  inputField: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1E293B',
+    paddingLeft: 12,
+    fontWeight: '600',
+  },
+  clearIcon: {
+    padding: 4,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+  },
+  contentArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    marginTop: -10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    zIndex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 30,
+    paddingBottom: 50,
+  },
+  itemList: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  productCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    marginBottom: 16,
+    flexDirection: 'row',
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  productImage: {
+    width: 95,
+    height: 95,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+  },
+  promoBadge: {
+    position: 'absolute',
+    top: -6,
+    left: -6,
+    backgroundColor: '#E11D48',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'white',
+  },
+  promoText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  productDetails: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  itemName: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  itemMeta: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 3,
+    fontWeight: '500',
+  },
+  priceActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  priceTag: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+  oldPrice: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+    fontWeight: '600',
+  },
+  addBtnSmall: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+  },
+  addBtnText: {
+    color: COLORS.primary,
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  fullCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  introBox: {
+    alignItems: 'center',
+  },
+  heroDeco: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  introTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1E293B',
+    textAlign: 'center',
+  },
+  introSub: {
+    fontSize: 15,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 20,
+    lineHeight: 22,
+  },
+  trendingSection: {
+    marginTop: 40,
+    width: '100%',
+  },
+  sectionHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 16,
+  },
+  trendingGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  trendChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  trendText: {
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  emptyIllustrationSpace: {
+    height: 100,
+  },
+  emptyHead: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 20,
+  },
+  emptySide: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 40,
+  },
+  ghostBtn: {
+    marginTop: 24,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+  },
+  ghostBtnText: {
+    color: COLORS.primary,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  mutedLabel: {
+    marginTop: 16,
+    color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  errorCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF1F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  errorMsg: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  actBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 30,
+    paddingVertical: 14,
+    borderRadius: 16,
+  },
+  actBtnText: {
+    color: 'white',
+    fontWeight: '800',
+    fontSize: 16,  }
+});
 
 export default SearchScreen;

@@ -230,6 +230,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 style={styles.searchBar}
                 onPress={handleSearchPress}
                 activeOpacity={0.9}
+                onPressIn={() => navigation.navigate("Search")}
               >
                 <Icon
                   name="search"
