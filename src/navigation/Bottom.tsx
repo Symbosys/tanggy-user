@@ -1,4 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Animated, Platform, StyleSheet, Text, Linking, Image, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -52,12 +53,32 @@ const BottomTab = () => {
 
 // Helper component to keep your exact icon logic
 const TabItem = ({ name, icon, isLottie }: any) => {
-  // Use navigation hook to check active state
-  // In a real app, you'd use useNavigationState to get 'focused'
-  const focused = false; // Logic placeholder
+  const navigation = useNavigation<any>();
+
+  // Correctly identify if this tab is focused by checking the nested navigation state
+  const focused = useNavigationState((state: any) => {
+    // Find the BottomTab route in the stack
+    const bottomTabRoute = state.routes.find((r: any) => r.name === 'BottomTab');
+    
+    if (bottomTabRoute) {
+      const nestedState = bottomTabRoute.state;
+      if (nestedState) {
+        // Find the active route name inside the Tab Navigator
+        const activeTabName = nestedState.routes[nestedState.index].name;
+        return activeTabName === name;
+      }
+      // Fallback for initial render before state is populated
+      return name === 'Home' && state.routes[state.index].name === 'BottomTab';
+    }
+    return false;
+  });
 
   return (
-    <TouchableOpacity style={styles.iconContainer}>
+    <TouchableOpacity
+      style={styles.iconContainer}
+      onPress={() => navigation.navigate('BottomTab', { screen: name })}
+      activeOpacity={0.7}
+    >
       {isLottie ? (
         <LottieView
           source={require('../assets/lottie/Discount.json')}

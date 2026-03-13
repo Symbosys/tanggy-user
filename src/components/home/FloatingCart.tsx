@@ -32,7 +32,7 @@ export default function FloatingCart({
 
     // Calculate bottom position based on whether there's a tab bar
     const bottomPosition = hasBottomTab
-        ? BOTTOM_TAB_HEIGHT + 10 // Above tab bar with small gap
+        ? BOTTOM_TAB_HEIGHT + 25 // Above tab bar with small gap
         : Math.max(insets.bottom, 12) + 8; // Above safe area with small gap
 
     // Toggle slide animation
