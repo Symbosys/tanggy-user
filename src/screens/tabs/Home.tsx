@@ -247,12 +247,24 @@ export default function HomeScreen({ navigation }: AppNavigation) {
 
           {/* Banner/Header Image Section */}
           <View style={styles.bannerSection}>
-            <ImageBackground
-              source={require('../../assets/hero/Welcome.png')}
-              style={styles.bannerImage}
-              imageStyle={{ borderRadius: 16 }}
-              resizeMode="cover"
-            />
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => {
+                const curryCutCategory = category.find(c => c.name.toLowerCase().includes('curry cut'));
+                navigation.navigate('CategoryResults', {
+                  categoryId: curryCutCategory?.id,
+                  categoryName: curryCutCategory?.name || 'Curry Cuts',
+                  search: 'Curry Cut'
+                });
+              }}
+            >
+              <ImageBackground
+                source={require('../../assets/hero/Welcome.png')}
+                style={styles.bannerImage}
+                imageStyle={{ borderRadius: 16 }}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
           </View>
 
           {/* Main Content */}

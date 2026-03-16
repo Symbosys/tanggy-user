@@ -37,7 +37,7 @@ export type RootStackParamList = {
   PaymentMethod: undefined;
 
   ProductDetails: { product: Product };
-  CategoryResults: { categoryId?: string; categoryName: string };
+  CategoryResults: { categoryId?: string; categoryName: string; search?: string };
 
   // User Profile
   Wallet: undefined;

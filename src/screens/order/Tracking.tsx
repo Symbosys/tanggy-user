@@ -76,11 +76,22 @@ const BANNER_DATA: BannerItem[] = [
 ];
 
 // --- ORDER ITEMS DATA ---
-const ORDER_IMAGES = [
-  'https://cdn.grofers.com/app/images/products/normal/pro_384788.jpg',
-  'https://cdn.grofers.com/app/images/products/normal/pro_392767.jpg',
-  'https://cdn.grofers.com/app/images/products/normal/pro_404832.jpg',
-  'https://cdn.grofers.com/app/images/products/normal/pro_479860.jpg',
+const ORDER_ITEMS = [
+  {
+    name: 'Chicken Curry Cut',
+    image: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?q=80&w=200&auto=format&fit=crop',
+    weight: '500 g'
+  },
+  {
+    name: 'Premium Mutton',
+    image: 'https://images.unsplash.com/photo-1717980651515-7796a793002f?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bXV0dG9ufGVufDB8fDB8fHww',
+    weight: '500 g'
+  },
+  {
+    name: 'Fresh Rohu Fish',
+    image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?q=80&w=200&auto=format&fit=crop',
+    weight: '500 g'
+  }
 ];
 
 // --- TIP AMOUNTS ---
@@ -539,17 +550,16 @@ const BlinkitFinalClone = ({ navigation }: any) => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 16 }}
             >
-              {ORDER_IMAGES.map((img, index) => (
+              {ORDER_ITEMS.map((item, index) => (
                 <View key={index} style={styles.scrollableItemContainer}>
-                  <Image source={{ uri: img }} style={styles.itemImage} />
+                  <Image source={{ uri: item.image }} style={styles.itemImage} />
                   <View style={styles.qtyBadge}>
                     <Text style={styles.qtyText}>1</Text>
                   </View>
+                  <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.itemWeight}>{item.weight}</Text>
                 </View>
               ))}
-              <TouchableOpacity style={styles.seeMoreContainer}>
-                <Text style={styles.seeMoreText}>+2</Text>
-              </TouchableOpacity>
             </ScrollView>
           </View>
 
@@ -878,11 +888,13 @@ const styles = StyleSheet.create({
   viewSummary: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
 
   // --- STYLES FOR ORDER ITEMS SCROLL ---
-  scrollableItemContainer: { marginRight: 12, position: 'relative' },
-  itemImage: { width: 60, height: 60, borderRadius: 8, borderWidth: 1, borderColor: '#f0f0f0' },
-  qtyBadge: { position: 'absolute', bottom: -5, right: -5, backgroundColor: COLORS.white, paddingHorizontal: 6, borderRadius: 10, borderWidth: 1, borderColor: '#eee', elevation: 2 },
+  scrollableItemContainer: { marginRight: 16, position: 'relative', width: 80, alignItems: 'center' },
+  itemImage: { width: 70, height: 70, borderRadius: 12, borderWidth: 1, borderColor: '#f0f0f0' },
+  qtyBadge: { position: 'absolute', top: 0, right: 0, backgroundColor: COLORS.white, paddingHorizontal: 6, borderRadius: 10, borderWidth: 1, borderColor: '#eee', elevation: 2, zIndex: 1 },
   qtyText: { fontSize: 10, fontWeight: 'bold', color: COLORS.primary },
-  seeMoreContainer: { width: 60, height: 60, borderRadius: 8, backgroundColor: '#f9f9f9', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
+  itemName: { fontSize: 11, fontWeight: '600', color: COLORS.text, marginTop: 6, textAlign: 'center' },
+  itemWeight: { fontSize: 10, color: COLORS.gray, marginTop: 2 },
+  seeMoreContainer: { width: 70, height: 70, borderRadius: 12, backgroundColor: '#f9f9f9', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
   seeMoreText: { fontSize: 16, fontWeight: 'bold', color: COLORS.gray },
 
   // --- STYLES FOR INSTRUCTIONS ---

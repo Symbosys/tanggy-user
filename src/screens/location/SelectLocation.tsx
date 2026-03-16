@@ -36,6 +36,14 @@ const SelectLocation: React.FC<AppNavigation> = ({ navigation }) => {
         navigation.navigate('select_your_location');
     };
 
+    const handleAddAddress = () => {
+        if (isAuthenticated) {
+            navigation.navigate('AddAddress');
+        } else {
+            navigation.navigate('Login');
+        }
+    };
+
     const handleSelectAddress = (address: Address) => {
         const lat = address.latitude;
         const lng = address.longitude;
@@ -120,6 +128,21 @@ const SelectLocation: React.FC<AppNavigation> = ({ navigation }) => {
                                 </View>
                                 <MaterialIcons name="chevron-right" size={24} color={COLORS.primary} />
                             </LinearGradient>
+                        </TouchableOpacity>
+
+                        {/* Add New Address Button */}
+                        <TouchableOpacity
+                            style={styles.addAddressCardHeader}
+                            onPress={handleAddAddress}
+                            activeOpacity={0.8}
+                        >
+                            <View style={styles.addAddressIconHeader}>
+                                <MaterialIcons name="add" size={24} color={COLORS.primary} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.addAddressTextHeader}>Add New Address</Text>
+                            </View>
+                            <MaterialIcons name="chevron-right" size={24} color={COLORS.primary} />
                         </TouchableOpacity>
 
                         {/* Section Title */}
@@ -250,6 +273,36 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: COLORS.textSecondary,
         marginTop: 2,
+    },
+    addAddressCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.white,
+        marginHorizontal: 16,
+        marginBottom: 24,
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: `${COLORS.primary}20`,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    addAddressIconHeader: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: `${COLORS.primary}10`,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
+    addAddressTextHeader: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: COLORS.primary,
     },
     sectionTitle: {
         fontSize: 12,

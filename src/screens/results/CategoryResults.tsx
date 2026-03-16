@@ -193,12 +193,12 @@ const ProductCard = ({
 
 const CategoryResults = ({ navigation }: AppNavigation) => {
     const route = useRoute();
-    const { categoryId, categoryName = 'Products' } = (route.params as any) || {};
+    const { categoryId, categoryName = 'Products', search: initialSearch } = (route.params as any) || {};
 
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(initialSearch || '');
     const [loading, setLoading] = useState(true);
     const [favorites, setFavorites] = useState<Set<string>>(new Set());
     const [isBestSeller] = useState(categoryName === 'Bestsellers');
@@ -231,7 +231,8 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
 
     // Fetch products on category/subcategory change
     const fetchProducts = useCallback(async () => {
-        const hasCategoryOrSpecial = categoryId || isBestSeller || isRecommended;
+        const searchStr = searchQuery.trim();
+        const hasCategoryOrSpecial = categoryId || isBestSeller || isRecommended || searchStr;
         if (!hasCategoryOrSpecial) {
             setLoading(false);
             return;
@@ -437,9 +438,9 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
                 contentContainerStyle={styles.scrollContent}
                 columnWrapperStyle={styles.columnWrapper}
                 showsVerticalScrollIndicator={false}
-                ListHeaderComponent={renderHeader}
-                ListFooterComponent={renderFooter}
-                ListEmptyComponent={renderEmpty}
+                ListHeaderComponent={renderHeader()}
+                ListFooterComponent={renderFooter()}
+                ListEmptyComponent={renderEmpty()}
                 initialNumToRender={6}
                 maxToRenderPerBatch={6}
                 windowSize={5}
