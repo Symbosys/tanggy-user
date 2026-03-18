@@ -46,7 +46,7 @@ export default function StackNavigation() {
   return (
     <NavigationContainer ref={navigationRef} linking={deeplink}>
       <Stack.Navigator
-        // initialRouteName='Wallet'
+        // initialRouteName='Otp'
 
         screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={Splash} />

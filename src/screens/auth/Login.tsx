@@ -28,9 +28,7 @@ import { COLORS } from '../../theme/theme';
 const { width, height } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }: AppNavigation) => {
-  // 1. Get notch height to fix overlapping issues
   const insets = useSafeAreaInsets();
-
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
@@ -69,7 +67,7 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
         }),
       ]).start();
     }
-  }, [showPhoneModal, slideAnim, backdropAnim]);
+  }, [showPhoneModal]);
 
   const handleCloseModal = () => {
     Keyboard.dismiss();
@@ -102,33 +100,20 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <>
+      <StatusBar barStyle="light-content" translucent backgroundColor="#9235D0" />
 
-      <View style={styles.container}>
-        {/* Main Screen Skip Button */}
-        {/* <TouchableOpacity
-          onPress={async () => {
-            await skipLogin();
-            navigation.reset({ index: 0, routes: [{ name: 'BottomTab' }] });
-          }}
-          style={styles.skipButton}>
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity> */}
-
-        {/* Top Section with Logo */}
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        {/* Top full-bleed logo section – ignores safe area for max height */}
         <View style={styles.topSection}>
-          <View style={styles.illustrationContainer}>
-            <Image
-              source={require('../../assets/logo/LOGO.png')}
-              style={styles.illustration}
-              resizeMode="contain"
-            />
-          </View>
-          <Text style={styles.tagline}>Quick & fresh.</Text>
+          <Image
+            source={require('../../assets/logo/LOGO.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
-        {/* Bottom White Section */}
+        {/* Bottom section starts right after */}
         <View style={styles.bottomSection}>
           <TouchableOpacity style={styles.primaryButton} onPress={handleOpenModal}>
             <Text style={styles.primaryButtonText}>Log in with phone number</Text>
@@ -137,21 +122,31 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
           <View style={styles.termsContainer}>
             <Text style={styles.termsText}>
               By tapping, I accept the{' '}
-              <Text style={styles.termsLink}>terms of service</Text>
+              <Text
+                style={styles.termsLink}
+                onPress={() => navigation.navigate('TermsAndConditions')}
+              >
+                terms of service
+              </Text>
               {' & '}
-              <Text style={styles.termsLink}>privacy policy</Text>
+              <Text
+                style={styles.termsLink}
+                onPress={() => navigation.navigate('PrivacyPolicy')}
+              >
+                privacy policy
+              </Text>
             </Text>
           </View>
         </View>
 
-        {/* Phone Number Modal */}
+        {/* Modal */}
         <Modal
           visible={showPhoneModal}
           transparent
           animationType="none"
           statusBarTranslucent
-          onRequestClose={handleCloseModal}>
-
+          onRequestClose={handleCloseModal}
+        >
           <View style={styles.modalContainer}>
             <TouchableWithoutFeedback onPress={handleCloseModal}>
               <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]} />
@@ -161,44 +156,35 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
               style={[
                 styles.modalContent,
                 { transform: [{ translateY: slideAnim }] },
-              ]}>
-
-              {/* Header: Green part */}
+              ]}
+            >
               <View
                 style={[
                   styles.modalHeader,
-                  // DYNAMIC PADDING: Pushes content down below the notch
-                  { paddingTop: insets.top + 20, paddingBottom: 30 }
+                  { paddingTop: insets.top + 20, paddingBottom: 30 },
                 ]}
               >
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   onPress={async () => {
                     await skipLogin();
                     handleCloseModal();
                     navigation.reset({ index: 0, routes: [{ name: 'BottomTab' }] });
                   }}
-                  // DYNAMIC POSITION: Ensures button is never covered by status bar
-                  style={[styles.skipButtonModal, { top: insets.top + 12 }]}>
+                  style={[styles.skipButtonModal, { top: insets.top + 12 }]}
+                >
                   <Text style={styles.skipText}>Skip</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <Text style={styles.brandName}>Minta Fresh</Text>
                 <Text style={styles.brandTagline}>Great taste delivered at lowest rate</Text>
               </View>
 
-              {/* White Body */}
               <View style={styles.modalBody}>
-                {/* KEYBOARD HANDLING:
-                   Only wraps the body. This ensures the Header stays pinned at the top 
-                   while the bottom buttons move up with the keyboard.
-                */}
                 <KeyboardAvoidingView
                   behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                   style={{ flex: 1 }}
                 >
                   <View style={{ flex: 1, justifyContent: 'space-between' }}>
-
-                    {/* TOP CONTENT: Input & Title */}
                     <View style={styles.topContentWrapper}>
                       <Text style={styles.modalTitle}>
                         Enter your mobile number to manage orders
@@ -231,7 +217,6 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
                       </View>
                     </View>
 
-                    {/* BOTTOM CONTENT: Buttons */}
                     <View style={styles.modalFooter}>
                       <TouchableOpacity
                         style={[
@@ -239,12 +224,14 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
                           (phoneNumber.length < 10 || loading) && styles.continueButtonDisabled,
                         ]}
                         onPress={handleLogin}
-                        disabled={phoneNumber.length < 10 || loading}>
+                        disabled={phoneNumber.length < 10 || loading}
+                      >
                         <Text
                           style={[
                             styles.continueButtonText,
                             phoneNumber.length < 10 && styles.continueButtonTextDisabled,
-                          ]}>
+                          ]}
+                        >
                           {loading ? 'Continue...' : 'Continue'}
                         </Text>
                       </TouchableOpacity>
@@ -252,13 +239,28 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
                       <View style={styles.modalTermsContainer}>
                         <Text style={styles.modalTermsText}>
                           I accept the{' '}
-                          <Text style={styles.modalTermsLink}>terms of service</Text>
+                          <Text
+                            style={styles.modalTermsLink}
+                            onPress={() => {
+                              handleCloseModal();
+                              navigation.navigate('TermsAndConditions');
+                            }}
+                          >
+                            terms of service
+                          </Text>
                           {' & '}
-                          <Text style={styles.modalTermsLink}>privacy policy</Text>
+                          <Text
+                            style={styles.modalTermsLink}
+                            onPress={() => {
+                              handleCloseModal();
+                              navigation.navigate('PrivacyPolicy');
+                            }}
+                          >
+                            privacy policy
+                          </Text>
                         </Text>
                       </View>
                     </View>
-
                   </View>
                 </KeyboardAvoidingView>
               </View>
@@ -266,51 +268,86 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
           </View>
         </Modal>
       </View>
-    </SafeAreaView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.secondary },
-  container: { flex: 1, backgroundColor: COLORS.secondary },
-  skipButton: {
-    position: 'absolute', top: 10, right: 10, backgroundColor: COLORS.textPrimary,
-    paddingHorizontal: 14, paddingVertical: 5, borderRadius: 25, zIndex: 10,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.secondary,
   },
-  skipText: { color: COLORS.white, fontSize: 16, fontWeight: '600' },
-  topSection: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 40 },
-  tagline: { fontSize: 26, color: COLORS.textPrimary, fontWeight: '600', marginBottom: 40, textAlign: 'center' },
-  illustrationContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', width },
-  illustration: { width: width * 0.8, height: height * 0.4 },
-  bottomSection: { backgroundColor: COLORS.white, paddingHorizontal: 24, paddingTop: 50, paddingBottom: 40 },
-  primaryButton: {
-    backgroundColor: COLORS.primary, paddingVertical: 18, borderRadius: 30,
-    alignItems: 'center', marginBottom: 20,
-    shadowColor: COLORS.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4,
-  },
-  primaryButtonText: { color: COLORS.white, fontSize: 18, fontWeight: '700' },
-  termsContainer: { alignItems: 'center', paddingHorizontal: 20 },
-  termsText: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
-  termsLink: { color: COLORS.textSecondary, textDecorationLine: 'underline', fontWeight: '600' },
 
-  // --- MODAL STYLES ---
+  topSection: {
+    flex: 1,
+    backgroundColor: "#fff",
+    position: 'relative',           // allows absolute children
+  },
+
+  logo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+
+  bottomSection: {
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 24,
+    paddingTop: 50,
+    paddingBottom: 40,
+  },
+
+  primaryButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 18,
+    borderRadius: 30,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: COLORS.textPrimary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  primaryButtonText: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  termsContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  termsText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
+    fontWeight: '600',
+  },
+
+  // Modal styles (unchanged)
   modalContainer: { flex: 1 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.5)' },
-
   modalContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: '100%', // Takes full screen but respects safe areas
+    height: '100%',
     backgroundColor: 'transparent',
   },
-
   modalHeader: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: 20,
     alignItems: 'center',
-    // Padding Top/Bottom are handled dynamically in component style
   },
   skipButtonModal: {
     position: 'absolute',
@@ -320,13 +357,27 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     zIndex: 10,
-    // Top is handled dynamically in component style
   },
-  brandName: { fontSize: 32, fontWeight: '800', color: COLORS.white, fontStyle: 'italic', marginTop: 10 },
-  brandTagline: { fontSize: 14, color: '#90EE90', marginTop: 8, fontWeight: '800' },
-
+  skipText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  brandName: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: COLORS.white,
+    fontStyle: 'italic',
+    marginTop: 10,
+  },
+  brandTagline: {
+    fontSize: 14,
+    color: '#90EE90',
+    marginTop: 8,
+    fontWeight: '800',
+  },
   modalBody: {
-    flex: 1, // Fills remaining space
+    flex: 1,
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -334,33 +385,99 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 30,
   },
-  topContentWrapper: {
-    // Top content wrapper
+  topContentWrapper: {},
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 24,
+    lineHeight: 30,
   },
-  modalTitle: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 24, lineHeight: 30 },
-  inputContainer: { marginBottom: 20 },
+  inputContainer: {
+    marginBottom: 20,
+  },
   inputLabel: {
-    fontSize: 12, fontWeight: '500', color: COLORS.textSecondary, marginBottom: -8,
-    marginLeft: 16, backgroundColor: COLORS.white, paddingHorizontal: 6, alignSelf: 'flex-start', zIndex: 1,
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.textSecondary,
+    marginBottom: -8,
+    marginLeft: 16,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 6,
+    alignSelf: 'flex-start',
+    zIndex: 1,
   },
   phoneInputWrapper: {
-    flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: COLORS.primary,
-    borderRadius: 30, paddingHorizontal: 16, paddingVertical: 14, marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: 30,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 4,
   },
-  countryCodeContainer: { flexDirection: 'row', alignItems: 'center' },
+  countryCodeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   flagEmoji: { fontSize: 18, marginRight: 6 },
-  countryCode: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary, marginRight: 2 },
-  divider: { width: 1, height: 24, backgroundColor: COLORS.textPrimary, marginHorizontal: 12 },
-  phoneInput: { flex: 1, fontSize: 16, color: COLORS.textPrimary, padding: 0, fontWeight: '500' },
-
-  modalFooter: { paddingBottom: 20 },
-  continueButton: { backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginBottom: 16 },
-  continueButtonDisabled: { backgroundColor: COLORS.muted },
-  continueButtonText: { color: COLORS.white, fontSize: 16, fontWeight: '600' },
-  continueButtonTextDisabled: { color: COLORS.white, opacity: 0.7 },
-  modalTermsContainer: { alignItems: 'center', paddingHorizontal: 20 },
-  modalTermsText: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
-  modalTermsLink: { color: COLORS.textSecondary, textDecorationLine: 'underline', fontWeight: '600' },
+  countryCode: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginRight: 2,
+  },
+  divider: {
+    width: 1,
+    height: 24,
+    backgroundColor: COLORS.textPrimary,
+    marginHorizontal: 12,
+  },
+  phoneInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    padding: 0,
+    fontWeight: '500',
+  },
+  modalFooter: {
+    paddingBottom: 20,
+  },
+  continueButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 16,
+    borderRadius: 30,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  continueButtonDisabled: {
+    backgroundColor: COLORS.muted,
+  },
+  continueButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  continueButtonTextDisabled: {
+    color: COLORS.white,
+    opacity: 0.7,
+  },
+  modalTermsContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalTermsText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  modalTermsLink: {
+    color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
+    fontWeight: '600',
+  },
 });
 
 export default LoginScreen;
