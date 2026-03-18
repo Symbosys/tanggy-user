@@ -100,10 +100,11 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
   };
 
   return (
-    <>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="#9235D0" />
 
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* FIXED: Added flex: 1 here so the top section can expand */}
+      <View style={[{ paddingTop: insets.top, flex: 1 }]}>
         {/* Top full-bleed logo section – ignores safe area for max height */}
         <View style={styles.topSection}>
           <Image
@@ -268,20 +269,20 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
           </View>
         </Modal>
       </View>
-    </>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: "#fff",
   },
 
   topSection: {
     flex: 1,
     backgroundColor: "#fff",
-    position: 'relative',           // allows absolute children
+    position: 'relative',           
   },
 
   logo: {
