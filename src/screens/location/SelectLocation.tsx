@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     View,
     ToastAndroid,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -22,7 +23,7 @@ import LinearGradient from 'react-native-linear-gradient';
 const { width } = Dimensions.get('window');
 
 const SelectLocation: React.FC<AppNavigation> = ({ navigation }) => {
-    const { addresses, loading, fetchAddresses } = useAddressStore();
+    const { addresses, loading, fetchAddresses, deleteAddress } = useAddressStore();
     const { setLocation, setPrimaryLocation, setSecondaryLocation } = useLocationStore();
     const { isAuthenticated } = useAuth();
 
@@ -62,6 +63,26 @@ const SelectLocation: React.FC<AppNavigation> = ({ navigation }) => {
         }
     };
 
+    const handleEditAddress = (id: number) => {
+        navigation.navigate('EditAddress', { id });
+    };
+
+    const handleDeleteAddress = (id: number) => {
+        Alert.alert(
+            'Delete Address',
+            'Are you sure you want to delete this address?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    onPress: () => deleteAddress(id),
+                    style: 'destructive',
+                },
+            ],
+            { cancelable: true }
+        );
+    };
+
     const renderAddressItem = ({ item }: { item: Address }) => {
         const icon = item.type === 'HOME' ? 'home' : item.type === 'WORK' ? 'work' : 'place';
 
@@ -80,7 +101,26 @@ const SelectLocation: React.FC<AppNavigation> = ({ navigation }) => {
                         {item.completeAddress}
                     </Text>
                 </View>
-                <MaterialIcons name="chevron-right" size={24} color={COLORS.muted} />
+                <View style={styles.actions}>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            handleEditAddress(item.id);
+                        }}
+                    >
+                        <MaterialIcons name="edit" size={20} color={COLORS.muted} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAddress(item.id);
+                        }}
+                    >
+                        <MaterialIcons name="delete" size={20} color={COLORS.highlight} />
+                    </TouchableOpacity>
+                </View>
             </TouchableOpacity>
         );
     };
@@ -339,6 +379,19 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: COLORS.textSecondary,
         lineHeight: 18,
+    },
+    actions: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    actionButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: '#F5F5F5',
     },
     loginCard: {
         backgroundColor: COLORS.white,

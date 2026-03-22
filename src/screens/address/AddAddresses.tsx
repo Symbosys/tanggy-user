@@ -585,6 +585,7 @@ function AddAddresses({ navigation }: AppNavigation) {
                             </View>
                             {/* Current Location Display */}
                             <View style={styles.currentAddressSection}>
+                                <Text style={styles.sectionLabel}>Main address (from map)</Text>
                                 <View style={styles.currentAddressContainer}>
                                     {addressLoading ? (
                                         <Text style={styles.currentAddress}>Loading...</Text>

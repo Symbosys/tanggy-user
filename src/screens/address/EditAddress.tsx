@@ -72,10 +72,11 @@ function EditAddress({ navigation }: AppNavigation) {
     const insets = useSafeAreaInsets();
     const [showBottomSheet, setShowBottomSheet] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
+    const [isEditingMainAddress, setIsEditingMainAddress] = useState(false);
+
 
     // Form States
     const [selectedTag, setSelectedTag] = useState('Home');
-    const [completeAddress, setCompleteAddress] = useState('');
     const [floor, setFloor] = useState('');
     const [landmark, setLandmark] = useState('');
     const [instructions, setInstructions] = useState('');
@@ -102,13 +103,13 @@ function EditAddress({ navigation }: AppNavigation) {
     const [showResults, setShowResults] = useState(false);
 
     const mapRef = useRef<MapView>(null);
+    const mainAddressInputRef = useRef<TextInput>(null);
 
     // Initialize with existing data
     useEffect(() => {
         if (addressToEdit) {
-            setCompleteAddress(addressToEdit.completeAddress || '');
             setFloor(addressToEdit.floor || '');
-            setLandmark(addressToEdit.landMark || ''); // Note: API usually returns landMark or landmark, check store type
+            setLandmark(addressToEdit.landMark || '');
             setInstructions(addressToEdit.instructions || '');
             setReceiverName(addressToEdit.receiverName || '');
             setReceiverContact(addressToEdit.receiverContact || '');
@@ -166,8 +167,14 @@ function EditAddress({ navigation }: AppNavigation) {
 
     const handleSearchPress = () => setShowSearchModal(true);
     const handleAddDetailsPress = () => setShowBottomSheet(true);
-    const handleChangePress = () => setShowBottomSheet(true);
-    const closeBottomSheet = () => setShowBottomSheet(false);
+    const handleChangePress = () => {
+        setShowBottomSheet(true);
+        setIsEditingMainAddress(true);
+    };
+    const closeBottomSheet = () => {
+        setShowBottomSheet(false);
+        setIsEditingMainAddress(false);
+    };
 
     const closeSearchModal = () => {
         setShowSearchModal(false);
@@ -337,28 +344,38 @@ function EditAddress({ navigation }: AppNavigation) {
     // Actually AddAddress updates 'currentAddress' on map move. We should probably do same.
     useEffect(() => {
         const updateAddr = async () => {
-            if (selectedCoords && !loadingLocation && !addressLoading) {
-                // If it's very close to original, maybe don't update? 
-                // Or just update.
+            if (selectedCoords && !loadingLocation) {
+                setAddressLoading(true);
                 try {
-                    // We don't want to spam API on every render, but onRegionChangeComplete handles the coords update
-                    // We can just fetch.
-                    // Skipping complex debouncing here for brevity, assuming standard usage
-
-                    // NOTE: We only want to reverse geocode if map was dragged, not on initial set.
-                    // But initial set sets selectedCoords. 
-                    // We can add a flag 'isInitialLoad'
-                } catch (e) { }
+                    const address = await getAddressFromCoords(
+                        selectedCoords.latitude,
+                        selectedCoords.longitude,
+                    );
+                    setCurrentAddress(address);
+                } catch (error) {
+                    console.error('Address update error:', error);
+                } finally {
+                    setAddressLoading(false);
+                }
             }
-        }
+        };
+        updateAddr();
     }, [selectedCoords]);
+
+    useEffect(() => {
+        if (showBottomSheet && isEditingMainAddress) {
+            const timer = setTimeout(() => {
+                mainAddressInputRef.current?.focus();
+            }, 0);
+            return () => clearTimeout(timer);
+        }
+    }, [showBottomSheet, isEditingMainAddress]);
 
 
     const tags = ['Home', 'Work', 'Other'];
     const isFormValid =
         receiverName.trim().length > 0 &&
         receiverContact.trim().length >= 10 &&
-        completeAddress.trim().length > 0 &&
         currentAddress.trim().length > 0;
 
     const Loader = () => <ActivityIndicator size="large" color={COLORS.primary} />;
@@ -447,7 +464,7 @@ function EditAddress({ navigation }: AppNavigation) {
                             <Text style={styles.closeButtonText}>✕</Text>
                         </TouchableOpacity>
                         <ScrollView style={styles.bottomSheetContent} showsVerticalScrollIndicator={false}>
-                            <Text style={styles.bottomSheetTitle}>Update complete address</Text>
+                            <Text style={styles.bottomSheetTitle}>Update address details</Text>
 
                             {/* Receiver */}
                             <View style={styles.receiverSection}>
@@ -492,16 +509,39 @@ function EditAddress({ navigation }: AppNavigation) {
                                 </ScrollView>
                             </View>
 
+                            {/* Current Location Display */}
+                            <View style={styles.currentAddressSection}>
+                                <Text style={styles.sectionLabel}>Main address (from map)</Text>
+                                <View style={styles.currentAddressContainer}>
+                                    {addressLoading ? (
+                                        <Text style={styles.currentAddress}>Loading...</Text>
+                                    ) : isEditingMainAddress ? (
+                                        <TextInput
+                                            ref={mainAddressInputRef}
+                                            style={styles.currentAddressInput}
+                                            placeholder="Enter address"
+                                            placeholderTextColor={COLORS.muted}
+                                            value={currentAddress}
+                                            onChangeText={setCurrentAddress}
+                                            multiline
+                                        />
+                                    ) : (
+                                        <Text style={styles.currentAddress}>{currentAddress}</Text>
+                                    )}
+                                    <TouchableOpacity
+                                        style={styles.changeButton}
+                                        onPress={() => setIsEditingMainAddress(true)}
+                                    >
+                                        <Text style={styles.changeButtonText}>Change</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <Text style={styles.mapPinNote}>
+                                    Updated based on your exact map pin
+                                </Text>
+                            </View>
+
                             {/* Address details */}
                             <View style={styles.formSection}>
-                                <TextInput
-                                    style={styles.textInput}
-                                    placeholder="Complete Address *"
-                                    value={completeAddress}
-                                    onChangeText={setCompleteAddress}
-                                    placeholderTextColor={COLORS.muted}
-                                    multiline
-                                />
                                 <TextInput
                                     style={styles.textInput}
                                     placeholder="Floor (Optional)"
@@ -548,7 +588,7 @@ function EditAddress({ navigation }: AppNavigation) {
                                         await updateAddress(id, {
                                             type: selectedTag.toUpperCase(),
                                             mainAddress: currentAddress || 'Unknown',
-                                            completeAddress,
+                                            completeAddress: currentAddress || 'Unknown',
                                             receiverName,
                                             receiverContact,
                                             landMark: landmark,
@@ -677,6 +717,45 @@ const styles = StyleSheet.create({
     tagButtonSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.secondary },
     tagText: { fontSize: 14, color: COLORS.muted },
     tagTextSelected: { color: COLORS.primary },
+    currentAddressSection: {
+        marginBottom: 24,
+    },
+    currentAddressContainer: {
+        backgroundColor: COLORS.secondary,
+        padding: 16,
+        borderRadius: 8,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    currentAddress: {
+        fontSize: 16,
+        color: COLORS.textSecondary,
+        flex: 1,
+    },
+    currentAddressInput: {
+        flex: 1,
+        fontSize: 16,
+        color: COLORS.textSecondary,
+        paddingVertical: 0,
+        paddingHorizontal: 0,
+        marginRight: 8,
+    },
+    changeButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: 'rgba(135,25,198,0.1)',
+        borderRadius: 20,
+    },
+    changeButtonText: {
+        color: COLORS.primary,
+        fontWeight: '600',
+    },
+    mapPinNote: {
+        fontSize: 12,
+        color: COLORS.muted,
+    },
     formSection: { marginBottom: 32 },
     textInput: { borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, marginBottom: 16, minHeight: 50 },
     confirmButton: { backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 8, alignItems: 'center', marginBottom: 32 },
