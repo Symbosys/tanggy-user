@@ -30,19 +30,10 @@ export const InlineLoading: React.FC<InlineLoadingProps> = ({
     if (!visible) return null;
 
     return (
-        <Modal
-            transparent
-            visible={visible}
-            animationType="fade"
-            statusBarTranslucent
-            presentationStyle="overFullScreen"
-            pointerEvents="none" // allow touches through
-        >
-            <View style={styles.container} pointerEvents="none">
-                <ActivityIndicator size={size} color={COLORS.primary} />
-                {message ? <Text style={styles.text}>{message}</Text> : null}
-            </View>
-        </Modal>
+        <View style={styles.container}>
+            <ActivityIndicator size={size} color={COLORS.primary} />
+            {message ? <Text style={styles.text}>{message}</Text> : null}
+        </View>
     );
 };
 
@@ -50,17 +41,14 @@ const { width, height } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        width,
-        height,
         justifyContent: "center",
         alignItems: "center",
-        // Perfect centering for both platforms
-        paddingBottom: Platform.OS === "android" ? 0 : 0,
+        paddingVertical: 20,
     },
     text: {
         marginTop: 12,
         fontSize: 14,
-        color: COLORS.textPrimary,
+        color: COLORS.primary,
+        fontWeight: '600',
     },
 });
