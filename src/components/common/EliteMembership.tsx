@@ -1,7 +1,7 @@
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 import { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Easing, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +9,11 @@ import { COLORS } from '../../theme/theme';
 import { RootStackParamList } from '../../types/type';
 
 const { width } = Dimensions.get('window');
+
+/**
+ * Bottom Tab Height from navigation
+ */
+const BOTTOM_TAB_HEIGHT = Platform.OS === 'ios' ? 85 : 70;
 
 /**
  * FloatingEliteMembership - Persistent floating button (Always Dark/Gold Luxury)
@@ -290,7 +295,7 @@ const styles = StyleSheet.create({
     // Floating Styles (Always Dark/Gold)
     outerContainer: {
         position: 'absolute',
-        bottom: 85,
+        bottom: BOTTOM_TAB_HEIGHT + 5,
         left: 20,
         right: 20,
         zIndex: 1000,

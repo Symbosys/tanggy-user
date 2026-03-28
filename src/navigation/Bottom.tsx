@@ -1,15 +1,13 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useNavigation, useNavigationState } from '@react-navigation/native';
-import { Animated, Platform, StyleSheet, Text, Linking, Image, View, TouchableOpacity, Keyboard } from 'react-native';
-import { useState, useEffect } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LottieView from 'lottie-react-native';
+import { useEffect, useState } from 'react';
+import { Keyboard, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import ProfileScreen from '../screens/tabs/Accounts';
 import CategoryScreen from '../screens/tabs/Category';
 import Discount from '../screens/tabs/Discount';
 import HomeScreen from '../screens/tabs/Home';
 import SearchScreen from '../screens/tabs/Search';
-import ProfileScreen from '../screens/tabs/Accounts';
 import { COLORS } from '../theme/theme';
 
 const Tab = createBottomTabNavigator();
