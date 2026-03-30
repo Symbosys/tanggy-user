@@ -39,6 +39,7 @@ import { deeplink } from './deeplink';
 import { navigationRef } from './NavigationService';
 import ProfileScreen from '../screens/tabs/Accounts';
 import SearchScreen from '../screens/tabs/Search';
+import Docs from '../screens/legal/Docs';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -89,6 +90,7 @@ export default function StackNavigation() {
         <Stack.Screen name='TermsAndConditions' component={TermsAndConditionsScreen} />
         <Stack.Screen name='PrivacyPolicy' component={PrivacyPolicyScreen} />
         <Stack.Screen name='RefundPolicy' component={RefundAndReturnPolicy} />
+        <Stack.Screen name="Docs" component={Docs} />
 
 
         {/* Help And Support */}

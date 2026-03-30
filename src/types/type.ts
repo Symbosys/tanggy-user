@@ -48,6 +48,7 @@ export type RootStackParamList = {
   TermsAndConditions: undefined;
   PrivacyPolicy: undefined;
   RefundPolicy: undefined;
+  Docs: { type: string };
 
 
   // Support

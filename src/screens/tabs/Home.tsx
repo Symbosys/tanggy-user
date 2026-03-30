@@ -2,7 +2,6 @@ import { AxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
-  ImageBackground,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -27,6 +26,7 @@ import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
 import { COLORS } from '../../theme/theme';
 import { Category, Product } from '../../types/product.type';
+import Offer from '../../components/home/Offer';
 import { AppNavigation } from '../../types/type';
 import { ErrorMessage } from '../../utils/utils';
 
@@ -216,7 +216,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
 
               <TouchableOpacity
                 style={styles.notificationButton}
-                onPress={() => {navigation.navigate('Profile')}}
+                onPress={() => { navigation.navigate('Profile') }}
                 activeOpacity={0.7}
               >
                 <Icon name="person" size={35} color={COLORS.textPrimary} />
@@ -245,27 +245,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             </View>
           </View>
 
-          {/* Banner/Header Image Section */}
-          <View style={styles.bannerSection}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => {
-                const curryCutCategory = category.find(c => c.name.toLowerCase().includes('curry cut'));
-                navigation.navigate('CategoryResults', {
-                  categoryId: curryCutCategory?.id,
-                  categoryName: curryCutCategory?.name || 'Curry Cuts',
-                  search: 'Curry Cut'
-                });
-              }}
-            >
-              <ImageBackground
-                source={require('../../assets/hero/Welcome.png')}
-                style={styles.bannerImage}
-                imageStyle={{ borderRadius: 16 }}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          </View>
+          <Offer category={category} navigation={navigation} />
 
           {/* Main Content */}
           <View style={styles.mainContent}>

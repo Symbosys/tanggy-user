@@ -25,6 +25,7 @@ type MenuItem = {
   label: string;
   subtitle?: string;
   route: string;
+  params?: any;
   color: string;
   bg: string;
 };
@@ -35,15 +36,15 @@ const MENU_SECTIONS: { title: string; items: MenuItem[] }[] = [
     items: [
       { icon: 'location-on', iconFamily: 'material', label: 'My Addresses', subtitle: 'Saved delivery addresses', route: 'Address', color: '#ea580c', bg: '#fff7ed' },
       { icon: 'delivery-dining', iconFamily: 'material', label: 'How to Track Order', subtitle: 'Track your delivery live', route: 'HowToTrackOrder', color: '#7c3aed', bg: '#f5f3ff' },
-      { icon: 'info-outline', iconFamily: 'material', label: 'About Us', subtitle: 'Know more about Minta Fresh', route: 'About', color: '#0891b2', bg: '#ecfeff' },
+      { icon: 'info-outline', iconFamily: 'material', label: 'About Us', subtitle: 'Know more about Minta Fresh', route: 'Docs', params: { type: 'ABOUT_US' }, color: '#0891b2', bg: '#ecfeff' },
     ],
   },
   {
     title: 'Legal',
     items: [
-      { icon: 'description', iconFamily: 'material', label: 'Terms & Conditions', route: 'TermsAndConditions', color: '#64748b', bg: '#f8fafc' },
-      { icon: 'shield', iconFamily: 'material', label: 'Privacy Policy', route: 'PrivacyPolicy', color: '#64748b', bg: '#f8fafc' },
-      { icon: 'gavel', iconFamily: 'material', label: 'Return & Refund Policy', route: 'RefundPolicy', color: '#64748b', bg: '#f8fafc' },
+      { icon: 'description', iconFamily: 'material', label: 'Terms & Conditions', route: 'Docs', params: { type: 'TERMS_AND_CONDITIONS' }, color: '#64748b', bg: '#f8fafc' },
+      { icon: 'shield', iconFamily: 'material', label: 'Privacy Policy', route: 'Docs', params: { type: 'PRIVACY_POLICY' }, color: '#64748b', bg: '#f8fafc' },
+      { icon: 'gavel', iconFamily: 'material', label: 'Return & Refund Policy', route: 'Docs', params: { type: 'REFUND_POLICY' }, color: '#64748b', bg: '#f8fafc' },
     ],
   },
 ];
@@ -83,12 +84,12 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
   };
 
   // ── Helper: Render a single menu row ──
-  const renderMenuItem = (item: MenuItem, isLast: boolean) => (
+  const renderMenuItem = (item: MenuItem, isLast: boolean, index: number) => (
     <TouchableOpacity
-      key={item.route}
+      key={`${item.route}-${index}`}
       activeOpacity={0.6}
       style={[styles.menuRow, !isLast && styles.menuRowBorder]}
-      onPress={() => navigation.navigate(item.route as any)}
+      onPress={() => navigation.navigate(item.route as any, item.params)}
     >
       <View style={[styles.menuIcon, { backgroundColor: item.bg }]}>
         {item.iconFamily === 'community' ? (
@@ -237,7 +238,7 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
             <Text style={styles.sectionTitle}>{section.title}</Text>
             <View style={styles.sectionCard}>
               {section.items.map((item, idx) =>
-                renderMenuItem(item, idx === section.items.length - 1)
+                renderMenuItem(item, idx === section.items.length - 1, idx)
               )}
             </View>
           </View>

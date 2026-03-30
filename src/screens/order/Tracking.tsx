@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,6 @@ import {
   Animated,
   StatusBar,
   TouchableOpacity,
-  FlatList,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
   ScrollView,
   Linking,
   Modal,
@@ -20,16 +17,12 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Ads from '../../components/order/Ads';
 
 // --- TYPES ---
 interface Coordinate {
   latitude: number;
   longitude: number;
-}
-
-interface BannerItem {
-  id: string;
-  image: string;
 }
 
 interface OrderOption {
@@ -68,13 +61,6 @@ const COORDINATES = {
   USER: { latitude: 23.4385, longitude: 85.328 } as Coordinate,
 };
 
-// --- BANNER DATA ---
-const BANNER_DATA: BannerItem[] = [
-  { id: '1', image: 'https://imgs.search.brave.com/zjheuudkVf3hS8K-sIylJ7ICB-uIyk2D8Ez9DKrW_rA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/dGhldGFrZW91dC5j/b20vaW1nL2dhbGxl/cnkvMTUtZGlzaGVz/LXByb2Zlc3Npb25h/bC1jaGVmcy1sb3Zl/LXRvLW9yZGVyLWF0/LXJlc3RhdXJhbnRz/L2ludHJvLTE3NTE2/MjI4NjQuanBn' },
-  { id: '2', image: 'https://imgs.search.brave.com/bEIQSFJXnP5-0x1ncP74Ky2pNqfnjWdyijZEn6ceH9w/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/dGhldGFrZW91dC5j/b20vaW1nL2dhbGxl/cnkvMTUtZGlzaGVz/LXByb2Zlc3Npb25h/bC1jaGVmcy1sb3Zl/LXRvLW9yZGVyLWF0/LXJlc3RhdXJhbnRz/L3Rhc3RpbmctbWVu/dXMtMTc1MTYyMjg4/NC5qcGc' },
-  { id: '3', image: 'https://imgs.search.brave.com/zjheuudkVf3hS8K-sIylJ7ICB-uIyk2D8Ez9DKrW_rA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/dGhldGFrZW91dC5j/b20vaW1nL2dhbGxl/cnkvMTUtZGlzaGVz/LXByb2Zlc3Npb25h/bC1jaGVmcy1sb3Zl/LXRvLW9yZGVyLWF0/LXJlc3RhdXJhbnRz/L2ludHJvLTE3NTE2/MjI4NjQuanBn' },
-];
-
 // --- ORDER ITEMS DATA ---
 const ORDER_ITEMS = [
   {
@@ -107,11 +93,7 @@ const BlinkitFinalClone = ({ navigation }: any) => {
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Typed Refs
-  const flatListRef = useRef<FlatList<BannerItem>>(null);
   const mainScrollViewRef = useRef<ScrollView>(null);
-
-  // State for Banner Pagination
-  const [activeIndex, setActiveIndex] = useState<number>(0);
 
   // --- NEW STATES ---
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
@@ -140,23 +122,6 @@ const BlinkitFinalClone = ({ navigation }: any) => {
     setSelectedOrderId(id);
     setSwitchModalVisible(false);
   };
-
-  // --- AUTO SCROLL LOGIC ---
-  useEffect(() => {
-    const interval = setInterval(() => {
-      let nextIndex = activeIndex + 1;
-      if (nextIndex >= BANNER_DATA.length) {
-        nextIndex = 0; // Loop back to start
-      }
-
-      flatListRef.current?.scrollToIndex({
-        index: nextIndex,
-        animated: true,
-      });
-    }, 3000); // 3 Seconds
-
-    return () => clearInterval(interval);
-  }, [activeIndex]);
 
   // --- ANIMATION CONFIGURATION ---
 
@@ -220,23 +185,6 @@ const BlinkitFinalClone = ({ navigation }: any) => {
     extrapolate: 'clamp',
   });
 
-  const renderBannerItem = ({ item }: { item: BannerItem }) => (
-    <View style={styles.bannerSlide}>
-      <Image
-        source={{ uri: item.image }}
-        style={styles.bannerImage}
-        resizeMode="cover"
-      />
-      <View style={styles.bannerOverlay} />
-    </View>
-  );
-
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const scrollPosition = event.nativeEvent.contentOffset.x;
-    const index = Math.round(scrollPosition / width);
-    setActiveIndex(index);
-  };
-
   const handleExpandMap = () => {
     // FIX: Scroll to 230 instead of 180
     (mainScrollViewRef.current as any)?.scrollTo({ y: EXPAND_SCROLL_Y, animated: true });
@@ -285,40 +233,9 @@ const BlinkitFinalClone = ({ navigation }: any) => {
           { useNativeDriver: false },
         )}
       >
-        {/* --- HEADER SLIDER ANIMATION --- */}
-        <View style={styles.carouselContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={BANNER_DATA}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            renderItem={renderBannerItem}
-            keyExtractor={(item) => item.id}
-            onScroll={handleScroll}
-            getItemLayout={(data, index) => ({
-              length: width,
-              offset: width * index,
-              index,
-            })}
-          />
-          <View style={styles.paginationContainer}>
-            {BANNER_DATA.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor: index === activeIndex ? COLORS.white : 'rgba(255,255,255,0.5)',
-                    width: index === activeIndex ? 20 : 8,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        </View>
+        <Ads />
 
-        {/* --- DYNAMIC MAP CARD --- */}
+        {/* --- DYNAMIC MAP Card --- */}
         <Animated.View
           style={[styles.dynamicCardContainer, { height: cardHeight }]}
         >
