@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { Dimensions, FlatList, ImageBackground, NativeSyntheticEvent, NativeScrollEvent, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Carousel from 'react-native-reanimated-carousel';
 import { AppNavigation } from '../../types/type';
 import { Category } from '../../types/product.type';
 import { useGetAllOffers } from '../../api/hooks/offer.hook';
@@ -17,12 +18,14 @@ interface BannerOffer {
     searchQuery?: string | null;
 }
 
-const { width } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Card dimensions for a professional rounded look with full-impact height
+const CARD_MARGIN = 16;
+const CARD_WIDTH = SCREEN_WIDTH - (CARD_MARGIN * 2);
+const BANNER_HEIGHT = 350; // Restore large immersive height
 
 const Offer = ({ category, navigation }: OfferProps) => {
     const { data: offers } = useGetAllOffers(true);
-    console.log('Offers:', offers);
-    const flatListRef = useRef<FlatList<BannerOffer>>(null);
     const [activeIndex, setActiveIndex] = useState<number>(0);
 
     const bannerOffers: BannerOffer[] = offers?.map((offer) => ({
@@ -41,21 +44,20 @@ const Offer = ({ category, navigation }: OfferProps) => {
     };
 
     const renderOfferItem = ({ item }: { item: BannerOffer }) => (
-        <TouchableOpacity style={{ width }} activeOpacity={0.9} onPress={() => handleTapOffer(item)}>
-            <ImageBackground
-                source={{ uri: item.image }}
-                style={[styles.bannerImage, { width }]}
-                imageStyle={{ borderRadius: 16 }}
-                resizeMode="cover"
-            />
-        </TouchableOpacity>
+        <View style={styles.cardWrapper}>
+            <TouchableOpacity 
+                style={styles.cardContainer} 
+                activeOpacity={0.9} 
+                onPress={() => handleTapOffer(item)}
+            >
+                <Image
+                    source={{ uri: item.image }}
+                    style={styles.bannerImage}
+                    resizeMode="cover"
+                />
+            </TouchableOpacity>
+        </View>
     );
-
-    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const scrollPosition = event.nativeEvent.contentOffset.x;
-        const index = Math.round(scrollPosition / width);
-        setActiveIndex(index);
-    };
 
     if (!bannerOffers.length) {
         const handleFallbackTap = () => {
@@ -68,12 +70,11 @@ const Offer = ({ category, navigation }: OfferProps) => {
         };
 
         return (
-            <View style={styles.bannerSection}>
-                <TouchableOpacity activeOpacity={0.9} onPress={handleFallbackTap}>
-                    <ImageBackground
+            <View style={styles.container}>
+                <TouchableOpacity activeOpacity={0.9} onPress={handleFallbackTap} style={styles.cardContainer}>
+                    <Image
                         source={require('../../assets/hero/Welcome.png')}
                         style={styles.bannerImage}
-                        imageStyle={{ borderRadius: 16 }}
                         resizeMode="cover"
                     />
                 </TouchableOpacity>
@@ -82,17 +83,17 @@ const Offer = ({ category, navigation }: OfferProps) => {
     }
 
     return (
-        <View style={styles.bannerSection}>
-            <FlatList
-                ref={flatListRef}
+        <View style={styles.container}>
+            <Carousel
+                loop
+                width={SCREEN_WIDTH}
+                height={BANNER_HEIGHT + 20}
+                autoPlay={true}
                 data={bannerOffers}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                renderItem={renderOfferItem}
-                keyExtractor={(item) => item.id}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
+                scrollAnimationDuration={800}
+                autoPlayInterval={3500}
+                onSnapToItem={(index) => setActiveIndex(index)}
+                renderItem={({ item }) => renderOfferItem({ item })}
             />
             {bannerOffers.length > 1 && (
                 <View style={styles.paginationContainer}>
@@ -102,8 +103,9 @@ const Offer = ({ category, navigation }: OfferProps) => {
                             style={[
                                 styles.dot,
                                 {
-                                    backgroundColor: index === activeIndex ? COLORS.white : 'rgba(255,255,255,0.5)',
-                                    width: index === activeIndex ? 20 : 8,
+                                    backgroundColor: index === activeIndex ? COLORS.primary : '#E0E0E0',
+                                    width: index === activeIndex ? 24 : 8,
+                                    opacity: index === activeIndex ? 1 : 0.5,
                                 },
                             ]}
                         />
@@ -115,26 +117,47 @@ const Offer = ({ category, navigation }: OfferProps) => {
 };
 
 const styles = StyleSheet.create({
-    bannerSection: {
-        paddingHorizontal: 16,
-        marginBottom: 24,
+    container: {
+        width: SCREEN_WIDTH,
+        alignItems: 'center',
+        marginVertical: 10,
+    },
+    cardWrapper: {
+        width: SCREEN_WIDTH,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cardContainer: {
+        width: CARD_WIDTH,
+        height: BANNER_HEIGHT,
+        borderRadius: 24, // High-end rounded corners
+        overflow: 'hidden',
+        backgroundColor: '#FFF',
+        // Sophisticated shadow for depth
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 8,
+        },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 8,
     },
     bannerImage: {
         width: '100%',
-        height: 350,
-        overflow: 'hidden',
+        height: '100%',
     },
     paginationContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 12,
+        position: 'absolute',
+        bottom: 24,
     },
     dot: {
-        height: 8,
-        borderRadius: 4,
+        height: 6,
+        borderRadius: 3,
         marginHorizontal: 4,
-        backgroundColor: 'rgba(255,255,255,0.5)',
     },
 });
 
