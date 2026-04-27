@@ -2,6 +2,9 @@ import { NavigationProp } from "@react-navigation/native";
 import { Product } from "./product.type";
 
 export type RootStackParamList = {
+
+  TestOrder: undefined;
+
   Splash: undefined;
   Login: undefined;
   Otp: { mobile: string };

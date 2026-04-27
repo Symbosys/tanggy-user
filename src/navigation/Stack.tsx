@@ -40,6 +40,7 @@ import { navigationRef } from './NavigationService';
 import ProfileScreen from '../screens/tabs/Accounts';
 import SearchScreen from '../screens/tabs/Search';
 import Docs from '../screens/legal/Docs';
+import TestOrder from '../screens/test-order/TestOrder';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -47,9 +48,9 @@ export default function StackNavigation() {
   return (
     <NavigationContainer ref={navigationRef} linking={deeplink}>
       <Stack.Navigator
-        // initialRouteName='Otp'
-
+        // initialRouteName='TestOrder'
         screenOptions={{ headerShown: false }}>
+        {/* <Stack.Screen name="TestOrder" component={TestOrder} /> */}
         <Stack.Screen name="Splash" component={Splash} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Otp" component={Otp} />
