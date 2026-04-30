@@ -1,4 +1,3 @@
-import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import GlobalAlert from '../components/alert/GlobalAlert';
 import AddAddresses from '../screens/address/AddAddresses';
@@ -10,6 +9,7 @@ import Otp from '../screens/auth/Otp';
 import CartScreen from '../screens/cart/Cart';
 import EliteMembershipScreen from '../screens/elite-membership/EliteMember';
 import AboutUs from '../screens/legal/About';
+import Docs from '../screens/legal/Docs';
 import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicy';
 import RefundAndReturnPolicy from '../screens/legal/ReturnRefundPolicy';
 import TermsAndConditionsScreen from '../screens/legal/TermsAndConditions';
@@ -32,25 +32,22 @@ import MyTicketsScreen from '../screens/support/Issues/MyTickets';
 import ReportProblemScreen from '../screens/support/Issues/ReportIssue';
 import TicketDetailsScreen from '../screens/support/Issues/TicketDetails';
 import TrackOrder from '../screens/support/TrackOrder';
+import ProfileScreen from '../screens/tabs/Accounts';
+import SearchScreen from '../screens/tabs/Search';
+import TestOrder from '../screens/test-order/TestOrder';
 import MyWalletScreen from '../screens/wallet/Wallet';
 import { RootStackParamList } from '../types/type';
 import BottomTab from './Bottom';
-import { deeplink } from './deeplink';
-import { navigationRef } from './NavigationService';
-import ProfileScreen from '../screens/tabs/Accounts';
-import SearchScreen from '../screens/tabs/Search';
-import Docs from '../screens/legal/Docs';
-import TestOrder from '../screens/test-order/TestOrder';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function StackNavigation() {
   return (
-    <NavigationContainer ref={navigationRef} linking={deeplink}>
+    <>
       <Stack.Navigator
-        // initialRouteName='TestOrder'
+        initialRouteName='TestOrder'
         screenOptions={{ headerShown: false }}>
-        {/* <Stack.Screen name="TestOrder" component={TestOrder} /> */}
+        <Stack.Screen name="TestOrder" component={TestOrder} />
         <Stack.Screen name="Splash" component={Splash} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Otp" component={Otp} />
@@ -104,6 +101,6 @@ export default function StackNavigation() {
       </Stack.Navigator>
 
       <GlobalAlert />
-    </NavigationContainer>
+    </>
   );
 }

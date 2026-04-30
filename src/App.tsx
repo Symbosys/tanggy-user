@@ -1,9 +1,12 @@
+import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ActivityIndicator, StatusBar, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './context/AuthContext';
+import { deeplink } from './navigation/deeplink';
+import { navigationRef } from './navigation/NavigationService';
 import StackNavigation from './navigation/Stack';
-import { StatusBar, useColorScheme } from 'react-native';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +30,17 @@ function App() {
         />
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <StackNavigation />
+            <NavigationContainer
+              ref={navigationRef}
+              linking={deeplink}
+              fallback={
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                  <ActivityIndicator size="large" color="#9235D0" />
+                </View>
+              }
+            >
+              <StackNavigation />
+            </NavigationContainer>
           </AuthProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
