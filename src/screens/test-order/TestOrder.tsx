@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -134,12 +133,12 @@ const PaymentScreen = () => {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={[styles.payButton, { marginTop: 20, backgroundColor: '#9235D0' }]}
         onPress={() => Linking.openURL('mintafresh://about')}
       >
         <Text style={styles.buttonText}>Redirect to About</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 };

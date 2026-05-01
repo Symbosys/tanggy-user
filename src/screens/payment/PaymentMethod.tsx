@@ -18,9 +18,17 @@ import { usePaymentStore, PaymentMethodType } from '../../store/payment';
 
 const PAYMENT_METHODS: PaymentMethodType[] = [
     {
+        id: 'phonepe',
+        name: 'PhonePe',
+        description: 'Pay securely with PhonePe UPI',
+        icon: 'payment',
+        isAvailable: true,
+        type: 'upi',
+    },
+    {
         id: '1',
         name: 'UPI',
-        description: 'Google Pay, PhonePe, Paytm, etc.',
+        description: 'Google Pay, Paytm, etc.',
         icon: 'account-balance-wallet',
         isAvailable: false,
         type: 'upi',

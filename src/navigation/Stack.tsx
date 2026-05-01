@@ -45,9 +45,9 @@ export default function StackNavigation() {
   return (
     <>
       <Stack.Navigator
-        initialRouteName='TestOrder'
+        // initialRouteName='TestOrder'
         screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="TestOrder" component={TestOrder} />
+        {/* <Stack.Screen name="TestOrder" component={TestOrder} /> */}
         <Stack.Screen name="Splash" component={Splash} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Otp" component={Otp} />

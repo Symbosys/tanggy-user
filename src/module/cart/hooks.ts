@@ -9,6 +9,10 @@ import { useAlertStore } from '../../store/alert.store';
 import { CartItem } from './types';
 import { RootStackParamList } from '../../types/type';
 import { NavigationProp } from '@react-navigation/native';
+import PhonePePaymentSDK from 'react-native-phonepe-pg';
+import { PHONEPE_CONFIG } from '../../constants/phonepay';
+import { Alert } from 'react-native';
+import api from '../../api/api';
 
 export const useCartInitialization = () => {
   const { fetchCart, cartItems, loading } = useCartStore();
@@ -151,7 +155,7 @@ export const useCartActions = () => {
 };
 
 export const useCheckoutLogic = () => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NavigationProp<RootStackParamList >>();
   const { cartItems } = useCartStore();
   const { addresses } = useAddressStore();
   const { selectedPaymentMethod } = usePaymentStore();
@@ -215,18 +219,80 @@ export const useCheckoutLogic = () => {
     
     // Check payment method type
     if (selectedPaymentMethod?.type === 'cod') {
-        // Direct order placement for Cash on Delivery
-        navigation.navigate('OrderPlaced');
-    } else {
-        // For UPI and others, use the payment handler
-        const paymentInitiated = await handlePaymentUtil(total.toString());
-        
-        if (paymentInitiated) {
-          // Wait a bit to ensure the payment app has time to open so the navigation doesn't feel simultaneous
-          setTimeout(() => {
-             navigation.navigate('OrderPlaced');
-          }, 3000);
+      // Direct order placement for Cash on Delivery
+      navigation.navigate('OrderPlaced');
+    } else if (selectedPaymentMethod?.id === 'phonepe') {
+      // PhonePe Payment Logic
+      try {
+        // 1. Initialize SDK
+        await PhonePePaymentSDK.init(
+          PHONEPE_CONFIG.ENVIRONMENT,
+          PHONEPE_CONFIG.MERCHANT_ID,
+          PHONEPE_CONFIG.FLOW_ID,
+          PHONEPE_CONFIG.ENABLE_LOGGING
+        );
+
+        // 2. Call Backend to Create Order
+        // Note: Amount is in Paise (INR * 100)
+        const response = await api.post('/order/phonepe/create-order', {
+          amount: Math.round(total * 100), // Convert to paise
+          userId: 'user_minta_fresh', // Placeholder as used before
+        });
+
+        const result = response.data;
+        const paymentData = result.data;
+
+        if (!result.success || !paymentData || !paymentData.token) {
+          throw new Error(result.message || 'Failed to get payment token');
         }
+
+        // 3. Prepare payload for SDK
+        const payload = {
+          merchantId: PHONEPE_CONFIG.MERCHANT_ID,
+          orderId: paymentData.merchantOrderId,
+          token: paymentData.token,
+          paymentMode: {
+            type: 'PAY_PAGE',
+          },
+        };
+
+        const requestBody = JSON.stringify(payload);
+
+        // 4. Start PhonePe Payment
+        const sdkResult = await PhonePePaymentSDK.startTransaction(
+          requestBody,
+          null
+        );
+
+        if (sdkResult?.status === 'SUCCESS') {
+          // Verify on backend
+          const verifyRes = await api.post('/order/phonepe/verify-payment', {
+            merchantOrderId: paymentData.merchantOrderId,
+          });
+          const verifyStatus = verifyRes.data;
+          if (verifyStatus.success) {
+            navigation.navigate('OrderPlaced');
+          } else {
+            Alert.alert('Payment Verification Failed', 'Please contact support if amount was deducted.');
+          }
+        } else if (sdkResult?.status === 'FAILED') {
+          Alert.alert('Payment Failed');
+        } else if (sdkResult?.status === 'CANCELLED') {
+          Alert.alert('Payment Cancelled');
+        }
+      } catch (error: any) {
+        Alert.alert('Payment Error', error.message || 'Something went wrong');
+      }
+    } else {
+      // For UPI and others, use the payment handler
+      const paymentInitiated = await handlePaymentUtil(total.toString());
+
+      if (paymentInitiated) {
+        // Wait a bit to ensure the payment app has time to open so the navigation doesn't feel simultaneous
+        setTimeout(() => {
+          navigation.navigate('OrderPlaced');
+        }, 3000);
+      }
     }
   }, [setShowCheckoutPopup, total, navigation, selectedPaymentMethod]);
 
