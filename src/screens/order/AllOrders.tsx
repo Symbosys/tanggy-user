@@ -187,9 +187,8 @@ export default function AllOrdersScreen() {
                             if ([OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REFUNDED].includes(item.status)) {
                                 handleReorder(item.items);
                             } else {
-                                // Track logic (already handles by onPress in touchable wrapper if needed, 
-                                // but here we specify for the button)
-                                navigation.navigate('AllOrders');
+                                // Track logic
+                                navigation.navigate('OrderTracking', { id: item.id });
                             }
                         }}
                     >

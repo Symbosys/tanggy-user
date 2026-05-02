@@ -27,10 +27,9 @@ const OrderDetailsScreen: React.FC = () => {
     const { orderId, orderNumber } = route.params || {};
     const { addToCart, clearCart } = useCartStore();
 
-    const { data: order, isLoading, isFetching, refetch } = useOrderDetails({ 
-        id: orderId, 
-        orderNumber: orderNumber 
-    });
+    const { data: order, isLoading, isFetching, refetch } = useOrderDetails(
+        orderId ? { id: orderId } : { orderNumber: orderNumber }
+    );
 
     if (isLoading) {
         return (
@@ -213,7 +212,7 @@ const OrderDetailsScreen: React.FC = () => {
                         {[OrderStatus.READY_FOR_PICKUP, OrderStatus.DELIVERY_PENDING, OrderStatus.OUT_FOR_DELIVERY].includes(order.status) && (
                             <TouchableOpacity 
                                 style={styles.trackButtonContainer}
-                                onPress={() => navigation.navigate('OrderTracking', { orderId: order.id.toString() })}
+                                onPress={() => navigation.navigate('OrderTracking', { id: order.id.toString() })}
                             >
                                 <LinearGradient
                                     colors={[COLORS.primary, COLORS.accent]}

@@ -11,7 +11,8 @@ import {
   ScrollView,
   Linking,
   Modal,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  ActivityIndicator
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -23,14 +24,6 @@ import Ads from '../../components/order/Ads';
 interface Coordinate {
   latitude: number;
   longitude: number;
-}
-
-interface OrderOption {
-  id: string;
-  storeName: string;
-  itemsCount: string;
-  price: string;
-  status: string;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -61,38 +54,30 @@ const COORDINATES = {
   USER: { latitude: 23.4385, longitude: 85.328 } as Coordinate,
 };
 
-// --- ORDER ITEMS DATA ---
-const ORDER_ITEMS = [
-  {
-    name: 'Chicken Curry Cut',
-    image: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?q=80&w=200&auto=format&fit=crop',
-    weight: '500 g'
-  },
-  {
-    name: 'Premium Mutton',
-    image: 'https://images.unsplash.com/photo-1717980651515-7796a793002f?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bXV0dG9ufGVufDB8fDB8fHww',
-    weight: '500 g'
-  },
-  {
-    name: 'Fresh Rohu Fish',
-    image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?q=80&w=200&auto=format&fit=crop',
-    weight: '500 g'
-  }
-];
-
 // --- TIP AMOUNTS ---
 const TIP_AMOUNTS = [20, 30, 50, 100];
 
-// --- DUMMY ORDERS FOR SWITCHING ---
-const MY_ORDERS: OrderOption[] = [
-  { id: 'ORD97573829895', storeName: 'Minta Store - Hinoo', itemsCount: '4 items', price: '₹342', status: 'Arriving in 14 mins' },
-  { id: 'ORD88812345678', storeName: 'Minta Store - Lalpur', itemsCount: '2 items', price: '₹120', status: 'Packing' },
-];
+import { useOrders, useOrderDetails } from '../../api/hooks/useOrder';
+import { OrderStatus } from '../../types/order.type';
 
-const BlinkitFinalClone = ({ navigation }: any) => {
+const BlinkitFinalClone = ({ navigation, route }: any) => {
+  const { id: initialId, orderNumber: initialOrderNumber } = route.params || {};
+  const [currentId, setCurrentId] = useState(initialId);
+  const [currentOrderNumber, setCurrentOrderNumber] = useState(initialOrderNumber);
+
+  const queryParams = currentId ? { id: currentId } : { orderNumber: currentOrderNumber };
+  const { data: order, isLoading } = useOrderDetails(queryParams);
+
+  // Fetch all ongoing orders for switching
+  const { data: ongoingOrderData } = useOrders({
+    page: 1,
+    limit: 10,
+    statusType: 'ongoing',
+  });
+
+  const ongoingOrders = ongoingOrderData?.orders || [];
+
   const scrollY = useRef(new Animated.Value(0)).current;
-
-  // Typed Refs
   const mainScrollViewRef = useRef<ScrollView>(null);
 
   // --- NEW STATES ---
@@ -102,15 +87,45 @@ const BlinkitFinalClone = ({ navigation }: any) => {
 
   // --- SWITCH ORDER STATES ---
   const [isSwitchModalVisible, setSwitchModalVisible] = useState(false);
-  const [selectedOrderId, setSelectedOrderId] = useState<string>(MY_ORDERS[0].id);
+
+  const getStatusLabel = (status: OrderStatus | undefined) => {
+    switch (status) {
+      case OrderStatus.PLACED: return 'Order Placed';
+      case OrderStatus.VENDOR_PENDING: return 'Waiting for vendor';
+      case OrderStatus.VENDOR_ACCEPTED: return 'Vendor accepted';
+      case OrderStatus.PREPARING: return 'Preparing your order';
+      case OrderStatus.READY_FOR_PICKUP: return 'Ready for pickup';
+      case OrderStatus.DELIVERY_PENDING: return 'Searching for partner';
+      case OrderStatus.OUT_FOR_DELIVERY: return 'Out for delivery';
+      case OrderStatus.DELIVERED: return 'Delivered';
+      case OrderStatus.CANCELLED: return 'Cancelled';
+      default: return 'Order Status';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bg }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={{ color: COLORS.primary, fontWeight: 'bold', marginTop: 10 }}>Loading tracking details...</Text>
+      </View>
+    );
+  }
+
+  if (!order) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bg }}>
+        <Text style={{ color: COLORS.redText, fontWeight: 'bold' }}>Order not found</Text>
+        <TouchableOpacity onPress={() => navigation?.goBack()} style={{ marginTop: 20, padding: 10, backgroundColor: COLORS.primary, borderRadius: 8 }}>
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // --- HANDLERS ---
   const goToAddressScreen = () => {
-    navigation?.navigate('SelectAddressScreen');
-  };
-
-  const goToSupportScreen = () => {
-    navigation?.navigate('SupportScreen');
+    navigation?.navigate('Address');
   };
 
   const openPhoneDialer = () => {
@@ -118,8 +133,9 @@ const BlinkitFinalClone = ({ navigation }: any) => {
   };
 
   // Switch Order Handler
-  const handleSwitchOrder = (id: string) => {
-    setSelectedOrderId(id);
+  const handleSwitchOrder = (id: string, orderNumber: string) => {
+    setCurrentId(id);
+    setCurrentOrderNumber(orderNumber);
     setSwitchModalVisible(false);
   };
 
@@ -206,21 +222,23 @@ const BlinkitFinalClone = ({ navigation }: any) => {
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <View style={{ marginLeft: 16 }}>
-            <Text style={{ color: 'white', fontSize: 12 }}>Packing your order</Text>
+            <Text style={{ color: 'white', fontSize: 12 }}>{getStatusLabel(order?.status)}</Text>
             <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
-              Arriving in 14 minutes
+              {order?.status === OrderStatus.DELIVERED ? 'Order Delivered' : `Arriving in ${order?.orderDeliveryAssignment?.deliveryEtaMinutes || '--'} mins`}
             </Text>
           </View>
         </View>
 
         {/* Switch Order Button */}
-        <TouchableOpacity
-          style={styles.switchButton}
-          onPress={() => setSwitchModalVisible(true)}
-        >
-          <Text style={styles.switchButtonText}>SWITCH</Text>
-          <Ionicons name="chevron-down" size={12} color={COLORS.primary} />
-        </TouchableOpacity>
+        {ongoingOrders.length > 1 && (
+          <TouchableOpacity
+            style={styles.switchButton}
+            onPress={() => setSwitchModalVisible(true)}
+          >
+            <Text style={styles.switchButtonText}>SWITCH</Text>
+            <Ionicons name="chevron-down" size={12} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
       </Animated.View>
 
       <Animated.ScrollView
@@ -243,9 +261,15 @@ const BlinkitFinalClone = ({ navigation }: any) => {
           <Animated.View
             style={[styles.staticTextLayer, { opacity: textOpacity }]}
           >
-            <Text style={styles.packingText}>Packing your order</Text>
-            <Text style={styles.arrivingLabel}>Arriving in</Text>
-            <Text style={styles.arrivingTime}>14 minutes</Text>
+            <Text style={styles.packingText}>{getStatusLabel(order?.status)}</Text>
+            <Text style={styles.arrivingLabel}>
+              {order?.status === OrderStatus.DELIVERED ? 'Delivered at' : 'Arriving in'}
+            </Text>
+            <Text style={styles.arrivingTime}>
+              {order?.status === OrderStatus.DELIVERED 
+                ? (order?.timestamps?.deliveredAt ? new Date(order.timestamps.deliveredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Done')
+                : `${order?.orderDeliveryAssignment?.deliveryEtaMinutes || '--'} mins`}
+            </Text>
           </Animated.View>
 
           {/* Animated Map Layer */}
@@ -346,8 +370,16 @@ const BlinkitFinalClone = ({ navigation }: any) => {
               style={{ width: 45, height: 45, marginRight: 12 }}
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>We are assigning a delivery</Text>
-              <Text style={styles.cardTitle}>partner to deliver your order</Text>
+              <Text style={styles.cardTitle}>
+                {order?.orderDeliveryAssignment?.deliveryPartner?.name 
+                  ? `${order.orderDeliveryAssignment.deliveryPartner.name} is on the way` 
+                  : 'We are assigning a delivery partner'}
+              </Text>
+              <Text style={styles.cardSubtitle}>
+                {order?.orderDeliveryAssignment?.deliveryPartner?.name 
+                  ? 'Your delivery partner will reach you soon' 
+                  : 'to deliver your order'}
+              </Text>
             </View>
           </View>
           <View style={styles.divider} />
@@ -411,8 +443,7 @@ const BlinkitFinalClone = ({ navigation }: any) => {
             <View style={{ marginLeft: 12, flex: 1 }}>
               <Text style={styles.cardTitle}>Delivery at Home</Text>
               <Text style={styles.cardSubtitle}>
-                Ravindra Srivastava, Virat Nagar, Near Darpan Beauty parlour,
-                2nd Transfer, Iowadih, Namku...
+                {order?.address?.receiverName}, {order?.address?.completeAddress}
               </Text>
 
               <TouchableOpacity onPress={goToAddressScreen}>
@@ -434,13 +465,15 @@ const BlinkitFinalClone = ({ navigation }: any) => {
           </View>
 
           <TouchableOpacity onPress={openPhoneDialer}>
-            <Text style={styles.phoneText}>Ravindra, 70506XXXXX</Text>
+            <Text style={styles.phoneText}>
+              {order?.address?.receiverName || 'Receiver'}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Need Help */}
         <View style={styles.card}>
-          <TouchableOpacity style={styles.row} onPress={goToSupportScreen}>
+          <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('AiAssistant')}>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>support system</Text>
               <Text style={styles.cardSubtitle}>
@@ -456,7 +489,7 @@ const BlinkitFinalClone = ({ navigation }: any) => {
           <View style={{ padding: 16 }}>
             <Text style={styles.cardTitle}>Order summary</Text>
             <Text style={styles.orderId}>
-              Order id: #ORD97573829895{' '}
+              Order id: #{order?.orderNumber || '--'}{' '}
               <Ionicons name="copy-outline" size={14} color="#666" />
             </Text>
           </View>
@@ -467,20 +500,26 @@ const BlinkitFinalClone = ({ navigation }: any) => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 16 }}
             >
-              {ORDER_ITEMS.map((item, index) => (
+              {order?.items?.map((item, index) => (
                 <View key={index} style={styles.scrollableItemContainer}>
-                  <Image source={{ uri: item.image }} style={styles.itemImage} />
+                  <Image 
+                    source={{ uri: item.product?.images?.[0]?.image?.url || 'https://via.placeholder.com/150' }} 
+                    style={styles.itemImage} 
+                  />
                   <View style={styles.qtyBadge}>
-                    <Text style={styles.qtyText}>1</Text>
+                    <Text style={styles.qtyText}>{item.quantity}</Text>
                   </View>
-                  <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.itemWeight}>{item.weight}</Text>
+                  <Text style={styles.itemName} numberOfLines={1}>{item.product?.name}</Text>
+                  <Text style={styles.itemWeight}>{item.notes || ''}</Text>
                 </View>
               ))}
             </ScrollView>
           </View>
 
-          <TouchableOpacity style={{ padding: 16, paddingTop: 0 }}>
+          <TouchableOpacity 
+            style={{ padding: 16, paddingTop: 0 }}
+            onPress={() => navigation.navigate('OrderDetails', { orderId: order?.id.toString() })}
+          >
             <Text style={styles.viewSummary}>View order summary</Text>
           </TouchableOpacity>
         </View>
@@ -577,13 +616,13 @@ const BlinkitFinalClone = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
 
-          {MY_ORDERS.map((order) => {
-            const isSelected = selectedOrderId === order.id;
+          {ongoingOrders.map((ongoingOrder: any) => {
+            const isSelected = currentId === ongoingOrder.id.toString() || currentOrderNumber === ongoingOrder.orderNumber;
             return (
               <TouchableOpacity
-                key={order.id}
+                key={ongoingOrder.id.toString()}
                 style={[styles.orderOption, isSelected && styles.orderOptionSelected]}
-                onPress={() => handleSwitchOrder(order.id)}
+                onPress={() => handleSwitchOrder(ongoingOrder.id.toString(), ongoingOrder.orderNumber)}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   {/* Radio Button */}
@@ -592,9 +631,9 @@ const BlinkitFinalClone = ({ navigation }: any) => {
                   </View>
 
                   <View style={{ marginLeft: 12 }}>
-                    <Text style={styles.orderStore}>{order.storeName}</Text>
-                    <Text style={styles.orderMeta}>{order.itemsCount} | {order.price}</Text>
-                    <Text style={styles.orderStatus}>{order.status}</Text>
+                    <Text style={styles.orderStore}>Order #{ongoingOrder.orderNumber}</Text>
+                    <Text style={styles.orderMeta}>{ongoingOrder.items?.length} items | ₹{ongoingOrder.paidAmount || ongoingOrder.subtotal}</Text>
+                    <Text style={styles.orderStatus}>{getStatusLabel(ongoingOrder.status)}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
