@@ -18,6 +18,9 @@ import { COLORS } from '../../theme/theme';
 import { Order, OrderStatus } from '../../types/order.type';
 import { LoadingOverlay } from '../../components/ui/loader/LoaderOverLay';
 import { useOrders } from '../../api/hooks/useOrder';
+import { useCartStore } from '../../store/cart';
+import { useNavigation } from '@react-navigation/native';
+import { Toast } from 'react-native-toast-message/lib/src/Toast';
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +34,7 @@ interface OrderItemUI {
     statusColor: string;
     items: Array<{
         id: string;
+        productId: string;
         name: string;
         image: string;
         quantity: number;
@@ -55,6 +59,10 @@ export default function AllOrdersScreen() {
     const [selectedTab, setSelectedTab] = useState<'Ongoing' | 'Past Orders'>('Ongoing');
     const [page, setPage] = useState(1);
     const LIMIT = 10;
+
+    const navigation = useNavigation<any>();
+    const { addToCart, clearCart } = useCartStore();
+    const [reorderLoading, setReorderLoading] = useState(false);
 
     const { data: orderData, isLoading, isFetching, refetch } = useOrders({
         page,
@@ -82,6 +90,7 @@ export default function AllOrdersScreen() {
             statusColor: STATUS_CONFIG[order.status as OrderStatus]?.color || COLORS.primary,
             items: order.items?.map((item: any) => ({
                 id: item.id.toString(),
+                productId: item.product?.id.toString(),
                 name: item.product?.name || 'Item',
                 image: item.product?.imagesss || 'https://via.placeholder.com/150?text=No+Image',
                 quantity: item.quantity,
@@ -104,6 +113,26 @@ export default function AllOrdersScreen() {
         setSelectedTab(tab);
         setPage(1);
     }, []);
+
+    const handleReorder = async (orderItems: OrderItemUI['items']) => {
+        try {
+            setReorderLoading(true);
+            // 1. Clear current cart
+            await clearCart();
+            
+            // 2. Add each item one by one
+            for (const item of orderItems) {
+                await addToCart(item.productId, item.quantity);
+            }
+            
+            // 3. Navigate to Cart
+            navigation.navigate('Cart');
+        } catch (error) {
+            console.error("Reorder failed", error);
+        } finally {
+            setReorderLoading(false);
+        }
+    };
 
     const renderOrderCard = ({ item }: { item: OrderItemUI }) => {
         const config = STATUS_CONFIG[item.status];
@@ -146,12 +175,28 @@ export default function AllOrdersScreen() {
 
                 {/* Card Actions */}
                 <View style={styles.cardActions}>
-                    <TouchableOpacity style={styles.detailsBtn}>
+                    <TouchableOpacity 
+                        style={styles.detailsBtn}
+                        onPress={() => navigation.navigate('OrderDetails', { orderId: item.id })}
+                    >
                         <Text style={styles.detailsBtnText}>View Details</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.primary }]}>
+                    <TouchableOpacity 
+                        style={[styles.actionBtn, { backgroundColor: COLORS.primary }]}
+                        onPress={() => {
+                            if ([OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REFUNDED].includes(item.status)) {
+                                handleReorder(item.items);
+                            } else {
+                                // Track logic (already handles by onPress in touchable wrapper if needed, 
+                                // but here we specify for the button)
+                                navigation.navigate('AllOrders');
+                            }
+                        }}
+                    >
                         <Text style={styles.actionBtnText}>
-                            {item.status === OrderStatus.DELIVERED ? 'Reorder' : 'Track Order'}
+                            {[OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REFUNDED].includes(item.status) 
+                                ? 'Reorder' 
+                                : 'Track Order'}
                         </Text>
                         <MaterialIcons name="chevron-right" size={18} color={COLORS.white} />
                     </TouchableOpacity>
@@ -242,7 +287,7 @@ export default function AllOrdersScreen() {
                 )}
             />
 
-            <LoadingOverlay visible={isLoading && page === 1} />
+            <LoadingOverlay visible={(isLoading && page === 1) || reorderLoading} />
         </SafeAreaView>
     );
 }

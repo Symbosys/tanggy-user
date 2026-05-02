@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import ProductCard from '../../components/ui/products/DiscountProduct';
 import FloatingCart from '../../components/home/FloatingCart';
+import OngoingFloating from '../../components/order/OngoingFloating';
 import { useAuth } from '../../context/AuthContext';
 import { getAllProducts } from '../../services/product.service';
 import { useCartStore } from '../../store/cart';
@@ -177,6 +178,7 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
                     hasBottomTab={true}
                 />
             )}
+            {isAuthenticated && <OngoingFloating />}
         </SafeAreaView>
     );
 };

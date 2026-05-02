@@ -11,7 +11,7 @@ interface FloatingCartProps {
     totalItems: number;
     subTotal: number;
     onPress: () => void;
-    hasBottomTab?: boolean; // Whether there's a bottom tab bar below
+    hasBottomTab?: boolean;
 }
 
 const BUTTON_GRADIENT = ['#6A0DAD', '#D8B4FF'];

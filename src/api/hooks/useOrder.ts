@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../api";
-import { PlaceOrderInput, PlaceOrderResponse } from "../../types/order.type";
+import { GetAllOrdersResponse, Order, PlaceOrderInput, PlaceOrderResponse } from "../../types/order.type";
 import { ErrorMessage, SuccessMessage } from "../../utils/utils";
 
 /**
@@ -44,7 +44,21 @@ export const useOrders = (params: {
         queryKey: ['orders', params],
         queryFn: async () => {
             const { data } = await api.get('/order/all', { params });
-            return data.data;
+            return data.data as GetAllOrdersResponse;
         },
+    });
+};
+
+/**
+ * Fetch a single order's full details by ID or Order Number
+ */
+export const useOrderDetails = (params: { id?: string; orderNumber?: string }) => {
+    return useQuery({
+        queryKey: ['order-details', params],
+        queryFn: async () => {
+            const { data } = await api.get('/order/details', { params });
+            return data.data as Order;
+        },
+        enabled: !!(params.id || params.orderNumber),
     });
 };

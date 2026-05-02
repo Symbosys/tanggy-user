@@ -17,6 +17,7 @@ import { VideoRef } from 'react-native-video';
 import api from '../../api/api';
 import { EliteMemberShipCard, FloatingEliteMembership } from '../../components/common/EliteMembership';
 import FloatingCart from '../../components/home/FloatingCart';
+import OngoingFloating from '../../components/order/OngoingFloating';
 import HomeLoading from '../../components/skeleton/HomeSkeleton';
 import CategoryList from '../../components/ui/CategoryList';
 import ProductCard from '../../components/ui/products/Product';
@@ -336,6 +337,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
             hasBottomTab={true}
           />
         )}
+        {isAuthenticated && <OngoingFloating />}
 
       </View>
     </SafeAreaView>
