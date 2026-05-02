@@ -13,6 +13,8 @@ import PhonePePaymentSDK from 'react-native-phonepe-pg';
 import { PHONEPE_CONFIG } from '../../constants/phonepay';
 import { Alert } from 'react-native';
 import api from '../../api/api';
+import { usePlaceOrder } from '../../api/hooks/useOrder';
+import { OrderSource, PaymentMethod } from '../../types/order.type';
 
 export const useCartInitialization = () => {
   const { fetchCart, cartItems, loading } = useCartStore();
@@ -165,7 +167,8 @@ export const useCheckoutLogic = () => {
     setShowAddressModal, 
     setShowCheckoutPopup 
   } = useCartUIStore();
-  const { total } = useCartCalculations();
+  const { total, tipAmount } = useCartCalculations();
+  const { mutate: placeOrder, isPending: isPlacingOrder } = usePlaceOrder();
 
   const hasDefaultAddress = selectedAddressId
     ? addresses.find((addr: any) => addr.id === selectedAddressId)
@@ -219,8 +222,28 @@ export const useCheckoutLogic = () => {
     
     // Check payment method type
     if (selectedPaymentMethod?.type === 'cod') {
-      // Direct order placement for Cash on Delivery
-      navigation.navigate('OrderPlaced');
+      // 🚀 Place order via backend for Cash on Delivery
+      const orderData = {
+        addressId: String(selectedAddressId || hasDefaultAddress?.id),
+        items: cartItems.map((item: any) => ({
+          productId: String(item.product.id),
+          quantity: item.quantity,
+          notes: item.notes || null,
+        })),
+        tipAmount: tipAmount,
+        paymentMethod: PaymentMethod.COD,
+        source: OrderSource.APP,
+        notes: null,
+      };
+
+      placeOrder(orderData, {
+        onSuccess: (res) => {
+          if (res.success) {
+            navigation.navigate('OrderPlaced');
+          }
+        },
+      });
+      return;
     } else if (selectedPaymentMethod?.id === 'phonepe') {
       // PhonePe Payment Logic
       try {
@@ -235,7 +258,7 @@ export const useCheckoutLogic = () => {
         // 2. Call Backend to Create Order
         // Note: Amount is in Paise (INR * 100)
         const response = await api.post('/order/phonepe/create-order', {
-          amount: Math.round(total * 100), // Convert to paise
+          amount: Math.round(1 * 100), // Convert to paise
           userId: 'user_minta_fresh', // Placeholder as used before
         });
 
@@ -294,10 +317,21 @@ export const useCheckoutLogic = () => {
         }, 3000);
       }
     }
-  }, [setShowCheckoutPopup, total, navigation, selectedPaymentMethod]);
+  }, [
+    setShowCheckoutPopup,
+    total,
+    navigation,
+    selectedPaymentMethod,
+    selectedAddressId,
+    hasDefaultAddress,
+    cartItems,
+    tipAmount,
+    placeOrder,
+  ]);
 
   return {
     handleCheckout,
     handleConfirmPayment,
+    isPlacingOrder,
   };
 };

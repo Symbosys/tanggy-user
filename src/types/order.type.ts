@@ -209,7 +209,7 @@ export interface OrderVendorAssignment {
   notes?: string;
   vendor?: {
     id: bigint;
-    name: string;
+    shopName: string;
   };
 }
 
@@ -323,4 +323,29 @@ export interface OrderItemUI {
     name: string;
     image: string;
   }>;
+}
+
+// ─── Input Types ─────────────────────────────────────
+
+export interface PlaceOrderItem {
+  productId: string;
+  quantity: number;
+  notes?: string | null;
+}
+
+export interface PlaceOrderInput {
+  addressId: string;
+  items: PlaceOrderItem[];
+  tipAmount?: number;
+  paymentMethod: PaymentMethod;
+  notes?: string | null;
+  source?: OrderSource;
+}
+
+// ─── Response Types ───────────────────────────────────
+
+export interface PlaceOrderResponse {
+  success: boolean;
+  message: string;
+  data: Order;
 }

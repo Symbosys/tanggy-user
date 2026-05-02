@@ -36,7 +36,7 @@ const CartScreen = ({ navigation }: AppNavigation) => {
   } = useCartUIStore();
 
   // Checkout Logic
-  const { handleCheckout, handleConfirmPayment } = useCheckoutLogic();
+  const { handleCheckout, handleConfirmPayment, isPlacingOrder } = useCheckoutLogic();
 
   if (loading) {
     return (
@@ -83,6 +83,7 @@ const CartScreen = ({ navigation }: AppNavigation) => {
         onClose={() => setShowCheckoutPopup(false)}
         onConfirm={handleConfirmPayment}
         price={total}
+        loading={isPlacingOrder}
       />
 
       <CartFooter

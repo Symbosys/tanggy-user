@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, Easing, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -11,9 +11,10 @@ interface BottomCartPopupProps {
     onClose: () => void;
     onConfirm: () => void;
     price: number;
+    loading?: boolean;
 }
 
-const BottomCartPopup: React.FC<BottomCartPopupProps> = ({ visible, onClose, onConfirm, price }) => {
+const BottomCartPopup: React.FC<BottomCartPopupProps> = ({ visible, onClose, onConfirm, price, loading }) => {
     const [timeLeft, setTimeLeft] = useState(3);
     const progress = useRef(new Animated.Value(0)).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -101,11 +102,15 @@ const BottomCartPopup: React.FC<BottomCartPopupProps> = ({ visible, onClose, onC
                     {/* Header */}
                     <View style={styles.header}>
                         <View style={styles.iconWrapper}>
-                            <MaterialCommunityIcons name="rocket-launch" size={28} color={COLORS.white} />
+                            {loading ? (
+                                <ActivityIndicator size="small" color={COLORS.white} />
+                            ) : (
+                                <MaterialCommunityIcons name="rocket-launch" size={28} color={COLORS.white} />
+                            )}
                         </View>
                         <View style={styles.headerTextContainer}>
-                            <Text style={styles.title}>Confirming Order...</Text>
-                            <Text style={styles.message}>Almost there! Just a few seconds.</Text>
+                            <Text style={styles.title}>{loading ? 'Placing Order...' : 'Confirming Order...'}</Text>
+                            <Text style={styles.message}>{loading ? 'Please wait while we process your order.' : 'Almost there! Just a few seconds.'}</Text>
                         </View>
                     </View>
 
@@ -144,12 +149,14 @@ const BottomCartPopup: React.FC<BottomCartPopupProps> = ({ visible, onClose, onC
                     </View>
 
                     {/* Cancel Action */}
-                    <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.8}>
-                        <View style={styles.cancelButtonContent}>
-                            <MaterialIcons name="close" size={20} color="#EF4444" />
-                            <Text style={styles.cancelButtonText}>Cancel Order</Text>
-                        </View>
-                    </TouchableOpacity>
+                    {!loading && (
+                        <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.8}>
+                            <View style={styles.cancelButtonContent}>
+                                <MaterialIcons name="close" size={20} color="#EF4444" />
+                                <Text style={styles.cancelButtonText}>Cancel Order</Text>
+                            </View>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         </Modal>

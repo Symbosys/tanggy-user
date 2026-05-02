@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -7,18 +7,25 @@ import {
     Image,
     RefreshControl,
     ActivityIndicator,
+    StyleSheet,
+    Dimensions,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from '../../theme/theme';
-import api from '../../api/api';
 import { Order, OrderStatus } from '../../types/order.type';
 import { LoadingOverlay } from '../../components/ui/loader/LoaderOverLay';
+import { useOrders } from '../../api/hooks/useOrder';
+
+const { width } = Dimensions.get('window');
 
 interface OrderItemUI {
     id: string;
-    restaurant: string;
+    orderNumber: string;
     date: string;
+    time: string;
     amount: string;
     status: OrderStatus;
     statusColor: string;
@@ -26,317 +33,495 @@ interface OrderItemUI {
         id: string;
         name: string;
         image: string;
+        quantity: number;
     }>;
 }
 
-const ONGOING_STATUSES: OrderStatus[] = [
-    OrderStatus.PLACED,
-    OrderStatus.VENDOR_PENDING,
-    OrderStatus.VENDOR_ACCEPTED,
-    OrderStatus.PREPARING,
-    OrderStatus.READY_FOR_PICKUP,
-    OrderStatus.DELIVERY_PENDING,
-    OrderStatus.OUT_FOR_DELIVERY,
-];
-
-const PAST_STATUSES: OrderStatus[] = [
-    OrderStatus.DELIVERED,
-    OrderStatus.CANCELLED,
-    OrderStatus.REFUNDED,
-    OrderStatus.DISPUTED,
-];
-
-const STATUS_COLORS: Record<OrderStatus, string> = {
-    [OrderStatus.PLACED]: COLORS.primary,
-    [OrderStatus.VENDOR_PENDING]: COLORS.warning,
-    [OrderStatus.VENDOR_ACCEPTED]: COLORS.accent,
-    [OrderStatus.PREPARING]: "#4CAF50",
-    [OrderStatus.READY_FOR_PICKUP]: COLORS.success,
-    [OrderStatus.DELIVERY_PENDING]: COLORS.warning,
-    [OrderStatus.OUT_FOR_DELIVERY]: COLORS.primary,
-    [OrderStatus.DELIVERED]: '#4CAF50',
-    [OrderStatus.CANCELLED]: '#EF5350',
-    [OrderStatus.REFUNDED]: '#4CAF50',
-    [OrderStatus.DISPUTED]: '#FF9800',
+const STATUS_CONFIG: Record<OrderStatus, { color: string; icon: string; label: string }> = {
+    [OrderStatus.PLACED]: { color: '#6366F1', icon: 'package-variant-closed', label: 'Placed' },
+    [OrderStatus.VENDOR_PENDING]: { color: '#F59E0B', icon: 'store-search', label: 'Finding Store' },
+    [OrderStatus.VENDOR_ACCEPTED]: { color: '#10B981', icon: 'store-check', label: 'Accepted' },
+    [OrderStatus.PREPARING]: { color: '#8B5CF6', icon: 'pot-steam', label: 'Preparing' },
+    [OrderStatus.READY_FOR_PICKUP]: { color: '#06B6D4', icon: 'bag-checked', label: 'Ready' },
+    [OrderStatus.DELIVERY_PENDING]: { color: '#F59E0B', icon: 'moped-electric', label: 'Assigning Rider' },
+    [OrderStatus.OUT_FOR_DELIVERY]: { color: '#3B82F6', icon: 'moped', label: 'Out for Delivery' },
+    [OrderStatus.DELIVERED]: { color: '#10B981', icon: 'check-circle', label: 'Delivered' },
+    [OrderStatus.CANCELLED]: { color: '#EF4444', icon: 'close-circle', label: 'Cancelled' },
+    [OrderStatus.REFUNDED]: { color: '#6B7280', icon: 'cash-refund', label: 'Refunded' },
+    [OrderStatus.DISPUTED]: { color: '#F43F5E', icon: 'alert-circle', label: 'Disputed' },
 };
 
 export default function AllOrdersScreen() {
-    const [selectedTab, setSelectedTab] = useState<'Ongoing' | 'Past Orders'>('Past Orders');
-    const [ongoingOrders, setOngoingOrders] = useState<OrderItemUI[]>([]);
-    const [pastOrders, setPastOrders] = useState<OrderItemUI[]>([]);
-    const [ongoingPage, setOngoingPage] = useState(1);
-    const [pastPage, setPastPage] = useState(1);
-    const [loading, setLoading] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
-    const [hasMoreOngoing, setHasMoreOngoing] = useState(true);
-    const [hasMorePast, setHasMorePast] = useState(true);
+    const [selectedTab, setSelectedTab] = useState<'Ongoing' | 'Past Orders'>('Ongoing');
+    const [page, setPage] = useState(1);
     const LIMIT = 10;
-    const isMountedRef = useRef(true);
 
-    const fetchOrders = useCallback(async (page: number, isOngoing: boolean, isRefresh = false) => {
-        if (loading && !isRefresh) return;
-        setLoading(true);
-        if (isRefresh) setRefreshing(true);
+    const { data: orderData, isLoading, isFetching, refetch } = useOrders({
+        page,
+        limit: LIMIT,
+        statusType: selectedTab === 'Ongoing' ? 'ongoing' : 'past',
+    });
 
-        try {
-            const response = await api.get('/user/order/all', {
-                params: {
-                    limit: LIMIT,
-                    page,
-                },
-            });
+    console.log("orderData", orderData);
 
-            const backendOrders: Order[] = response.data?.orders || [];
-            const totalOrder = response.data.totalOrder;
+    const orders: Order[] = orderData?.orders || [];
+    const hasMore = (orderData?.currentPage || 1) < (orderData?.totalPage || 1);
 
-            const uiOrders: OrderItemUI[] = backendOrders?.filter((order: Order) => {
-                const status = order.status;
-                if (isOngoing) {
-                    return ONGOING_STATUSES.includes(status);
-                } else {
-                    return PAST_STATUSES.includes(status);
-                }
-            })
-                .map((order: Order) => ({
-                    id: order.id.toString(),
-                    restaurant: order.vendorBroadcasts?.[0]?.vendor?.name || 'Unknown Vendor', // Assuming vendor included; adjust if needed
-                    date: new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                    amount: `₹${order.paidAmount?.toFixed(2) || order.subtotal.toFixed(2)}`,
-                    status: order.status,
-                    statusColor: STATUS_COLORS[order.status] || COLORS.highlight,
-                    items: order.items?.map((item: any) => ({
-                        id: item.id.toString(),
-                        name: `${item.quantity}x ${item.product?.name || 'Unknown Item'}`,
-                        image: item.product?.images?.[0]?.image?.url || '',
-                    })) || [],
-                }));
-
-            if (isRefresh) {
-                if (isOngoing) {
-                    setOngoingOrders(uiOrders);
-                    setOngoingPage(1);
-                    setHasMoreOngoing(backendOrders?.length === LIMIT);
-                } else {
-                    setPastOrders(uiOrders);
-                    setPastPage(1);
-                    setHasMorePast(backendOrders?.length === LIMIT);
-                }
-            } else {
-                if (isOngoing) {
-                    setOngoingOrders(prev => [...prev, ...uiOrders]);
-                    setHasMoreOngoing(backendOrders?.length === LIMIT);
-                } else {
-                    setPastOrders(prev => [...prev, ...uiOrders]);
-                    setHasMorePast(backendOrders?.length === LIMIT);
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching orders:', error);
-        } finally {
-            if (isMountedRef.current) {
-                setLoading(false);
-                if (isRefresh) setRefreshing(false);
-            }
-        }
-    }, []); // Removed loading from deps to prevent recreation loop
+    const uiOrders: OrderItemUI[] = orders.map((order: any) => {
+        const dateObj = new Date(order.createdAt);
+        const subtotal = order.subtotal || 0;
+        const paidAmount = order.paidAmount || 0;
+        
+        return {
+            id: order.id.toString(),
+            orderNumber: order.orderNumber,
+            date: dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+            time: dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+            amount: `₹${(paidAmount || subtotal).toFixed(2)}`,
+            status: order.status,
+            statusColor: STATUS_CONFIG[order.status as OrderStatus]?.color || COLORS.primary,
+            items: order.items?.map((item: any) => ({
+                id: item.id.toString(),
+                name: item.product?.name || 'Item',
+                image: item.product?.image || 'https://via.placeholder.com/150?text=No+Image',
+                quantity: item.quantity,
+            })) || [],
+        };
+    });
 
     const onRefresh = useCallback(() => {
-        fetchOrders(selectedTab === 'Ongoing' ? ongoingPage : pastPage, selectedTab === 'Ongoing', true);
-    }, [selectedTab, ongoingPage, pastPage, fetchOrders]);
+        setPage(1);
+        refetch();
+    }, [refetch]);
 
     const loadMore = useCallback(() => {
-        if (!loading && (selectedTab === 'Ongoing' ? hasMoreOngoing : hasMorePast)) {
-            const nextPage = selectedTab === 'Ongoing' ? ongoingPage + 1 : pastPage + 1;
-            fetchOrders(nextPage, selectedTab === 'Ongoing', false);
-            if (selectedTab === 'Ongoing') {
-                setOngoingPage(nextPage);
-            } else {
-                setPastPage(nextPage);
-            }
+        if (!isFetching && hasMore) {
+            setPage(prev => prev + 1);
         }
-    }, [loading, selectedTab, hasMoreOngoing, hasMorePast, ongoingPage, pastPage, fetchOrders]);
+    }, [isFetching, hasMore]);
 
     const handleTabChange = useCallback((tab: 'Ongoing' | 'Past Orders') => {
         setSelectedTab(tab);
+        setPage(1);
     }, []);
 
-    const data = selectedTab === 'Ongoing' ? ongoingOrders : pastOrders;
-    const hasMore = selectedTab === 'Ongoing' ? hasMoreOngoing : hasMorePast;
+    const renderOrderCard = ({ item }: { item: OrderItemUI }) => {
+        const config = STATUS_CONFIG[item.status];
 
-    const renderOrderCard = useCallback(({ item }: { item: OrderItemUI }) => (
-        <View
-            style={{
-                backgroundColor: COLORS.white,
-                borderRadius: 16,
-                padding: 16,
-                shadowColor: '#000',
-                shadowOpacity: 0.1,
-                shadowRadius: 5,
-                marginBottom: 16,
-                elevation: 3,
-            }}
-        >
-            {/* Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 }}>
-                    <Image
-                        source={{ uri: item.items[0]?.image }}
-                        style={{ width: 56, height: 56, borderRadius: 10 }}
-                    />
-                    <View style={{ flex: 1 }}>
-                        <Text style={{ fontWeight: 'bold', fontSize: 16, color: COLORS.textPrimary }}>
-                            {item.restaurant}
-                        </Text>
-                        <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>
-                            {item.date} • {item.amount}
-                        </Text>
+        return (
+            <TouchableOpacity activeOpacity={0.9} style={styles.orderCard}>
+                {/* Card Header */}
+                <View style={styles.cardHeader}>
+                    <View>
+                        <Text style={styles.orderIdText}>Order #{item.orderNumber.split('-').pop()}</Text>
+                        <View style={styles.dateTimeContainer}>
+                            <MaterialCommunityIcons name="calendar-clock" size={14} color={COLORS.textSecondary} />
+                            <Text style={styles.dateTimeText}>{item.date} at {item.time}</Text>
+                        </View>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: config.color + '15' }]}>
+                        <MaterialCommunityIcons name={config.icon as any} size={14} color={config.color} />
+                        <Text style={[styles.statusLabel, { color: config.color }]}>{config.label}</Text>
                     </View>
                 </View>
-                <View
-                    style={{
-                        backgroundColor: item.statusColor + '20',
-                        borderRadius: 999,
-                        paddingHorizontal: 10,
-                        paddingVertical: 4,
-                    }}
-                >
-                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: item.statusColor }}>
-                        {item.status}
-                    </Text>
-                </View>
-            </View>
 
-            {/* Items */}
-            <View style={{ borderTopWidth: 1, borderTopColor: '#ddd', marginTop: 12, paddingTop: 10 }}>
-                <Text style={{ fontSize: 13, fontWeight: '800', marginBottom: 6, color: COLORS.textPrimary }}>
-                    Items ordered:
-                </Text>
-                {item.items.map((food: any) => (
-                    <View key={food.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                        <Image
-                            source={{ uri: food.image }}
-                            style={{ width: 40, height: 40, borderRadius: 8, marginRight: 8 }}
-                        />
-                        <Text style={{ fontSize: 14, color: COLORS.textSecondary }}>{food.name}</Text>
+                {/* Items Row */}
+                <View style={styles.itemsPreviewContainer}>
+                    <View style={styles.itemsScrollContainer}>
+                        {item.items.slice(0, 3).map((food, index) => (
+                            <View key={food.id} style={[styles.itemImageWrapper, { zIndex: 10 - index, marginLeft: index === 0 ? 0 : -15 }]}>
+                                <Image source={{ uri: food.image }} style={styles.itemImage} />
+                                {food.quantity > 1 && (
+                                    <View style={styles.quantityBadge}>
+                                        <Text style={styles.quantityText}>{food.quantity}</Text>
+                                    </View>
+                                )}
+                            </View>
+                        ))}
+                        {item.items.length > 3 && (
+                            <View style={styles.moreItemsBadge}>
+                                <Text style={styles.moreItemsText}>+{item.items.length - 3}</Text>
+                            </View>
+                        )}
                     </View>
-                ))}
+                    <View style={styles.priceContainer}>
+                        <Text style={styles.totalLabel}>Subtotal</Text>
+                        <Text style={styles.totalAmount}>{item.amount}</Text>
+                    </View>
+                </View>
+
+                {/* Card Actions */}
+                <View style={styles.cardActions}>
+                    <TouchableOpacity style={styles.detailsBtn}>
+                        <Text style={styles.detailsBtnText}>View Details</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.primary }]}>
+                        <Text style={styles.actionBtnText}>
+                            {item.status === OrderStatus.DELIVERED ? 'Reorder' : 'Track Order'}
+                        </Text>
+                        <MaterialIcons name="chevron-right" size={18} color={COLORS.white} />
+                    </TouchableOpacity>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    const renderEmpty = () => (
+        <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconWrapper}>
+                <MaterialCommunityIcons name="basket-outline" size={60} color="#CBD5E1" />
             </View>
-
-            {/* Actions */}
-            <View style={{ flexDirection: 'row', gap: 10, borderTopWidth: 1, borderTopColor: '#ddd', marginTop: 12, paddingTop: 10 }}>
-                <TouchableOpacity
-                    style={{
-                        flex: 1,
-                        backgroundColor: COLORS.secondary,
-                        borderRadius: 999,
-                        paddingVertical: 10,
-                        alignItems: 'center',
-                    }}
-                >
-                    <Text style={{ fontWeight: 'bold', color: COLORS.primary }}>Rate Order</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={{
-                        flex: 1,
-                        backgroundColor: COLORS.primary,
-                        borderRadius: 999,
-                        paddingVertical: 10,
-                        alignItems: 'center',
-                    }}
-                >
-                    <Text style={{ fontWeight: 'bold', color: COLORS.white }}>Reorder</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    ), []);
-
-    const renderFooter = useCallback(() => {
-        if (!loading) return null;
-        return null; // Removed ActivityIndicator as overlay handles loading
-    }, [loading]);
-
-    const renderEmpty = useCallback(() => (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50 }}>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, textAlign: 'center' }}>
-                No {selectedTab.toLowerCase().replace('past ', '')} orders yet
+            <Text style={styles.emptyTitle}>No {selectedTab === 'Ongoing' ? 'active' : 'previous'} orders</Text>
+            <Text style={styles.emptySubtitle}>
+                {selectedTab === 'Ongoing'
+                    ? "You don't have any orders in progress right now."
+                    : "Looks like you haven't placed any orders yet."}
             </Text>
-            <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginTop: 8 }}>
-                Make your first order to see it here
-            </Text>
+            <TouchableOpacity style={styles.browseBtn}>
+                <LinearGradient
+                    colors={[COLORS.primary, '#9333EA']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.browseBtnGradient}
+                >
+                    <Text style={styles.browseBtnText}>Start Shopping</Text>
+                </LinearGradient>
+            </TouchableOpacity>
         </View>
-    ), [selectedTab]);
-
-    // Fixed useEffect to prevent infinite calls - only fetch if data is empty for the current tab
-    useEffect(() => {
-        if (selectedTab === 'Ongoing' && ongoingOrders?.length === 0) {
-            fetchOrders(1, true, true);
-        } else if (selectedTab === 'Past Orders' && pastOrders?.length === 0) {
-            fetchOrders(1, false, true);
-        }
-    }, [selectedTab]); // Only depend on selectedTab, and check if data is empty
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            isMountedRef.current = false;
-        };
-    }, []);
+    );
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
-            {/* Header */}
-            <View style={{ padding: 16, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 24, fontWeight: 'bold', color: COLORS.textPrimary }}>Your Orders</Text>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
+        <SafeAreaView style={styles.container}>
+            {/* Professional Header */}
+            <View style={styles.header}>
+                <View>
+                    <Text style={styles.headerSubtitle}>Minta Fresh</Text>
+                    <Text style={styles.headerTitle}>My Orders</Text>
+                </View>
+                <TouchableOpacity style={styles.searchBtn}>
                     <MaterialIcons name="search" size={24} color={COLORS.textPrimary} />
-                    <MaterialIcons name="filter-list" size={24} color={COLORS.textPrimary} />
+                </TouchableOpacity>
+            </View>
+
+            {/* Custom Segmented Control (Tabs) */}
+            <View style={styles.tabContainer}>
+                <View style={styles.tabWrapper}>
+                    {['Ongoing', 'Past Orders'].map((tab) => (
+                        <TouchableOpacity
+                            key={tab}
+                            onPress={() => handleTabChange(tab as any)}
+                            style={[
+                                styles.tabButton,
+                                selectedTab === tab && styles.activeTabButton
+                            ]}
+                        >
+                            <Text style={[
+                                styles.tabText,
+                                selectedTab === tab && styles.activeTabText
+                            ]}>{tab}</Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
             </View>
 
-            {/* Tabs */}
-            <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#ddd' }}>
-                {['Ongoing', 'Past Orders'].map((tab) => (
-                    <TouchableOpacity
-                        key={tab}
-                        onPress={() => handleTabChange(tab as 'Ongoing' | 'Past Orders')}
-                        style={{
-                            flex: 1,
-                            alignItems: 'center',
-                            paddingVertical: 10,
-                            borderBottomWidth: 3,
-                            borderBottomColor: selectedTab === tab ? COLORS.primary : 'transparent',
-                        }}
-                    >
-                        <Text
-                            style={{
-                                fontWeight: selectedTab === tab ? 'bold' : '800',
-                                color: selectedTab === tab ? COLORS.primary : COLORS.muted,
-                            }}
-                        >
-                            {tab}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {/* Orders List */}
             <FlatList
-                data={data}
+                data={uiOrders}
                 keyExtractor={(item) => item.id}
                 renderItem={renderOrderCard}
-                contentContainerStyle={{ padding: 16, paddingBottom: 50 }}
+                contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl
+                        refreshing={isFetching && page === 1}
+                        onRefresh={onRefresh}
+                        colors={[COLORS.primary]}
+                        tintColor={COLORS.primary}
+                    />
                 }
                 onEndReached={hasMore ? loadMore : undefined}
-                onEndReachedThreshold={0.1}
-                ListFooterComponent={renderFooter}
-                ListEmptyComponent={renderEmpty}
+                onEndReachedThreshold={0.3}
+                ListEmptyComponent={!isLoading ? renderEmpty : null}
+                ListFooterComponent={() => (
+                    isFetching && page > 1 ? (
+                        <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 20 }} />
+                    ) : <View style={{ height: 40 }} />
+                )}
             />
 
-            {/* Loading Overlay */}
-            <LoadingOverlay visible={loading} />
+            <LoadingOverlay visible={isLoading && page === 1} />
         </SafeAreaView>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#F8FAFC',
+    },
+    header: {
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: COLORS.white,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    headerSubtitle: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: COLORS.primary,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#1E293B',
+    },
+    searchBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    tabContainer: {
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        backgroundColor: COLORS.white,
+    },
+    tabWrapper: {
+        flexDirection: 'row',
+        backgroundColor: '#F1F5F9',
+        borderRadius: 12,
+        padding: 4,
+    },
+    tabButton: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 10,
+    },
+    activeTabButton: {
+        backgroundColor: COLORS.white,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    tabText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#64748B',
+    },
+    activeTabText: {
+        color: COLORS.primary,
+        fontWeight: '700',
+    },
+    listContent: {
+        padding: 20,
+    },
+    orderCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 16,
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 16,
+    },
+    orderIdText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#1E293B',
+        marginBottom: 4,
+    },
+    dateTimeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    dateTimeText: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 10,
+        gap: 6,
+    },
+    statusLabel: {
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    itemsPreviewContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: '#F1F5F9',
+        marginBottom: 16,
+    },
+    itemsScrollContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    itemImageWrapper: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: COLORS.white,
+        backgroundColor: '#F8FAFC',
+        overflow: 'visible',
+    },
+    itemImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 10,
+    },
+    quantityBadge: {
+        position: 'absolute',
+        top: -6,
+        right: -6,
+        backgroundColor: COLORS.primary,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: COLORS.white,
+    },
+    quantityText: {
+        color: COLORS.white,
+        fontSize: 10,
+        fontWeight: '800',
+    },
+    moreItemsBadge: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: -15,
+        borderWidth: 2,
+        borderColor: COLORS.white,
+    },
+    moreItemsText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#64748B',
+    },
+    priceContainer: {
+        alignItems: 'flex-end',
+    },
+    totalLabel: {
+        fontSize: 12,
+        color: '#94A3B8',
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    totalAmount: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: COLORS.primary,
+    },
+    cardActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    detailsBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 14,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    detailsBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#475569',
+    },
+    actionBtn: {
+        flex: 1.5,
+        flexDirection: 'row',
+        paddingVertical: 12,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+    },
+    actionBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: COLORS.white,
+    },
+    emptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 80,
+    },
+    emptyIconWrapper: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: '#1E293B',
+        marginBottom: 8,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        color: '#64748B',
+        textAlign: 'center',
+        paddingHorizontal: 40,
+        lineHeight: 20,
+        marginBottom: 30,
+    },
+    browseBtn: {
+        width: '60%',
+        height: 50,
+        borderRadius: 15,
+        overflow: 'hidden',
+    },
+    browseBtnGradient: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    browseBtnText: {
+        color: COLORS.white,
+        fontSize: 16,
+        fontWeight: '700',
+    },
+});
