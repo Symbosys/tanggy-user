@@ -83,7 +83,7 @@ export default function AllOrdersScreen() {
             items: order.items?.map((item: any) => ({
                 id: item.id.toString(),
                 name: item.product?.name || 'Item',
-                image: item.product?.image || 'https://via.placeholder.com/150?text=No+Image',
+                image: item.product?.imagesss || 'https://via.placeholder.com/150?text=No+Image',
                 quantity: item.quantity,
             })) || [],
         };
@@ -125,24 +125,18 @@ export default function AllOrdersScreen() {
                     </View>
                 </View>
 
-                {/* Items Row */}
-                <View style={styles.itemsPreviewContainer}>
-                    <View style={styles.itemsScrollContainer}>
-                        {item.items.slice(0, 3).map((food, index) => (
-                            <View key={food.id} style={[styles.itemImageWrapper, { zIndex: 10 - index, marginLeft: index === 0 ? 0 : -15 }]}>
-                                <Image source={{ uri: food.image }} style={styles.itemImage} />
-                                {food.quantity > 1 && (
-                                    <View style={styles.quantityBadge}>
-                                        <Text style={styles.quantityText}>{food.quantity}</Text>
-                                    </View>
-                                )}
+                {/* Items Section */}
+                <View style={styles.itemsSection}>
+                    <View style={styles.itemsList}>
+                        {item.items.map((food) => (
+                            <View key={food.id} style={styles.itemRow}>
+                                <Image source={{ uri: food.image }} style={styles.itemThumb} />
+                                <View style={styles.itemInfo}>
+                                    <Text style={styles.itemName} numberOfLines={1}>{food.name}</Text>
+                                    <Text style={styles.itemQtyText}>x{food.quantity}</Text>
+                                </View>
                             </View>
                         ))}
-                        {item.items.length > 3 && (
-                            <View style={styles.moreItemsBadge}>
-                                <Text style={styles.moreItemsText}>+{item.items.length - 3}</Text>
-                            </View>
-                        )}
                     </View>
                     <View style={styles.priceContainer}>
                         <Text style={styles.totalLabel}>Subtotal</Text>
@@ -372,65 +366,46 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
     },
-    itemsPreviewContainer: {
+    itemsSection: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         paddingVertical: 12,
         borderTopWidth: 1,
         borderBottomWidth: 1,
         borderColor: '#F1F5F9',
         marginBottom: 16,
     },
-    itemsScrollContainer: {
+    itemsList: {
+        flex: 1,
+        gap: 8,
+    },
+    itemRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 10,
     },
-    itemImageWrapper: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: COLORS.white,
-        backgroundColor: '#F8FAFC',
-        overflow: 'visible',
-    },
-    itemImage: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 10,
-    },
-    quantityBadge: {
-        position: 'absolute',
-        top: -6,
-        right: -6,
-        backgroundColor: COLORS.primary,
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: COLORS.white,
-    },
-    quantityText: {
-        color: COLORS.white,
-        fontSize: 10,
-        fontWeight: '800',
-    },
-    moreItemsBadge: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
+    itemThumb: {
+        width: 36,
+        height: 36,
+        borderRadius: 8,
         backgroundColor: '#F1F5F9',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: -15,
-        borderWidth: 2,
-        borderColor: COLORS.white,
     },
-    moreItemsText: {
-        fontSize: 12,
+    itemInfo: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingRight: 10,
+    },
+    itemName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#334155',
+        flex: 1,
+    },
+    itemQtyText: {
+        fontSize: 13,
         fontWeight: '700',
         color: '#64748B',
     },
