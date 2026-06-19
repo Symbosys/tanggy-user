@@ -9,6 +9,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     RefreshControl,
+    Linking,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -56,6 +57,10 @@ const OrderDetailsScreen: React.FC = () => {
     const formattedDate = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) + ', ' + 
                          dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
+    const vendor = order.orderVendorAssignments?.vendor;
+    const deliveryAssignment = order.orderDeliveryAssignment;
+    const deliveryPartner = deliveryAssignment?.deliveryPartner;
+
     const handleReorder = async () => {
         try {
             await clearCart();
@@ -66,6 +71,13 @@ const OrderDetailsScreen: React.FC = () => {
         } catch (error) {
             console.error("Reorder failed", error);
         }
+    };
+
+    const handleCall = (phoneNumber?: string) => {
+        if (!phoneNumber) return;
+        Linking.openURL(`tel:${phoneNumber}`).catch((err) => {
+            console.error("Failed to make call", err);
+        });
     };
 
     return (
@@ -226,6 +238,78 @@ const OrderDetailsScreen: React.FC = () => {
                             </TouchableOpacity>
                         )}
                     </View>
+
+                    {/* Store/Vendor Details Card */}
+                    {vendor && (
+                        <View style={styles.detailsCard}>
+                            <Text style={styles.cardSectionTitle}>Store Details</Text>
+                            <View style={styles.detailsRow}>
+                                <View style={styles.detailsIconContainer}>
+                                    <Icon name="storefront" size={24} color={COLORS.primary} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.detailsName}>{vendor.shopName}</Text>
+                                    <Text style={styles.detailsSubtitle}>{vendor.ownerName || 'Store Manager'}</Text>
+                                    <Text style={styles.detailsAddress}>{vendor.mainAddress}</Text>
+                                </View>
+                                {vendor.mobile && (
+                                    <TouchableOpacity 
+                                        style={styles.callIconBtn} 
+                                        onPress={() => handleCall(vendor.mobile)}
+                                    >
+                                        <Icon name="call" size={20} color={COLORS.primary} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Delivery Partner Details Card */}
+                    {deliveryPartner && (
+                        <View style={styles.detailsCard}>
+                            <Text style={styles.cardSectionTitle}>Delivery Partner</Text>
+                            <View style={styles.detailsRow}>
+                                <View style={styles.detailsIconContainer}>
+                                    <Icon name="directions-bike" size={24} color={COLORS.primary} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.detailsName}>{deliveryPartner.name}</Text>
+                                    <Text style={styles.detailsSubtitle}>Delivery Professional</Text>
+                                    {deliveryPartner.mobile && (
+                                        <Text style={styles.detailsAddress}>{deliveryPartner.mobile}</Text>
+                                    )}
+                                </View>
+                                {deliveryPartner.mobile && (
+                                    <TouchableOpacity 
+                                        style={styles.callIconBtn} 
+                                        onPress={() => handleCall(deliveryPartner.mobile)}
+                                    >
+                                        <Icon name="call" size={20} color={COLORS.primary} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Delivery OTP Confirmation Card */}
+                    {deliveryAssignment?.deliveryOtp && order.status !== OrderStatus.DELIVERED && (
+                        <View style={styles.otpCard}>
+                            <LinearGradient
+                                colors={['rgba(34,197,94,0.08)', 'rgba(34,197,94,0.02)']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.otpCardGradient}
+                            />
+                            <View style={styles.otpContent}>
+                                <Icon name="lock-outline" size={28} color="#22C55E" style={{ marginTop: 2 }} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.otpTitle}>Delivery Verification Code</Text>
+                                    <Text style={styles.otpCode}>{deliveryAssignment.deliveryOtp}</Text>
+                                    <Text style={styles.otpSubtitle}>Share this OTP with the rider when they arrive to confirm delivery.</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
 
                     {/* Payment Summary Card */}
                     <View style={styles.paymentCard}>
@@ -670,6 +754,110 @@ const styles = StyleSheet.create({
     backBtnText: {
         color: COLORS.white,
         fontWeight: '700',
+    },
+    // Enhanced styles for Vendor/Rider & OTP
+    detailsCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 18,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.04,
+        shadowRadius: 25,
+        elevation: 5,
+    },
+    cardSectionTitle: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+        marginBottom: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    detailsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+    },
+    detailsIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(146, 53, 208, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    detailsName: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+    },
+    detailsSubtitle: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+        marginTop: 2,
+    },
+    detailsAddress: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: COLORS.muted,
+        marginTop: 4,
+        lineHeight: 18,
+    },
+    callIconBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(146, 53, 208, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    otpCard: {
+        borderRadius: 18,
+        padding: 20,
+        backgroundColor: COLORS.white,
+        borderWidth: 1.5,
+        borderColor: '#22C55E',
+        shadowColor: '#22C55E',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.06,
+        shadowRadius: 20,
+        elevation: 4,
+        overflow: 'hidden',
+        position: 'relative',
+    },
+    otpCardGradient: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+    otpContent: {
+        flexDirection: 'row',
+        gap: 16,
+        alignItems: 'flex-start',
+    },
+    otpTitle: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    otpCode: {
+        fontSize: 32,
+        fontWeight: '800',
+        color: '#22C55E',
+        letterSpacing: 4,
+        marginVertical: 6,
+    },
+    otpSubtitle: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: COLORS.textSecondary,
+        lineHeight: 18,
     },
 });
 

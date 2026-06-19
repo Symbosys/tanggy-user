@@ -210,6 +210,13 @@ export interface OrderVendorAssignment {
   vendor?: {
     id: bigint;
     shopName: string;
+    ownerName?: string;
+    email?: string;
+    mobile?: string;
+    mainAddress?: string;
+    latitude?: number;
+    longitude?: number;
+    images?: any;
   };
 }
 
@@ -241,6 +248,8 @@ export interface OrderDeliveryAssignment {
   deliveryPartner?: {
     id: bigint;
     name: string;
+    mobile?: string;
+    image?: any;
   };
 }
 

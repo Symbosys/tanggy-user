@@ -19,7 +19,7 @@ import AllOrdersScreen from '../screens/order/AllOrders';
 import ChatScreen from '../screens/order/Chat';
 import OrderDetailsScreen from '../screens/order/OrderDetails';
 import OrderConfirmationScreen from '../screens/order/OrderPlaced';
-import OrderTracking from '../screens/order/Tracking';
+import OrderTracking from '../screens/order-tracking';
 import Splash from '../screens/others/Splash';
 import PaymentButton from '../screens/payment/PaymentCallback';
 import PaymentMethodScreen from '../screens/payment/PaymentMethod';
