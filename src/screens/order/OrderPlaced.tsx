@@ -1,33 +1,33 @@
-import React, { useEffect } from 'react';
+import LottieView from 'lottie-react-native';
+import { useEffect } from 'react';
 import {
+  Dimensions,
+  ImageBackground,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Dimensions,
-  StatusBar,
-  ImageBackground,
 } from 'react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
-import LottieView from 'lottie-react-native';
 import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
 
 const { width, height } = Dimensions.get('window');
 
-const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
+const OrderConfirmationScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
+  const { orderId, orderNumber } = route.params || {};
 
   useEffect(() => {
     setTimeout(() => {
       navigation.reset({
         index: 1,
-        routes: [{ name: 'BottomTab' }, { name: 'OrderTracking' }],
+        routes: [{ name: 'BottomTab' }, { name: 'OrderTracking', params: { id: orderId, orderNumber: orderNumber } }],
       });
     }, 2000);
   }, []);
@@ -80,7 +80,7 @@ const OrderConfirmationScreen = ({ navigation }: AppNavigation) => {
                 <Icon name="receipt" size={20} color={COLORS.primary} />
                 <View style={styles.infoTextGroup}>
                   <Text style={styles.infoLabel}>Order ID</Text>
-                  <Text style={styles.infoValue}>#ORD-58934</Text>
+                  <Text style={styles.infoValue}>#{orderNumber || 'ORD-58934'}</Text>
                 </View>
               </View>
               <View style={styles.infoDivider} />

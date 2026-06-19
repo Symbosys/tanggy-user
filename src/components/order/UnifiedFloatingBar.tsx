@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -138,7 +138,7 @@ const OrderSlide = ({ item, navigation }: any) => {
         <TouchableOpacity
             activeOpacity={0.9}
             style={styles.slideContainer}
-            onPress={() => navigation.navigate('AllOrders')}
+            onPress={() => navigation.navigate('OrderTracking', { id: item.id })}
         >
             <LinearGradient
                 colors={['#1E293B', '#0F172A']}

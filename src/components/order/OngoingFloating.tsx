@@ -64,7 +64,7 @@ export default function OngoingFloating() {
             <TouchableOpacity
                 activeOpacity={0.9}
                 style={styles.orderCard}
-                onPress={() => navigation.navigate('AllOrders')}
+                onPress={() => navigation.navigate('OrderTracking', { id: item.id })}
             >
                 <LinearGradient
                     colors={['#1E293B', '#0F172A']}
@@ -88,7 +88,7 @@ export default function OngoingFloating() {
                         {/* Track Button */}
                         <TouchableOpacity
                             style={styles.trackButton}
-                            onPress={() => navigation.navigate('AllOrders')}
+                            onPress={() => navigation.navigate('OrderTracking', { id: item.id })}
                         >
                             <Text style={styles.trackText}>Track</Text>
                             <Icon name="chevron-right" size={18} color={COLORS.white} />

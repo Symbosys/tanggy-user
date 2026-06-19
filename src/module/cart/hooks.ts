@@ -239,7 +239,7 @@ export const useCheckoutLogic = () => {
       placeOrder(orderData, {
         onSuccess: (res) => {
           if (res.success) {
-            navigation.navigate('OrderPlaced');
+            navigation.navigate('OrderPlaced', { orderId: String(res.data.id), orderNumber: res.data.orderNumber } as never);
           }
         },
       });
