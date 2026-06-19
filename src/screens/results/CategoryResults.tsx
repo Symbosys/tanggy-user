@@ -28,8 +28,7 @@ import { Product, SubCategory } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
 import { parseToDecimal } from '../../utils/utils';
 import { useCartStore } from '../../store/cart';
-import FloatingCart from '../../components/home/FloatingCart';
-import OngoingFloating from '../../components/order/OngoingFloating';
+import UnifiedFloatingBar from '../../components/order/UnifiedFloatingBar';
 import { useAlertStore } from '../../store/alert.store';
 
 const BUTTON_GRADIENT = ['#6A0DAD', '#D8B4FF'];
@@ -448,16 +447,12 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
                 removeClippedSubviews={true}
             />
 
-            {/* Floating Cart Bar */}
-            {totalCartItems > 0 && isAuthenticated && (
-                <FloatingCart
-                    totalItems={totalCartItems}
-                    subTotal={subTotal}
-                    onPress={() => navigation.navigate('Cart')}
+            {isAuthenticated && (
+                <UnifiedFloatingBar
                     hasBottomTab={false}
+                    onCartPress={() => navigation.navigate('Cart')}
                 />
             )}
-            {isAuthenticated && <OngoingFloating />}
         </SafeAreaView>
     );
 };

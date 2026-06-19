@@ -16,8 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { VideoRef } from 'react-native-video';
 import api from '../../api/api';
 import { EliteMemberShipCard, FloatingEliteMembership } from '../../components/common/EliteMembership';
-import FloatingCart from '../../components/home/FloatingCart';
-import OngoingFloating from '../../components/order/OngoingFloating';
+import UnifiedFloatingBar from '../../components/order/UnifiedFloatingBar';
 import HomeLoading from '../../components/skeleton/HomeSkeleton';
 import CategoryList from '../../components/ui/CategoryList';
 import ProductCard from '../../components/ui/products/Product';
@@ -328,16 +327,12 @@ export default function HomeScreen({ navigation }: AppNavigation) {
 
 
         {!isAuthenticated && <FloatingEliteMembership />}
-        {/* Floating Cart Bar */}
-        {totalCartItems > 0 && isAuthenticated && (
-          <FloatingCart
-            totalItems={totalCartItems}
-            subTotal={subTotal}
-            onPress={() => navigation.navigate('Cart')}
+        {isAuthenticated && (
+          <UnifiedFloatingBar
             hasBottomTab={true}
+            onCartPress={() => navigation.navigate('Cart')}
           />
         )}
-        {isAuthenticated && <OngoingFloating />}
 
       </View>
     </SafeAreaView>

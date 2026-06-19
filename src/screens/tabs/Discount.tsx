@@ -1,24 +1,22 @@
 import { AxiosError } from 'axios';
 import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     Image,
     ScrollView,
     StyleSheet,
     Text,
     View,
-    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Toast from 'react-native-toast-message';
+import UnifiedFloatingBar from '../../components/order/UnifiedFloatingBar';
 import ProductCard from '../../components/ui/products/DiscountProduct';
-import FloatingCart from '../../components/home/FloatingCart';
-import OngoingFloating from '../../components/order/OngoingFloating';
 import { useAuth } from '../../context/AuthContext';
 import { getAllProducts } from '../../services/product.service';
+import { useAlertStore } from '../../store/alert.store';
 import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
-import { useAlertStore } from '../../store/alert.store';
 import { COLORS } from '../../theme/theme';
 import { Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
@@ -169,16 +167,12 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
                 </View>
             </ScrollView>
 
-            {/* Floating Cart Bar */}
-            {totalCartItems > 0 && isAuthenticated && (
-                <FloatingCart
-                    totalItems={totalCartItems}
-                    subTotal={subTotal}
-                    onPress={() => navigation.navigate('Cart')}
+            {isAuthenticated && (
+                <UnifiedFloatingBar
                     hasBottomTab={true}
+                    onCartPress={() => navigation.navigate('Cart')}
                 />
             )}
-            {isAuthenticated && <OngoingFloating />}
         </SafeAreaView>
     );
 };
