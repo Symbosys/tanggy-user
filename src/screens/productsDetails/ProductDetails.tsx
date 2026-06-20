@@ -56,7 +56,7 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
         try {
             if (cartQuantity === 0) {
                 // First time adding: set to 1
-                await addToCart(initialProduct.id, 1);
+                await addToCart(initialProduct.id, 1, initialProduct);
                 Toast.show({
                     type: 'success',
                     text1: 'Added to cart!',

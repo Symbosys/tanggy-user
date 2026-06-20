@@ -110,12 +110,12 @@ export const useCartActions = () => {
           confirmText: 'Remove',
           cancelText: 'Cancel',
           onConfirm: async () => {
-            await addToCart(String(item.productId), 0);
+            await addToCart(String(item.productId), 0, item.product);
           },
         });
         return;
       }
-      await addToCart(String(item.productId), newQuantity);
+      await addToCart(String(item.productId), newQuantity, item.product);
     },
     [addToCart, showAlert]
   );
@@ -220,34 +220,37 @@ export const useCheckoutLogic = () => {
   const handleConfirmPayment = useCallback(async () => {
     setShowCheckoutPopup(false);
     
+    // Build order data (shared for all payment methods)
+    const orderData = {
+      addressId: String(selectedAddressId || hasDefaultAddress?.id),
+      items: cartItems.map((item: any) => ({
+        productId: String(item.product.id),
+        quantity: item.quantity,
+        notes: item.notes || null,
+      })),
+      tipAmount: tipAmount,
+      notes: null,
+      source: OrderSource.APP,
+    };
+
     // Check payment method type
     if (selectedPaymentMethod?.type === 'cod') {
       // 🚀 Place order via backend for Cash on Delivery
-      const orderData = {
-        addressId: String(selectedAddressId || hasDefaultAddress?.id),
-        items: cartItems.map((item: any) => ({
-          productId: String(item.product.id),
-          quantity: item.quantity,
-          notes: item.notes || null,
-        })),
-        tipAmount: tipAmount,
-        paymentMethod: PaymentMethod.COD,
-        source: OrderSource.APP,
-        notes: null,
-      };
-
-      placeOrder(orderData, {
-        onSuccess: (res) => {
-          if (res.success) {
-            navigation.navigate('OrderPlaced', { orderId: String(res.data.id), orderNumber: res.data.orderNumber } as never);
-          }
-        },
-      });
+      placeOrder(
+        { ...orderData, paymentMethod: PaymentMethod.COD },
+        {
+          onSuccess: (res) => {
+            if (res.success) {
+              navigation.navigate('OrderPlaced', { orderId: String(res.data.id), orderNumber: res.data.orderNumber } as never);
+            }
+          },
+        }
+      );
       return;
     } else if (selectedPaymentMethod?.id === 'phonepe') {
-      // PhonePe Payment Logic
+      // 📱 PhonePe Payment — unified flow via place-order
       try {
-        // 1. Initialize SDK
+        // 1. Initialize PhonePe SDK
         await PhonePePaymentSDK.init(
           PHONEPE_CONFIG.ENVIRONMENT,
           PHONEPE_CONFIG.MERCHANT_ID,
@@ -255,25 +258,30 @@ export const useCheckoutLogic = () => {
           PHONEPE_CONFIG.ENABLE_LOGGING
         );
 
-        // 2. Call Backend to Create Order
-        // Note: Amount is in Paise (INR * 100)
-        const response = await api.post('/order/phonepe/create-order', {
-          amount: Math.round(1 * 100), // Convert to paise
-          userId: 'user_minta_fresh', // Placeholder as used before
+        // 2. Place order via backend (returns PhonePe token)
+        const response = await api.post('/order/place-order', {
+          ...orderData,
+          paymentMethod: PaymentMethod.PHONEPE,
         });
 
         const result = response.data;
-        const paymentData = result.data;
 
-        if (!result.success || !paymentData || !paymentData.token) {
-          throw new Error(result.message || 'Failed to get payment token');
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to create order');
+        }
+
+        const phonePeData = result.data?.phonePe;
+        const order = result.data?.order;
+
+        if (!phonePeData?.token) {
+          throw new Error('Failed to get PhonePe payment token');
         }
 
         // 3. Prepare payload for SDK
         const payload = {
           merchantId: PHONEPE_CONFIG.MERCHANT_ID,
-          orderId: paymentData.merchantOrderId,
-          token: paymentData.token,
+          orderId: phonePeData.merchantOrderId,
+          token: phonePeData.token,
           paymentMode: {
             type: 'PAY_PAGE',
           },
@@ -288,20 +296,27 @@ export const useCheckoutLogic = () => {
         );
 
         if (sdkResult?.status === 'SUCCESS') {
-          // Verify on backend
+          // 5. Verify payment on backend
           const verifyRes = await api.post('/order/phonepe/verify-payment', {
-            merchantOrderId: paymentData.merchantOrderId,
+            merchantOrderId: phonePeData.merchantOrderId,
           });
-          const verifyStatus = verifyRes.data;
-          if (verifyStatus.success) {
-            navigation.navigate('OrderPlaced');
+          const verifyData = verifyRes.data;
+
+          if (verifyData.success && verifyData.data?.success) {
+            navigation.navigate('OrderPlaced', {
+              orderId: String(order?.id),
+              orderNumber: order?.orderNumber,
+            } as never);
           } else {
-            Alert.alert('Payment Verification Failed', 'Please contact support if amount was deducted.');
+            Alert.alert(
+              'Payment Verification Failed',
+              'Please contact support if amount was deducted.'
+            );
           }
         } else if (sdkResult?.status === 'FAILED') {
-          Alert.alert('Payment Failed');
+          Alert.alert('Payment Failed', 'Your payment could not be processed. Please try again.');
         } else if (sdkResult?.status === 'CANCELLED') {
-          Alert.alert('Payment Cancelled');
+          Alert.alert('Payment Cancelled', 'You cancelled the payment. Your order is saved — you can retry payment.');
         }
       } catch (error: any) {
         Alert.alert('Payment Error', error.message || 'Something went wrong');

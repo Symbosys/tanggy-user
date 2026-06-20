@@ -108,3 +108,23 @@ export const handlePayment = async (totalAmount: string): Promise<boolean> => {
     return false;
   }
 };
+
+export const parseWeightToGrams = (weightStr: string | number | null | undefined): number => {
+  if (!weightStr) return 0;
+  const str = String(weightStr).toLowerCase().trim();
+  const match = str.match(/^([\d.]+)\s*(kg|g|kilogram|kilograms|gram|grams)?$/);
+  if (match) {
+    const value = parseFloat(match[1]);
+    const unit = match[2];
+    if (unit === 'kg' || unit === 'kilogram' || unit === 'kilograms') {
+      return value * 1000;
+    }
+    return value;
+  }
+  const fallbackVal = parseFloat(str);
+  if (isNaN(fallbackVal)) return 0;
+  if (str.includes('kg') || str.includes('kilogram')) {
+    return fallbackVal * 1000;
+  }
+  return fallbackVal;
+};

@@ -358,3 +358,32 @@ export interface PlaceOrderResponse {
   message: string;
   data: Order;
 }
+
+/** Response shape when placing order with paymentMethod: PHONEPE */
+export interface PlaceOrderPhonePeResponse {
+  success: boolean;
+  message: string;
+  data: {
+    order: Order;
+    phonePe: {
+      token: string;
+      orderId: string;
+      merchantOrderId: string;
+    };
+  };
+}
+
+/** Response from /order/phonepe/verify-payment */
+export interface VerifyPhonePePaymentResponse {
+  success: boolean;
+  message: string;
+  data: {
+    success: boolean;
+    status: string;
+    order: {
+      id: string;
+      orderNumber: string;
+      paymentStatus: PaymentStatus;
+    } | null;
+  };
+}

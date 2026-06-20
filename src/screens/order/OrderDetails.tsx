@@ -65,7 +65,7 @@ const OrderDetailsScreen: React.FC = () => {
         try {
             await clearCart();
             for (const item of order.items) {
-                await addToCart(item.product.id.toString(), item.quantity);
+                await addToCart(item.product.id.toString(), item.quantity, item.product);
             }
             navigation.navigate('Cart');
         } catch (error) {

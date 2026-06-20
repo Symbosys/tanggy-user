@@ -1,8 +1,9 @@
+import { AxiosError } from "axios";
+import Toast from 'react-native-toast-message';
 import { create } from "zustand";
-import axios, { AxiosError } from "axios";
 import api from "../api/api";
-import { ErrorMessage, parseToDecimal } from "../utils/utils";
 import { Product } from "../types/product.type";
+import { ErrorMessage, parseToDecimal, parseWeightToGrams, SuccessMessage } from "../utils/utils";
 
 interface CartItem {
   id: number;
@@ -19,7 +20,7 @@ interface CartState {
 
   // Actions
   fetchCart: () => Promise<void>;
-  addToCart: (productId: string, quantity: number) => Promise<void>;
+  addToCart: (productId: string, quantity: number, product?: any) => Promise<void>;
   clearCart: () => Promise<void>;
   getQuantity: (productId: string) => number;
   incrementQuantity: (product: Product) => Promise<void>;
@@ -59,7 +60,31 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   // Add or update an item in cart
-  addToCart: async (productId: string, quantity: number) => {
+  addToCart: async (productId: string, quantity: number, product?: any) => {
+    const currentItems = get().cartItems;
+    const targetItem = currentItems.find(item => item.product.id === productId);
+    const currentQty = targetItem ? targetItem.quantity : 0;
+
+    // Check weight constraint if quantity is increasing
+    if (quantity > currentQty) {
+      const weightStr = product ? product.weight : (targetItem ? targetItem.product.weight : null);
+      if (weightStr) {
+        const itemWeight = parseWeightToGrams(weightStr);
+        let proposedWeight = 0;
+        for (const item of currentItems) {
+          if (item.product.id !== productId) {
+            proposedWeight += parseWeightToGrams(item.product.weight) * item.quantity;
+          }
+        }
+        proposedWeight += itemWeight * quantity;
+
+        if (proposedWeight > 5000) {
+          SuccessMessage("More than 5kg is not allowed");
+          return;
+        }
+      }
+    }
+
     set({ loading: true, error: null });
     try {
       const res = await api.post(
@@ -101,7 +126,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   // Increment quantity for a product
   incrementQuantity: async (product: Product) => {
     const currentQuantity = get().getQuantity(product.id);
-    await get().addToCart(product.id, currentQuantity + 1);
+    await get().addToCart(product.id, currentQuantity + 1, product);
   },
 
   // Decrement quantity for a product

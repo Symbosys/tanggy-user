@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
   Linking,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -33,7 +34,7 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
   const [currentOrderNumber, setCurrentOrderNumber] = useState(initialOrderNumber);
 
   const queryParams = currentId ? { id: currentId } : { orderNumber: currentOrderNumber };
-  const { data: order, isLoading } = useOrderDetails(queryParams);
+  const { data: order, isLoading, refetch } = useOrderDetails(queryParams);
 
   // Fetch all ongoing orders for switching
   const { data: ongoingOrderData } = useOrders({
@@ -54,8 +55,14 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
   // --- STATES ---
   const [rating, setRating] = useState(0);
   const [isSwitchModalVisible, setSwitchModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  if (isLoading) {
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    refetch().finally(() => setRefreshing(false));
+  }, [refetch]);
+
+  if (isLoading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -121,6 +128,9 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
+        }
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
