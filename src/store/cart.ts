@@ -4,6 +4,7 @@ import { create } from "zustand";
 import api from "../api/api";
 import { Product } from "../types/product.type";
 import { ErrorMessage, parseToDecimal, parseWeightToGrams, SuccessMessage } from "../utils/utils";
+import { useLocationStore } from "./location";
 
 interface CartItem {
   id: number;
@@ -17,6 +18,12 @@ interface CartState {
   totalItems: number;
   loading: boolean;
   error: string | null;
+
+  // Server computed fees
+  deliveryFee: number;
+  platformFee: number;
+  packingFee: number;
+  surcharge: number;
 
   // Actions
   fetchCart: () => Promise<void>;
@@ -33,12 +40,22 @@ export const useCartStore = create<CartState>((set, get) => ({
   totalItems: 0,
   loading: false,
   error: null,
+  deliveryFee: 0,
+  platformFee: 0,
+  packingFee: 0,
+  surcharge: 0,
 
   // Fetch all items from backend
   fetchCart: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await api.get("/user/cart/all");
+      const { latitude, longitude } = useLocationStore.getState();
+      const res = await api.get("/user/cart/all", {
+        params: {
+          latitude,
+          longitude,
+        },
+      });
 
       const data = res.data.data;
 
@@ -48,10 +65,19 @@ export const useCartStore = create<CartState>((set, get) => ({
         0
       );
 
+      const deliveryFee = parseToDecimal(data.deliveryFee || 0);
+      const platformFee = parseToDecimal(data.platformFee || 0);
+      const packingFee = parseToDecimal(data.packingFee || 0);
+      const surcharge = parseToDecimal(data.surcharge || 0);
+
       set({
         cartItems: data.items || [],
         subtotal,
         totalItems,
+        deliveryFee,
+        platformFee,
+        packingFee,
+        surcharge,
         loading: false,
       });
     } catch (err: any) {
@@ -111,6 +137,10 @@ export const useCartStore = create<CartState>((set, get) => ({
         cartItems: [],
         subtotal: 0,
         totalItems: 0,
+        deliveryFee: 0,
+        platformFee: 0,
+        packingFee: 0,
+        surcharge: 0,
         loading: false,
       });
     } catch (err: any) {

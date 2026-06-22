@@ -1,26 +1,25 @@
-import { useState, useCallback } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { useCallback, useEffect, useState } from 'react';
 import {
-    View,
-    Text,
-    TouchableOpacity,
+    ActivityIndicator,
+    Dimensions,
     FlatList,
     Image,
     RefreshControl,
-    ActivityIndicator,
     StyleSheet,
-    Dimensions,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useOrders } from '../../api/hooks/useOrder';
+import { LoadingOverlay } from '../../components/ui/loader/LoaderOverLay';
+import { useCartStore } from '../../store/cart';
 import { COLORS } from '../../theme/theme';
 import { Order, OrderStatus } from '../../types/order.type';
-import { LoadingOverlay } from '../../components/ui/loader/LoaderOverLay';
-import { useOrders } from '../../api/hooks/useOrder';
-import { useCartStore } from '../../store/cart';
-import { useNavigation } from '@react-navigation/native';
-import { Toast } from 'react-native-toast-message/lib/src/Toast';
 
 const { width } = Dimensions.get('window');
 
@@ -63,6 +62,7 @@ export default function AllOrdersScreen() {
     const navigation = useNavigation<any>();
     const { addToCart, clearCart } = useCartStore();
     const [reorderLoading, setReorderLoading] = useState(false);
+    const [allOrders, setAllOrders] = useState<Order[]>([]);
 
     const { data: orderData, isLoading, isFetching, refetch } = useOrders({
         page,
@@ -72,10 +72,25 @@ export default function AllOrdersScreen() {
 
     console.log("orderData", orderData);
 
-    const orders: Order[] = orderData?.orders || [];
     const hasMore = (orderData?.currentPage || 1) < (orderData?.totalPage || 1);
 
-    const uiOrders: OrderItemUI[] = orders.map((order: any) => {
+    useEffect(() => {
+        if (orderData?.orders && orderData.currentPage === page) {
+            if (page === 1) {
+                setAllOrders(orderData.orders);
+            } else {
+                setAllOrders(prev => {
+                    const existingIds = new Set(prev.map(o => o.id.toString()));
+                    const newUniqueOrders = orderData.orders.filter(o => !existingIds.has(o.id.toString()));
+                    return [...prev, ...newUniqueOrders];
+                });
+            }
+        }
+    }, [orderData, page]);
+
+    const currentOrders = page === 1 && orderData?.orders ? orderData.orders : allOrders;
+
+    const uiOrders: OrderItemUI[] = currentOrders.map((order: any) => {
         const dateObj = new Date(order.createdAt);
         const subtotal = order.subtotal || 0;
         const paidAmount = order.paidAmount || 0;
@@ -112,6 +127,7 @@ export default function AllOrdersScreen() {
     const handleTabChange = useCallback((tab: 'Ongoing' | 'Past Orders') => {
         setSelectedTab(tab);
         setPage(1);
+        setAllOrders([]);
     }, []);
 
     const handleReorder = async (orderItems: OrderItemUI['items']) => {
@@ -204,29 +220,43 @@ export default function AllOrdersScreen() {
         );
     };
 
-    const renderEmpty = () => (
-        <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconWrapper}>
-                <MaterialCommunityIcons name="basket-outline" size={60} color="#CBD5E1" />
+    const renderEmpty = () => {
+        if (isLoading) {
+            return null; // Let the full-screen LoadingOverlay handle it
+        }
+        if (isFetching) {
+            return (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+            );
+        }
+        return (
+            <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconWrapper}>
+                    <MaterialCommunityIcons name="basket-outline" size={60} color="#CBD5E1" />
+                </View>
+                <Text style={styles.emptyTitle}>No {selectedTab === 'Ongoing' ? 'active' : 'previous'} orders</Text>
+                <Text style={styles.emptySubtitle}>
+                    {selectedTab === 'Ongoing'
+                        ? "You don't have any orders in progress right now."
+                        : "Looks like you haven't placed any orders yet."}
+                </Text>
+                {/* <TouchableOpacity style={styles.browseBtn} onPress={() => {
+                    navigation.navigate("")
+                }}>
+                    <LinearGradient
+                        colors={[COLORS.primary, '#9333EA']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.browseBtnGradient}
+                    >
+                        <Text style={styles.browseBtnText}>Start Shopping</Text>
+                    </LinearGradient>
+                </TouchableOpacity> */}
             </View>
-            <Text style={styles.emptyTitle}>No {selectedTab === 'Ongoing' ? 'active' : 'previous'} orders</Text>
-            <Text style={styles.emptySubtitle}>
-                {selectedTab === 'Ongoing'
-                    ? "You don't have any orders in progress right now."
-                    : "Looks like you haven't placed any orders yet."}
-            </Text>
-            <TouchableOpacity style={styles.browseBtn}>
-                <LinearGradient
-                    colors={[COLORS.primary, '#9333EA']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.browseBtnGradient}
-                >
-                    <Text style={styles.browseBtnText}>Start Shopping</Text>
-                </LinearGradient>
-            </TouchableOpacity>
-        </View>
-    );
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -278,12 +308,14 @@ export default function AllOrdersScreen() {
                 }
                 onEndReached={hasMore ? loadMore : undefined}
                 onEndReachedThreshold={0.3}
-                ListEmptyComponent={!isLoading ? renderEmpty : null}
-                ListFooterComponent={() => (
+                ListEmptyComponent={renderEmpty}
+                ListFooterComponent={
                     isFetching && page > 1 ? (
                         <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 20 }} />
-                    ) : <View style={{ height: 40 }} />
-                )}
+                    ) : (
+                        <View style={{ height: 40 }} />
+                    )
+                }
             />
 
             <LoadingOverlay visible={(isLoading && page === 1) || reorderLoading} />
@@ -503,6 +535,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 80,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 100,
     },
     emptyIconWrapper: {
         width: 120,

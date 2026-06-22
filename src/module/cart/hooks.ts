@@ -5,6 +5,7 @@ import { useCartUIStore } from './store';
 import { useAddressStore } from '../../store/address';
 import { usePaymentStore } from '../../store/payment';
 import { parseToDecimal, handlePayment as handlePaymentUtil } from '../../utils/utils';
+import { useLocationStore } from '../../store/location';
 import { useAlertStore } from '../../store/alert.store';
 import { CartItem } from './types';
 import { RootStackParamList } from '../../types/type';
@@ -20,11 +21,12 @@ export const useCartInitialization = () => {
   const { fetchCart, cartItems, loading } = useCartStore();
   const { fetchAddresses, addresses } = useAddressStore();
   const { selectedAddressId, setSelectedAddressId } = useCartUIStore();
+  const { latitude, longitude } = useLocationStore();
 
   useEffect(() => {
     fetchCart();
     fetchAddresses();
-  }, [fetchCart, fetchAddresses]);
+  }, [fetchCart, fetchAddresses, latitude, longitude]);
 
   useEffect(() => {
     if (addresses.length > 0 && selectedAddressId === null) {
@@ -38,7 +40,13 @@ export const useCartInitialization = () => {
 
 
 export const useCartCalculations = () => {
-  const { cartItems } = useCartStore();
+  const {
+    cartItems,
+    deliveryFee: serverDeliveryFee,
+    platformFee: serverPlatformFee,
+    packingFee: serverPackingFee,
+    surcharge: serverSurcharge,
+  } = useCartStore();
   const { selectedTip } = useCartUIStore();
   
   const getSellingPrice = useCallback((item: CartItem | any): number => {
@@ -51,21 +59,20 @@ export const useCartCalculations = () => {
     0
   );
 
-  // 2. Delivery Fee (No GST on raw chicken products as per Indian govt)
-  const standardDeliveryFee = 40;
-  const deliveryFee = standardDeliveryFee;
+  // 2. Delivery Fee
+  const deliveryFee = serverDeliveryFee;
 
-  // 3. Platform Fee (No GST)
-  const platformFee = 3;
+  // 3. Platform Fee
+  const platformFee = serverPlatformFee;
 
-  // 4. Packing Fee (No GST)
-  const packingFee = 10;
+  // 4. Packing Fee
+  const packingFee = serverPackingFee;
 
   // 5. Tip Amount
   const tipAmount = selectedTip || 0;
 
   // 6. Surcharge
-  const surcharge = 0;
+  const surcharge = serverSurcharge;
 
   // 7. Discount
   const discountAmount = 0;
@@ -96,6 +103,7 @@ export const useCartCalculations = () => {
     getSellingPrice,
   };
 };
+
 
 export const useCartActions = () => {
   const { addToCart, clearCart } = useCartStore();

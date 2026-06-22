@@ -15,6 +15,7 @@ import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { VideoRef } from 'react-native-video';
 import api from '../../api/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { EliteMemberShipCard, FloatingEliteMembership } from '../../components/common/EliteMembership';
 import UnifiedFloatingBar from '../../components/order/UnifiedFloatingBar';
 import HomeLoading from '../../components/skeleton/HomeSkeleton';
@@ -33,6 +34,7 @@ import { ErrorMessage } from '../../utils/utils';
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }: AppNavigation) {
+  const queryClient = useQueryClient();
   const [category, setCategory] = useState<Category[]>([]);
   const [bestSellerProducts, setBestSellerProducts] = useState<Product[]>([]);
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
@@ -179,6 +181,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                     fetchBestSellerProducts(),
                     userId ? fetchCart() : Promise.resolve(),
                     userId ? fetchRecommendedProducts() : Promise.resolve(),
+                    queryClient.invalidateQueries({ queryKey: ['orders'] }),
                   ]);
                 } catch (error) {
                   console.error('Error refreshing home data', error);

@@ -11,6 +11,7 @@ export const CartBillDetails: React.FC = () => {
         deliveryFee,
         platformFee,
         packingFee,
+        surcharge,
         tipAmount,
         discountAmount,
         total,
@@ -48,6 +49,14 @@ export const CartBillDetails: React.FC = () => {
                     <View style={styles.subtotalRow}>
                         <Text style={styles.subtotalLabel}>Packing Fee</Text>
                         <Text style={styles.subtotalValue}>₹{packingFee.toFixed(2)}</Text>
+                    </View>
+                )}
+
+                {/* Surge Charge */}
+                {surcharge > 0 && (
+                    <View style={styles.subtotalRow}>
+                        <Text style={styles.subtotalLabel}>Surge Charge</Text>
+                        <Text style={styles.subtotalValue}>₹{surcharge.toFixed(2)}</Text>
                     </View>
                 )}
 
