@@ -4,7 +4,7 @@ import { useCartStore } from '../../store/cart';
 import { useCartUIStore } from './store';
 import { useAddressStore } from '../../store/address';
 import { usePaymentStore } from '../../store/payment';
-import { parseToDecimal, handlePayment as handlePaymentUtil } from '../../utils/utils';
+import { parseToDecimal, handlePayment as handlePaymentUtil, ErrorMessage } from '../../utils/utils';
 import { useLocationStore } from '../../store/location';
 import { useAlertStore } from '../../store/alert.store';
 import { CartItem } from './types';
@@ -302,6 +302,7 @@ export const useCheckoutLogic = () => {
           requestBody,
           null
         );
+        console.log({ sdkResult })
 
         if (sdkResult?.status === 'SUCCESS') {
           // 5. Verify payment on backend
@@ -327,7 +328,7 @@ export const useCheckoutLogic = () => {
           Alert.alert('Payment Cancelled', 'You cancelled the payment. Your order is saved — you can retry payment.');
         }
       } catch (error: any) {
-        Alert.alert('Payment Error', error.message || 'Something went wrong');
+        ErrorMessage(error)
       }
     } else {
       // For UPI and others, use the payment handler

@@ -35,13 +35,13 @@ export function calculateDiscount(
 
 export const ErrorMessage = (error: AxiosError | Error) => {
   if (error instanceof AxiosError) {
-    ToastAndroid.show(
-      error.response?.data?.message || 'Something went wrong',
-      ToastAndroid.LONG,
-    );
-  } else {
-    ToastAndroid.show('Something went wrong', ToastAndroid.LONG);
-  }
+        const serverMessage = error.response?.data?.message;
+        ToastAndroid.show(serverMessage || error.message || "An unexpected server error occurred", ToastAndroid.LONG);
+    } else if (error instanceof Error) {
+        ToastAndroid.show(error.message || "Something went wrong", ToastAndroid.LONG);
+    } else {
+        ToastAndroid.show("An unknown error occurred", ToastAndroid.LONG);
+    }
 };
 
 export const SuccessMessage = (message: string) => {
