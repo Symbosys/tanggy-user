@@ -71,3 +71,10 @@ use this color which is located in ../../theme/theme and if you need beyond this
 
 
 1. fix the hero section of minta fresh
+
+rmdir /s /q node_modules
+rmdir /s /q android\.gradle
+rmdir /s /q android\build
+rmdir /s /q android\app\build
+rmdir /s /q android\.cxx
+rmdir /s /q android\app\.cxx

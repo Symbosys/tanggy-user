@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -9,10 +9,12 @@ import {
   View,
   Linking,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Ads from '../../components/order/Ads';
+import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useOrders } from '../../api/hooks/useOrder';
 import { OrderStatus } from '../../types/order.type';
 
@@ -27,11 +29,16 @@ import { SupportSystemCard } from './SupportSystemCard';
 import { OrderSummaryCard } from './OrderSummaryCard';
 import { RateReviewCard } from './RateReviewCard';
 import { SwitchOrderModal } from './SwitchOrderModal';
+import { wsService } from '../../socket/websocket.service';
+import { EVENT_TYPES } from '../../constants/event.constant';
+import { handleOrderAccepted } from '../../socket/handlers/order.handler';
 
 const BlinkitFinalClone = ({ navigation, route }: any) => {
   const { id: initialId, orderNumber: initialOrderNumber } = route.params || {};
   const [currentId, setCurrentId] = useState(initialId);
   const [currentOrderNumber, setCurrentOrderNumber] = useState(initialOrderNumber);
+
+  const queryClient = useQueryClient();
 
   const queryParams = currentId ? { id: currentId } : { orderNumber: currentOrderNumber };
   const { data: order, isLoading, refetch } = useOrderDetails(queryParams);
@@ -56,6 +63,46 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
   const [rating, setRating] = useState(0);
   const [isSwitchModalVisible, setSwitchModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // --- WEB SOCKET EVENT LISTENERS ---
+  useEffect(() => {
+    const handleWsEvent = (event: any) => {
+      console.log('📬 WebSocket event received on tracking screen:', event);
+      const eventOrderId = event?.data?.orderId;
+      const eventOrderNumber = event?.data?.orderNumber;
+
+      // Invalidate if the event refers to the current order being tracked
+      const isMatchingId = currentId && String(eventOrderId) === String(currentId);
+      const isMatchingNumber = currentOrderNumber && String(eventOrderNumber) === String(currentOrderNumber);
+      const isMatchingFetchedId = order?.id && String(eventOrderId) === String(order.id);
+      const isMatchingFetchedNumber = order?.orderNumber && String(eventOrderNumber) === String(order.orderNumber);
+
+      if (isMatchingId || isMatchingNumber || isMatchingFetchedId || isMatchingFetchedNumber) {
+        console.log('🔄 Match found, invalidating order details query cache');
+        queryClient.invalidateQueries({ queryKey: ['order-details'] });
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
+      }
+    };
+
+    // Register listeners for all tracking events
+    const eventsToListen = [
+      EVENT_TYPES.ORDER_PREPARING,
+      EVENT_TYPES.ORDER_READY_FOR_PICKUP,
+      EVENT_TYPES.DELIVERY_ACCEPTED,
+      EVENT_TYPES.ORDER_PICKED_UP,
+      EVENT_TYPES.ORDER_DELIVERED,
+    ];
+
+    eventsToListen.forEach((eventType) => {
+      wsService.on(eventType, handleWsEvent);
+    });
+
+    return () => {
+      eventsToListen.forEach((eventType) => {
+        wsService.off(eventType, handleWsEvent);
+      });
+    };
+  }, [currentId, currentOrderNumber, order?.id, order?.orderNumber, queryClient]);
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
