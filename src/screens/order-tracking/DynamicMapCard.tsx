@@ -3,7 +3,7 @@ import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { OrderStatus } from '../../types/order.type';
+import { Order, OrderStatus } from '../../types/order.type';
 import {
   CARD_MARGIN,
   CARD_WIDTH,
@@ -15,22 +15,82 @@ import {
 } from './constants';
 
 interface DynamicMapCardProps {
-  status: OrderStatus | undefined;
-  deliveredAt: string | Date | undefined;
-  deliveryEtaMinutes: number | undefined;
+  order: Order | undefined;
   scrollY: Animated.Value;
   handleExpandMap: () => void;
   handleCollapseMap: () => void;
 }
 
 export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
-  status,
-  deliveredAt,
-  deliveryEtaMinutes,
+  order,
   scrollY,
   handleExpandMap,
   handleCollapseMap,
 }) => {
+  const status = order?.status;
+  const deliveredAt = order?.timestamps?.deliveredAt;
+  const deliveryEtaMinutes = order?.orderDeliveryAssignment?.deliveryEtaMinutes;
+
+  // --- COORDINATES & REGION SETUP ---
+  const userLat = order?.address?.latitude != null ? Number(order.address.latitude) : COORDINATES.USER.latitude;
+  const userLng = order?.address?.longitude != null ? Number(order.address.longitude) : COORDINATES.USER.longitude;
+  const userCoordinate = { latitude: userLat, longitude: userLng };
+
+  const vendor = order?.orderVendorAssignments?.vendor;
+  const vendorLat = vendor?.latitude != null ? Number(vendor.latitude) : null;
+  const vendorLng = vendor?.longitude != null ? Number(vendor.longitude) : null;
+  const hasVendor = vendorLat !== null && vendorLng !== null;
+  const vendorCoordinate = hasVendor ? { latitude: vendorLat as number, longitude: vendorLng as number } : null;
+
+  const getTargetRegion = () => {
+    if (hasVendor && vendorLat !== null && vendorLng !== null) {
+      const rawLatDelta = Math.abs(vendorLat - userLat) * 1.8;
+      const rawLngDelta = Math.abs(vendorLng - userLng) * 1.8;
+      const latDelta = Math.min(Math.max(rawLatDelta, 0.005), 0.015);
+      const lngDelta = Math.min(Math.max(rawLngDelta, 0.005), 0.015);
+      return {
+        latitude: (vendorLat + userLat) / 2,
+        longitude: (vendorLng + userLng) / 2,
+        latitudeDelta: latDelta,
+        longitudeDelta: lngDelta,
+      };
+    } else {
+      return {
+        latitude: userLat,
+        longitude: userLng,
+        latitudeDelta: 0.003,
+        longitudeDelta: 0.003,
+      };
+    }
+  };
+
+  const mapRef = React.useRef<MapView>(null);
+
+  const recenterMap = () => {
+    if (!mapRef.current) return;
+    mapRef.current.animateToRegion(getTargetRegion(), 800);
+  };
+
+  // Trigger correct zoom on initial mount + when map size changes (expansion)
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      recenterMap();
+    }, 300); // Small delay ensures map is fully rendered before animating
+
+    return () => clearTimeout(timeout);
+  }, [userLat, userLng, vendorLat, vendorLng]);
+
+  // Re-center when map expands (this fixes the zoomed-out state after scrolling)
+  React.useEffect(() => {
+    const listener = scrollY.addListener(({ value }) => {
+      if (value > 100) { // When map is significantly expanded
+        recenterMap();
+      }
+    });
+
+    return () => scrollY.removeListener(listener);
+  }, [scrollY]);
+
   // --- ANIMATION INTERPOLATIONS ---
   const textOpacity = scrollY.interpolate({
     inputRange: [0, 60],
@@ -114,14 +174,10 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
       >
         {/* INTERACTIVE MAP */}
         <MapView
+          ref={mapRef}
           provider={PROVIDER_GOOGLE}
           style={styles.map}
-          initialRegion={{
-            latitude: (COORDINATES.RESTAURANT.latitude + COORDINATES.USER.latitude) / 2,
-            longitude: (COORDINATES.RESTAURANT.longitude + COORDINATES.USER.longitude) / 2,
-            latitudeDelta: 0.015,
-            longitudeDelta: 0.015,
-          }}
+          initialRegion={getTargetRegion()}
           scrollEnabled={true}
           zoomEnabled={true}
           pitchEnabled={true}
@@ -129,17 +185,21 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
           showsUserLocation={false}
           showsCompass={false}
         >
-          <Polyline
-            coordinates={[COORDINATES.RESTAURANT, COORDINATES.USER]}
-            strokeColor="black"
-            strokeWidth={3}
-          />
-          <Marker coordinate={COORDINATES.RESTAURANT} title="Restaurant">
-            <View style={styles.markerStore}>
-              <Ionicons name="restaurant" size={14} color="white" />
-            </View>
-          </Marker>
-          <Marker coordinate={COORDINATES.USER} title="You">
+          {hasVendor && vendorCoordinate && (
+            <>
+              <Polyline
+                coordinates={[vendorCoordinate, userCoordinate]}
+                strokeColor="black"
+                strokeWidth={3}
+              />
+              <Marker coordinate={vendorCoordinate} title={vendor?.shopName || "Store"}>
+                <View style={styles.markerStore}>
+                  <Ionicons name="restaurant" size={14} color="white" />
+                </View>
+              </Marker>
+            </>
+          )}
+          <Marker coordinate={userCoordinate} title="Delivery Location">
             <View style={styles.markerUser}>
               <Ionicons name="navigate" size={14} color="white" />
             </View>
@@ -149,6 +209,15 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
         <View style={styles.googleLogoContainer}>
           <Text style={styles.googleText}>Google</Text>
         </View>
+
+        {/* RE-CENTER BUTTON */}
+        <TouchableOpacity
+          style={styles.recenterButton}
+          onPress={recenterMap}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="my-location" size={20} color="#555" />
+        </TouchableOpacity>
 
         {/* EXPAND ICON */}
         <Animated.View
@@ -280,5 +349,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
+  },
+  recenterButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'white',
+    padding: 8,
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    zIndex: 10,
   },
 });

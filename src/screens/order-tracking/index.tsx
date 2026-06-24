@@ -187,9 +187,7 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
 
         {/* Dynamic Map Card */}
         <DynamicMapCard
-          status={order?.status}
-          deliveredAt={order?.timestamps?.deliveredAt}
-          deliveryEtaMinutes={deliveryAssignment?.deliveryEtaMinutes}
+          order={order}
           scrollY={scrollY}
           handleExpandMap={handleExpandMap}
           handleCollapseMap={handleCollapseMap}

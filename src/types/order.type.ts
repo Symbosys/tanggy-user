@@ -290,6 +290,8 @@ export interface Order {
     id: bigint;
     receiverName: string;
     completeAddress: string;
+    latitude?: number;
+    longitude?: number;
   };
   items: OrderItem[];
   refunds?: OrderRefund;
