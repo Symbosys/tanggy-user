@@ -242,7 +242,20 @@ export const useCheckoutLogic = () => {
     };
 
     // Check payment method type
-    if (selectedPaymentMethod?.type === 'cod') {
+    if (selectedPaymentMethod?.type === 'wallet') {
+      // 🚀 Place order via backend for Wallet Payment
+      placeOrder(
+        { ...orderData, paymentMethod: PaymentMethod.WALLET },
+        {
+          onSuccess: (res) => {
+            if (res.success) {
+              navigation.navigate('OrderPlaced', { orderId: String(res.data.id), orderNumber: res.data.orderNumber } as never);
+            }
+          },
+        }
+      );
+      return;
+    } else if (selectedPaymentMethod?.type === 'cod') {
       // 🚀 Place order via backend for Cash on Delivery
       placeOrder(
         { ...orderData, paymentMethod: PaymentMethod.COD },

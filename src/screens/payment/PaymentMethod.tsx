@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -13,6 +13,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
 import { usePaymentStore, PaymentMethodType } from '../../store/payment';
+import { useUserWalletTransactions } from '../../api/hooks/useWallet';
+import { useCartCalculations } from '../../module/cart/hooks';
+import { parseToDecimal } from '../../utils/utils';
 
 
 
@@ -72,15 +75,50 @@ const PaymentMethodScreen = ({ navigation }: AppNavigation) => {
     const { selectedPaymentMethod, setSelectedPaymentMethod } = usePaymentStore();
     const [localSelected, setLocalSelected] = useState<string | null>(selectedPaymentMethod?.id || null);
 
+    const { data: walletData } = useUserWalletTransactions({
+        page: 1,
+        limit: 1,
+    });
+    const { total } = useCartCalculations();
+    
+    // Safely parse the balance to decimal (handles string, number, and DecimalObj from server)
+    const walletBalance = parseToDecimal(walletData?.balance);
+
+    const isWalletAvailable = walletBalance > 0 && walletBalance >= total;
+
+    // Dynamically adjust availability and description of payment methods
+    const dynamicPaymentMethods = PAYMENT_METHODS.map(method => {
+        if (method.type === 'wallet') {
+            return {
+                ...method,
+                isAvailable: isWalletAvailable,
+                description: isWalletAvailable
+                    ? `Pay from your app balance (Balance: ₹${walletBalance.toFixed(2)})`
+                    : `Insufficient balance (Balance: ₹${walletBalance.toFixed(2)})`,
+            };
+        }
+        return method;
+    });
+
+    // Reset selected method if the wallet is selected but has insufficient balance
+    useEffect(() => {
+        if (localSelected === '3' && !isWalletAvailable) {
+            setLocalSelected(null);
+        }
+    }, [isWalletAvailable, localSelected]);
+
     const handleSelect = (method: PaymentMethodType) => {
         if (!method.isAvailable) return;
         setLocalSelected(method.id);
-        setSelectedPaymentMethod(method);
     };
 
     const handleConfirm = () => {
         if (localSelected) {
-            navigation.goBack();
+            const chosenMethod = dynamicPaymentMethods.find(m => m.id === localSelected);
+            if (chosenMethod && chosenMethod.isAvailable) {
+                setSelectedPaymentMethod(chosenMethod);
+                navigation.goBack();
+            }
         }
     };
 
@@ -119,7 +157,9 @@ const PaymentMethodScreen = ({ navigation }: AppNavigation) => {
                     </Text>
                     {isDisabled && (
                         <View style={styles.unavailableBadge}>
-                            <Text style={styles.unavailableText}>Currently Unavailable</Text>
+                            <Text style={styles.unavailableText}>
+                                {method.type === 'wallet' ? 'Insufficient Balance' : 'Currently Unavailable'}
+                            </Text>
                         </View>
                     )}
                 </View>
@@ -163,12 +203,12 @@ const PaymentMethodScreen = ({ navigation }: AppNavigation) => {
             >
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Online Payments</Text>
-                    {PAYMENT_METHODS.filter(m => m.type !== 'cod').map(renderMethod)}
+                    {dynamicPaymentMethods.filter(m => m.type !== 'cod').map(renderMethod)}
                 </View>
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Cash / Pay on Delivery</Text>
-                    {PAYMENT_METHODS.filter(m => m.type === 'cod').map(renderMethod)}
+                    {dynamicPaymentMethods.filter(m => m.type === 'cod').map(renderMethod)}
                 </View>
 
                 <View style={styles.guaranteeContainer}>

@@ -4,4 +4,7 @@ export interface User {
   mobile: string;
   longitude: string;
   latitude: string;
+  UserWallet: {
+    balance: number;
+  };
 }

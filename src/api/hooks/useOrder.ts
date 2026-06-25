@@ -18,9 +18,11 @@ export const usePlaceOrder = () => {
         onSuccess: (data) => {
             if (data.success) {
                 SuccessMessage(data.message || 'Order placed successfully');
-                // Invalidate relevant queries like cart or order list
+                // Invalidate relevant queries like cart, order list, profile, and wallet transactions
                 queryClient.invalidateQueries({ queryKey: ['orders'] });
                 queryClient.invalidateQueries({ queryKey: ['cart'] });
+                queryClient.invalidateQueries({ queryKey: ['profile'] });
+                queryClient.invalidateQueries({ queryKey: ['wallet-transactions'] });
             }
         },
         onError: (error: any) => {
