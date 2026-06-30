@@ -8,6 +8,7 @@ import {
   CARD_MARGIN,
   CARD_WIDTH,
   COLORS,
+  Coordinate,
   COORDINATES,
   EXPAND_SCROLL_Y,
   getStatusLabel,
@@ -16,6 +17,7 @@ import {
 
 interface DynamicMapCardProps {
   order: Order | undefined;
+  deliveryLocation: { latitude: number; longitude: number } | null;
   scrollY: Animated.Value;
   handleExpandMap: () => void;
   handleCollapseMap: () => void;
@@ -23,6 +25,7 @@ interface DynamicMapCardProps {
 
 export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
   order,
+  deliveryLocation,
   scrollY,
   handleExpandMap,
   handleCollapseMap,
@@ -43,14 +46,38 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
   const vendorCoordinate = hasVendor ? { latitude: vendorLat as number, longitude: vendorLng as number } : null;
 
   const getTargetRegion = () => {
-    if (hasVendor && vendorLat !== null && vendorLng !== null) {
-      const rawLatDelta = Math.abs(vendorLat - userLat) * 1.8;
-      const rawLngDelta = Math.abs(vendorLng - userLng) * 1.8;
+    const coords: Coordinate[] = [userCoordinate];
+    if (hasVendor && vendorCoordinate) {
+      coords.push(vendorCoordinate);
+    }
+    if (deliveryLocation) {
+      coords.push(deliveryLocation);
+    }
+
+    if (coords.length > 1) {
+      let minLat = coords[0].latitude;
+      let maxLat = coords[0].latitude;
+      let minLng = coords[0].longitude;
+      let maxLng = coords[0].longitude;
+
+      for (let i = 1; i < coords.length; i++) {
+        const c = coords[i];
+        if (c.latitude < minLat) minLat = c.latitude;
+        if (c.latitude > maxLat) maxLat = c.latitude;
+        if (c.longitude < minLng) minLng = c.longitude;
+        if (c.longitude > maxLng) maxLng = c.longitude;
+      }
+
+      const centerLat = (minLat + maxLat) / 2;
+      const centerLng = (minLng + maxLng) / 2;
+      const rawLatDelta = Math.abs(maxLat - minLat) * 1.8;
+      const rawLngDelta = Math.abs(maxLng - minLng) * 1.8;
       const latDelta = Math.min(Math.max(rawLatDelta, 0.005), 0.015);
       const lngDelta = Math.min(Math.max(rawLngDelta, 0.005), 0.015);
+
       return {
-        latitude: (vendorLat + userLat) / 2,
-        longitude: (vendorLng + userLng) / 2,
+        latitude: centerLat,
+        longitude: centerLng,
         latitudeDelta: latDelta,
         longitudeDelta: lngDelta,
       };
@@ -78,7 +105,7 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
     }, 300); // Small delay ensures map is fully rendered before animating
 
     return () => clearTimeout(timeout);
-  }, [userLat, userLng, vendorLat, vendorLng]);
+  }, [userLat, userLng, vendorLat, vendorLng, deliveryLocation !== null]);
 
   // Re-center when map expands (this fixes the zoomed-out state after scrolling)
   React.useEffect(() => {
@@ -204,6 +231,13 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
               <Ionicons name="navigate" size={14} color="white" />
             </View>
           </Marker>
+          {deliveryLocation && (
+            <Marker coordinate={deliveryLocation} title="Delivery Partner">
+              <View style={styles.markerDelivery}>
+                <Ionicons name="bicycle" size={14} color="white" />
+              </View>
+            </Marker>
+          )}
         </MapView>
 
         <View style={styles.googleLogoContainer}>
@@ -315,6 +349,14 @@ const styles = StyleSheet.create({
   },
   markerUser: {
     backgroundColor: COLORS.blue,
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'white',
+    elevation: 2,
+  },
+  markerDelivery: {
+    backgroundColor: '#FF9800',
     padding: 6,
     borderRadius: 20,
     borderWidth: 2,

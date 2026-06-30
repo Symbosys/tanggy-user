@@ -299,6 +299,12 @@ export interface Order {
   vendorBroadcasts: OrderVendorBroadcast[];
   deliveryBroadcasts: OrderDeliveryBroadcast[];
   orderDeliveryAssignment?: OrderDeliveryAssignment;
+  lastKnownLocation?: {
+    latitude: number;
+    longitude: number;
+    deliveryId: string;
+    timestamp: number;
+  } | null;
   notifications: any[]; // Adjust as needed
   review?: any; // Adjust as needed
   userWalletDebitId?: bigint;

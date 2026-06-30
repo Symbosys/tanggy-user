@@ -63,6 +63,22 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
   const [rating, setRating] = useState(0);
   const [isSwitchModalVisible, setSwitchModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [deliveryLocation, setDeliveryLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
+  // Initialize/sync deliveryLocation state from API's lastKnownLocation on order change
+  useEffect(() => {
+    if (order?.lastKnownLocation) {
+      setDeliveryLocation({
+        latitude: Number(order.lastKnownLocation.latitude),
+        longitude: Number(order.lastKnownLocation.longitude),
+      });
+    } else {
+      setDeliveryLocation(null);
+    }
+  }, [order?.id, order?.lastKnownLocation]);
 
   // --- WEB SOCKET EVENT LISTENERS ---
   useEffect(() => {
@@ -84,6 +100,26 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
       }
     };
 
+    const handleLocationUpdate = (event: any) => {
+      console.log('📬 WebSocket location update event received on tracking screen:', event);
+      const eventOrderId = event?.orderId || event?.data?.orderId;
+      const isMatchingId = currentId && String(eventOrderId) === String(currentId);
+      const isMatchingFetchedId = order?.id && String(eventOrderId) === String(order.id);
+
+      if (isMatchingId || isMatchingFetchedId) {
+        const lat = event?.lat !== undefined ? Number(event.lat) : (event?.data?.lat !== undefined ? Number(event.data.lat) : null);
+        const lng = event?.lng !== undefined ? Number(event.lng) : (event?.data?.lng !== undefined ? Number(event.data.lng) : null);
+
+        if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
+          console.log(`📍 Updating delivery partner location state: lat=${lat}, lng=${lng}`);
+          setDeliveryLocation({
+            latitude: lat,
+            longitude: lng,
+          });
+        }
+      }
+    };
+
     // Register listeners for all tracking events
     const eventsToListen = [
       EVENT_TYPES.ORDER_PREPARING,
@@ -97,12 +133,17 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
       wsService.on(eventType, handleWsEvent);
     });
 
+    wsService.on("location_update", handleLocationUpdate);
+
     return () => {
       eventsToListen.forEach((eventType) => {
         wsService.off(eventType, handleWsEvent);
       });
+      wsService.off("location_update", handleLocationUpdate);
     };
   }, [currentId, currentOrderNumber, order?.id, order?.orderNumber, queryClient]);
+
+
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
@@ -188,6 +229,7 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
         {/* Dynamic Map Card */}
         <DynamicMapCard
           order={order}
+          deliveryLocation={deliveryLocation}
           scrollY={scrollY}
           handleExpandMap={handleExpandMap}
           handleCollapseMap={handleCollapseMap}
