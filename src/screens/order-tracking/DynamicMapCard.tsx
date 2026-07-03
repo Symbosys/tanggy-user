@@ -1,6 +1,6 @@
 import React from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Order, OrderStatus } from '../../types/order.type';
@@ -35,22 +35,34 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
   const deliveryEtaMinutes = order?.orderDeliveryAssignment?.deliveryEtaMinutes;
 
   // --- COORDINATES & REGION SETUP ---
-  const userLat = order?.address?.latitude != null ? Number(order.address.latitude) : COORDINATES.USER.latitude;
-  const userLng = order?.address?.longitude != null ? Number(order.address.longitude) : COORDINATES.USER.longitude;
+  const rawUserLat = order?.address?.latitude != null ? Number(order.address.latitude) : NaN;
+  const rawUserLng = order?.address?.longitude != null ? Number(order.address.longitude) : NaN;
+  const userLat = !isNaN(rawUserLat) && rawUserLat !== 0 ? rawUserLat : COORDINATES.USER.latitude;
+  const userLng = !isNaN(rawUserLng) && rawUserLng !== 0 ? rawUserLng : COORDINATES.USER.longitude;
   const userCoordinate = { latitude: userLat, longitude: userLng };
 
   const vendor = order?.orderVendorAssignments?.vendor;
-  const vendorLat = vendor?.latitude != null ? Number(vendor.latitude) : null;
-  const vendorLng = vendor?.longitude != null ? Number(vendor.longitude) : null;
+  const rawVendorLat = vendor?.latitude != null ? Number(vendor.latitude) : NaN;
+  const rawVendorLng = vendor?.longitude != null ? Number(vendor.longitude) : NaN;
+  const vendorLat = !isNaN(rawVendorLat) && rawVendorLat !== 0 ? rawVendorLat : null;
+  const vendorLng = !isNaN(rawVendorLng) && rawVendorLng !== 0 ? rawVendorLng : null;
   const hasVendor = vendorLat !== null && vendorLng !== null;
   const vendorCoordinate = hasVendor ? { latitude: vendorLat as number, longitude: vendorLng as number } : null;
+
+  const hasDeliveryLoc = deliveryLocation && 
+    deliveryLocation.latitude != null && 
+    deliveryLocation.longitude != null && 
+    !isNaN(deliveryLocation.latitude) && 
+    !isNaN(deliveryLocation.longitude) &&
+    deliveryLocation.latitude !== 0 &&
+    deliveryLocation.longitude !== 0;
 
   const getTargetRegion = () => {
     const coords: Coordinate[] = [userCoordinate];
     if (hasVendor && vendorCoordinate) {
       coords.push(vendorCoordinate);
     }
-    if (deliveryLocation) {
+    if (hasDeliveryLoc && deliveryLocation) {
       coords.push(deliveryLocation);
     }
 
@@ -62,10 +74,12 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
 
       for (let i = 1; i < coords.length; i++) {
         const c = coords[i];
-        if (c.latitude < minLat) minLat = c.latitude;
-        if (c.latitude > maxLat) maxLat = c.latitude;
-        if (c.longitude < minLng) minLng = c.longitude;
-        if (c.longitude > maxLng) maxLng = c.longitude;
+        if (c && !isNaN(c.latitude) && !isNaN(c.longitude)) {
+          if (c.latitude < minLat) minLat = c.latitude;
+          if (c.latitude > maxLat) maxLat = c.latitude;
+          if (c.longitude < minLng) minLng = c.longitude;
+          if (c.longitude > maxLng) maxLng = c.longitude;
+        }
       }
 
       const centerLat = (minLat + maxLat) / 2;
@@ -74,6 +88,15 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
       const rawLngDelta = Math.abs(maxLng - minLng) * 1.8;
       const latDelta = Math.min(Math.max(rawLatDelta, 0.005), 0.015);
       const lngDelta = Math.min(Math.max(rawLngDelta, 0.005), 0.015);
+
+      if (isNaN(centerLat) || isNaN(centerLng) || isNaN(latDelta) || isNaN(lngDelta)) {
+        return {
+          latitude: userLat,
+          longitude: userLng,
+          latitudeDelta: 0.003,
+          longitudeDelta: 0.003,
+        };
+      }
 
       return {
         latitude: centerLat,
@@ -202,7 +225,6 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
         {/* INTERACTIVE MAP */}
         <MapView
           ref={mapRef}
-          provider={PROVIDER_GOOGLE}
           style={styles.map}
           initialRegion={getTargetRegion()}
           scrollEnabled={true}
@@ -231,7 +253,7 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
               <Ionicons name="navigate" size={14} color="white" />
             </View>
           </Marker>
-          {deliveryLocation && (
+          {hasDeliveryLoc && deliveryLocation && (
             <Marker coordinate={deliveryLocation} title="Delivery Partner">
               <View style={styles.markerDelivery}>
                 <Ionicons name="bicycle" size={14} color="white" />

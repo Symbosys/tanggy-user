@@ -31,7 +31,6 @@ import { RateReviewCard } from './RateReviewCard';
 import { SwitchOrderModal } from './SwitchOrderModal';
 import { wsService } from '../../socket/websocket.service';
 import { EVENT_TYPES } from '../../constants/event.constant';
-import { handleOrderAccepted } from '../../socket/handlers/order.handler';
 
 const BlinkitFinalClone = ({ navigation, route }: any) => {
   const { id: initialId, orderNumber: initialOrderNumber } = route.params || {};
@@ -70,14 +69,22 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
 
   // Initialize/sync deliveryLocation state from API's lastKnownLocation on order change
   useEffect(() => {
-    if (order?.lastKnownLocation) {
-      setDeliveryLocation({
-        latitude: Number(order.lastKnownLocation.latitude),
-        longitude: Number(order.lastKnownLocation.longitude),
-      });
-    } else {
-      setDeliveryLocation(null);
+    if (
+      order?.lastKnownLocation &&
+      order.lastKnownLocation.latitude != null &&
+      order.lastKnownLocation.longitude != null
+    ) {
+      const lat = Number(order.lastKnownLocation.latitude);
+      const lng = Number(order.lastKnownLocation.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+        setDeliveryLocation({
+          latitude: lat,
+          longitude: lng,
+        });
+        return;
+      }
     }
+    setDeliveryLocation(null);
   }, [order?.id, order?.lastKnownLocation]);
 
   // --- WEB SOCKET EVENT LISTENERS ---
