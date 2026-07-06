@@ -19,7 +19,7 @@ import { COLORS } from '../../theme/theme';
 import { useUserRefunds, RefundRequest } from '../../api/hooks/useRefund';
 import { parseToDecimal } from '../../utils/utils';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { height: screenHeight } = Dimensions.get('window');
 
 
 const RefundScreen = ({ navigation }: any) => {
