@@ -19,8 +19,7 @@ import { COLORS } from '../../theme/theme';
 import { useUserRefunds, RefundRequest } from '../../api/hooks/useRefund';
 import { parseToDecimal } from '../../utils/utils';
 
-const { height: screenHeight } = Dimensions.get('window');
-
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const RefundScreen = ({ navigation }: any) => {
   const { data, isLoading, isError, refetch, isFetching } = useUserRefunds({
@@ -32,7 +31,7 @@ const RefundScreen = ({ navigation }: any) => {
 
   const refunds = data?.refunds || [];
 
-  // Calculate quick stats
+  // Summary Metrics
   const stats = useMemo(() => {
     let totalRefunded = 0;
     let pendingCount = 0;
@@ -52,111 +51,112 @@ const RefundScreen = ({ navigation }: any) => {
       case 'REFUNDED':
       case 'SUCCESS':
         return {
-          color: '#10B981',
-          bg: '#E6F4EA',
+          color: '#10B981', // Emerald
+          bg: '#ECFDF5',
           icon: 'check-circle-outline',
           label: 'Processed',
+          statusIcon: 'checkbox-marked-circle',
         };
       case 'PENDING':
         return {
-          color: '#F59E0B',
-          bg: '#FFF3E0',
+          color: '#F59E0B', // Amber
+          bg: '#FFFBEB',
           icon: 'clock-outline',
-          label: 'Pending Approval',
+          label: 'In Progress',
+          statusIcon: 'clock-fast',
         };
       case 'FAILED':
       case 'REJECTED':
         return {
-          color: '#EF4444',
-          bg: '#FCE8E6',
+          color: '#EF4444', // Red
+          bg: '#FEF2F2',
           icon: 'alert-circle-outline',
-          label: 'Failed / Rejected',
+          label: 'Declined',
+          statusIcon: 'close-circle',
         };
       default:
         return {
-          color: '#6B7280',
-          bg: '#F3F4F6',
+          color: '#6B7280', // Gray
+          bg: '#F9FAFB',
           icon: 'help-circle-outline',
           label: status,
+          statusIcon: 'help-circle',
         };
     }
   };
 
   const formatReason = (reason: string) => {
-    if (!reason) return 'Cancelled Order';
+    if (!reason) return 'Cancellation Refund';
     return reason.replace(/_/g, ' ');
   };
 
   const renderRefundItem = ({ item }: { item: RefundRequest }) => {
     const config = getStatusConfig(item.status);
     const amountVal = parseToDecimal(item.amount as any);
+    const formattedDate = item.order?.createdAt
+      ? new Date(item.order.createdAt).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+        })
+      : '';
 
     return (
       <TouchableOpacity
         style={styles.refundCard}
         onPress={() => setSelectedRefund(item)}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
       >
-        {/* Color bar on the left */}
-        <View style={[styles.cardColorBar, { backgroundColor: config.color }]} />
-
-        <View style={styles.cardMain}>
-          <View style={styles.cardHeader}>
-            <View style={styles.orderInfo}>
-              <Text style={styles.orderLabel}>ORDER NUMBER</Text>
-              <Text style={styles.orderNumber}>{item.order?.orderNumber || item.orderId}</Text>
+        <View style={styles.cardTopRow}>
+          <View style={styles.cardHeaderLeft}>
+            <View style={[styles.statusIconWrapper, { backgroundColor: config.bg }]}>
+              <MaterialIcon name={config.statusIcon} size={20} color={config.color} />
             </View>
-            <View style={[styles.statusChip, { backgroundColor: config.bg }]}>
-              <MaterialIcon name={config.icon} size={14} color={config.color} />
-              <Text style={[styles.statusLabel, { color: config.color }]}>
-                {config.label}
-              </Text>
+            <View>
+              <Text style={styles.orderLabel}>Order Refund</Text>
+              <Text style={styles.orderNumber}>#{item.order?.orderNumber || item.orderId}</Text>
             </View>
           </View>
-
-          <View style={styles.cardBody}>
-            <View style={styles.amountSection}>
-              <Text style={styles.amountLabel}>Refund Amount</Text>
-              <Text style={[styles.amountValue, { color: config.color }]}>₹{amountVal.toFixed(2)}</Text>
-            </View>
-            <View style={styles.reasonSection}>
-              <Text style={styles.reasonLabel}>Reason</Text>
-              <Text style={styles.reasonValue}>{formatReason(item.reason)}</Text>
-            </View>
+          <View style={[styles.statusPill, { backgroundColor: config.bg }]}>
+            <Text style={[styles.statusPillText, { color: config.color }]}>
+              {config.label}
+            </Text>
           </View>
-
-          {(item.referenceId || item.description) && (
-            <View style={styles.cardFooter}>
-              {item.referenceId ? (
-                <View style={styles.footerRow}>
-                  <Icon name="receipt" size={14} color="#888" />
-                  <Text style={styles.footerText} numberOfLines={1}>
-                    Ref: <Text style={styles.footerValue}>{item.referenceId}</Text>
-                  </Text>
-                </View>
-              ) : null}
-              {item.description ? (
-                <View style={styles.footerRow}>
-                  <Icon name="rate-review" size={14} color="#888" />
-                  <Text style={styles.footerText} numberOfLines={1}>
-                    Remarks: <Text style={styles.footerValue}>{item.description}</Text>
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          )}
         </View>
+
+        <View style={styles.cardDivider} />
+
+        <View style={styles.cardBody}>
+          <View style={styles.cardInfoCol}>
+            <Text style={styles.infoLabel}>Reason</Text>
+            <Text style={styles.reasonText} numberOfLines={1}>
+              {formatReason(item.reason)}
+            </Text>
+          </View>
+          <View style={styles.cardAmountCol}>
+            <Text style={styles.infoLabel}>Refunded</Text>
+            <Text style={styles.amountText}>₹{amountVal.toFixed(2)}</Text>
+          </View>
+        </View>
+
+        {item.description ? (
+          <View style={styles.cardFooter}>
+            <MaterialIcon name="comment-text-outline" size={14} color="#6B7280" style={{ marginRight: 6 }} />
+            <Text style={styles.footerNoteText} numberOfLines={1}>
+              {item.description}
+            </Text>
+          </View>
+        ) : null}
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Header Profile Section */}
+      {/* Premium Gradient Header Card */}
       <LinearGradient
-        colors={[COLORS.primary, COLORS.accent || '#1e293b']}
+        colors={[COLORS.primary, '#6D28D9', '#4C1D95']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -164,71 +164,76 @@ const RefundScreen = ({ navigation }: any) => {
         <SafeAreaView style={styles.headerSafeArea} edges={['top']}>
           <View style={styles.headerBar}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Icon name="arrow-back-ios" size={20} color="#fff" />
+              <Icon name="arrow-back-ios" size={20} color="#FFFFFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Refund History</Text>
+            <Text style={styles.headerTitle}>Refund Balance</Text>
             <View style={{ width: 36 }} />
           </View>
 
-          {/* Stats Bar */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>Total Refunded</Text>
-              <Text style={styles.statValue}>₹{stats.totalRefunded.toFixed(2)}</Text>
+          {/* Quick Metrics display */}
+          <View style={styles.metricsContainer}>
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Processed Back to Source</Text>
+              <Text style={styles.metricValue}>₹{stats.totalRefunded.toFixed(2)}</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statBox}>
-              <Text style={styles.statLabel}>Pending Refunds</Text>
-              <View style={styles.pendingRow}>
-                <Text style={styles.statValue}>{stats.pendingCount}</Text>
-                {stats.pendingCount > 0 && <View style={styles.pendingDot} />}
+            <View style={styles.metricDivider} />
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>In-flight Refunds</Text>
+              <View style={styles.activeRequestsRow}>
+                <Text style={styles.metricValue}>{stats.pendingCount}</Text>
+                {stats.pendingCount > 0 && <View style={styles.activeDot} />}
               </View>
             </View>
           </View>
         </SafeAreaView>
       </LinearGradient>
 
-      {isLoading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Fetching refund updates...</Text>
-        </View>
-      ) : isError ? (
-        <View style={styles.centerContainer}>
-          <MaterialIcon name="alert-decagram-outline" size={64} color="#EF4444" />
-          <Text style={styles.errorText}>Unable to load refund requests</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={refunds}
-          renderItem={renderRefundItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching}
-              onRefresh={refetch}
-              colors={[COLORS.primary]}
-              tintColor={COLORS.primary}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <MaterialIcon name="cash-refund" size={80} color="#CBD5E1" />
-              <Text style={styles.emptyText}>No refunds yet</Text>
-              <Text style={styles.emptySubText}>
-                When any of your orders are cancelled, refund records will appear here automatically.
-              </Text>
-            </View>
-          }
-        />
-      )}
+      {/* Body List Container */}
+      <View style={styles.listContainer}>
+        {isLoading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Verifying updates...</Text>
+          </View>
+        ) : isError ? (
+          <View style={styles.centerContainer}>
+            <MaterialIcon name="wifi-strength-alert-outline" size={54} color="#EF4444" />
+            <Text style={styles.errorText}>Unable to sync refund history</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Text style={styles.retryButtonText}>Retry Sync</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={refunds}
+            renderItem={renderRefundItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isFetching}
+                onRefresh={refetch}
+                colors={[COLORS.primary]}
+                tintColor={COLORS.primary}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconCircle}>
+                  <MaterialIcon name="cash-multiple" size={32} color={COLORS.primary} />
+                </View>
+                <Text style={styles.emptyText}>No refunds yet</Text>
+                <Text style={styles.emptySubText}>
+                  Records will appear here once order cancellations are verified and processed.
+                </Text>
+              </View>
+            }
+          />
+        )}
+      </View>
 
-      {/* Details Bottom Sheet Modal */}
+      {/* Transaction Bottom Sheet */}
       <Modal
         visible={!!selectedRefund}
         transparent={true}
@@ -242,10 +247,10 @@ const RefundScreen = ({ navigation }: any) => {
             onPress={() => setSelectedRefund(null)} 
           />
           <View style={styles.modalContent}>
-            <View style={styles.modalIndicator} />
+            <View style={styles.bottomSheetIndicator} />
             
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Transaction Breakdown</Text>
+              <Text style={styles.modalTitle}>Refund Receipt</Text>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedRefund(null)}>
                 <Icon name="close" size={20} color="#4B5563" />
               </TouchableOpacity>
@@ -253,43 +258,45 @@ const RefundScreen = ({ navigation }: any) => {
 
             {selectedRefund ? (
               <View style={styles.modalBody}>
-                <View style={styles.amountCard}>
-                  <Text style={styles.amountCardLabel}>Refund Amount</Text>
-                  <Text style={styles.amountCardValue}>
+                {/* Big Amount Card */}
+                <View style={styles.receiptAmountCard}>
+                  <Text style={styles.receiptAmountLabel}>Refund Amount</Text>
+                  <Text style={styles.receiptAmountVal}>
                     ₹{parseToDecimal(selectedRefund.amount as any).toFixed(2)}
                   </Text>
                   <View style={[
-                    styles.statusBadgeLarge, 
-                    { backgroundColor: `${getStatusConfig(selectedRefund.status).color}15` }
+                    styles.receiptStatusBadge, 
+                    { backgroundColor: `${getStatusConfig(selectedRefund.status).color}12` }
                   ]}>
-                    <Text style={[styles.statusBadgeTextLarge, { color: getStatusConfig(selectedRefund.status).color }]}>
+                    <Text style={[styles.receiptStatusText, { color: getStatusConfig(selectedRefund.status).color }]}>
                       {getStatusConfig(selectedRefund.status).label.toUpperCase()}
                     </Text>
                   </View>
                 </View>
 
-                <View style={styles.detailsList}>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Refund Reference ID</Text>
-                    <Text style={styles.detailValueText}>{selectedRefund.id}</Text>
+                {/* Details Breakdown */}
+                <View style={styles.receiptDetails}>
+                  <View style={styles.receiptRow}>
+                    <Text style={styles.receiptRowLabel}>Refund ID</Text>
+                    <Text style={styles.receiptRowValue}>{selectedRefund.id}</Text>
                   </View>
 
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Order ID</Text>
-                    <Text style={[styles.detailValueText, styles.boldText]}>
+                  <View style={styles.receiptRow}>
+                    <Text style={styles.receiptRowLabel}>Order Number</Text>
+                    <Text style={[styles.receiptRowValue, styles.boldReceiptVal]}>
                       #{selectedRefund.order?.orderNumber || selectedRefund.orderId}
                     </Text>
                   </View>
 
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Refund Reason</Text>
-                    <Text style={styles.detailValueText}>{formatReason(selectedRefund.reason)}</Text>
+                  <View style={styles.receiptRow}>
+                    <Text style={styles.receiptRowLabel}>Reason</Text>
+                    <Text style={styles.receiptRowValue}>{formatReason(selectedRefund.reason)}</Text>
                   </View>
 
                   {selectedRefund.order?.createdAt ? (
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Order Placed On</Text>
-                      <Text style={styles.detailValueText}>
+                    <View style={styles.receiptRow}>
+                      <Text style={styles.receiptRowLabel}>Order Date</Text>
+                      <Text style={styles.receiptRowValue}>
                         {new Date(selectedRefund.order.createdAt).toLocaleDateString('en-IN', {
                           day: 'numeric',
                           month: 'short',
@@ -302,9 +309,9 @@ const RefundScreen = ({ navigation }: any) => {
                   ) : null}
 
                   {selectedRefund.processedAt ? (
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Processed At</Text>
-                      <Text style={styles.detailValueText}>
+                    <View style={styles.receiptRow}>
+                      <Text style={styles.receiptRowLabel}>Processed At</Text>
+                      <Text style={styles.receiptRowValue}>
                         {new Date(selectedRefund.processedAt).toLocaleDateString('en-IN', {
                           day: 'numeric',
                           month: 'short',
@@ -317,52 +324,52 @@ const RefundScreen = ({ navigation }: any) => {
                   ) : null}
 
                   {selectedRefund.referenceId ? (
-                    <View style={styles.detailItem}>
-                      <Text style={styles.detailLabel}>Gateway Transaction ID</Text>
-                      <Text style={[styles.detailValueText, styles.monoText]}>
+                    <View style={styles.receiptRow}>
+                      <Text style={styles.receiptRowLabel}>Gateway Transaction ID</Text>
+                      <Text style={[styles.receiptRowValue, styles.monoValue]}>
                         {selectedRefund.referenceId}
                       </Text>
                     </View>
                   ) : null}
-
-                  {selectedRefund.description ? (
-                    <View style={styles.notesContainer}>
-                      <View style={styles.notesHeader}>
-                        <MaterialIcon name="comment-text-outline" size={16} color="#D97706" />
-                        <Text style={styles.notesTitle}>Admin Remarks</Text>
-                      </View>
-                      <Text style={styles.notesContent}>{selectedRefund.description}</Text>
-                    </View>
-                  ) : null}
                 </View>
 
+                {/* Remarks/Notes */}
+                {selectedRefund.description ? (
+                  <View style={styles.modalRemarksBlock}>
+                    <Text style={styles.remarksBlockTitle}>Remarks from Admin</Text>
+                    <Text style={styles.remarksBlockContent}>{selectedRefund.description}</Text>
+                  </View>
+                ) : null}
+
+                {/* Dismiss Button */}
                 <TouchableOpacity 
-                  style={[styles.doneButton, { backgroundColor: getStatusConfig(selectedRefund.status).color }]} 
+                  style={[styles.dismissBtnLarge, { backgroundColor: getStatusConfig(selectedRefund.status).color }]} 
                   onPress={() => setSelectedRefund(null)}
                 >
-                  <Text style={styles.doneButtonText}>Close details</Text>
+                  <Text style={styles.dismissBtnText}>Close Receipt</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FAF5FF', // Sleek background color matching the purple palette
   },
   gradientHeader: {
-    paddingBottom: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 8 : 16,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.22,
     shadowRadius: 20,
     elevation: 10,
   },
@@ -376,56 +383,61 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backButton: {
-    padding: 8,
-    borderRadius: 12,
+    padding: 10,
+    borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.5,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
-  statsContainer: {
+  metricsContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 16,
-    marginTop: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 24,
+    padding: 20,
+    marginTop: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  statBox: {
+  metricItem: {
     flex: 1,
     alignItems: 'center',
   },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontWeight: '600',
-    marginBottom: 4,
+  metricLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontWeight: '700',
+    marginBottom: 6,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#fff',
+  metricValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
-  statDivider: {
+  metricDivider: {
     width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginHorizontal: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    marginHorizontal: 12,
   },
-  pendingRow: {
+  activeRequestsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  pendingDot: {
+  activeDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#F59E0B',
+  },
+  listContainer: {
+    flex: 1,
+    marginTop: -12,
   },
   centerContainer: {
     flex: 1,
@@ -436,308 +448,323 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#64748B',
-    fontWeight: '500',
+    color: '#7C3AED',
+    fontWeight: '600',
   },
   errorText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#1E293B',
-    fontWeight: '700',
+    color: '#1E1B4B',
+    fontWeight: '800',
   },
   retryButton: {
     marginTop: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 26,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 3,
   },
   retryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '800',
     fontSize: 14,
   },
   listContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
   refundCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 18,
     marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#F3E8FF', // Subtle purple border to look aesthetic
   },
-  cardColorBar: {
-    width: 6,
-  },
-  cardMain: {
-    flex: 1,
-    padding: 16,
-  },
-  cardHeader: {
+  cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  orderInfo: {
-    flex: 1,
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  statusIconWrapper: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   orderLabel: {
-    fontSize: 10,
-    color: '#94A3B8',
+    fontSize: 11,
+    color: '#8B5CF6',
     fontWeight: '800',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   orderNumber: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
-    color: '#1E293B',
-    marginTop: 2,
+    color: '#1E1B4B',
+    marginTop: 1,
   },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
-  statusLabel: {
+  statusPillText: {
     fontSize: 11,
     fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#F3E8FF',
+    marginVertical: 4,
+    marginBottom: 12,
   },
   cardBody: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: '#FAF5FF',
     padding: 12,
-    marginBottom: 12,
+    borderRadius: 16,
   },
-  amountSection: {
+  cardInfoCol: {
     flex: 1,
+    paddingRight: 8,
   },
-  amountLabel: {
+  infoLabel: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#8B5CF6',
+    fontWeight: '700',
+    textTransform: 'uppercase',
     marginBottom: 2,
-    fontWeight: '600',
+    letterSpacing: 0.3,
   },
-  amountValue: {
-    fontSize: 18,
-    fontWeight: '800',
+  reasonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E1B4B',
   },
-  reasonSection: {
-    flex: 1.2,
+  cardAmountCol: {
     alignItems: 'flex-end',
   },
-  reasonLabel: {
-    fontSize: 10,
-    color: '#94A3B8',
-    marginBottom: 2,
-    fontWeight: '600',
-  },
-  reasonValue: {
-    fontSize: 13,
-    color: '#334155',
-    fontWeight: '700',
-    textAlign: 'right',
+  amountText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#7C3AED',
   },
   cardFooter: {
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 10,
-    gap: 6,
-  },
-  footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB', // Subtle warning note background
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
   },
-  footerText: {
+  footerNoteText: {
     fontSize: 12,
-    color: '#64748B',
-    flex: 1,
-  },
-  footerValue: {
+    color: '#B45309',
     fontWeight: '600',
-    color: '#334155',
+    flex: 1,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 100,
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
+  },
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: '#E9D5FF',
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginTop: 16,
+    fontWeight: '900',
+    color: '#1E1B4B',
   },
   emptySubText: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#8B5CF6',
     textAlign: 'center',
     marginTop: 8,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'flex-end',
   },
   modalDismissTrigger: {
     flex: 1,
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
     padding: 24,
     maxHeight: screenHeight * 0.85,
+    shadowColor: '#1E1B4B',
+    shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
   },
-  modalIndicator: {
-    width: 40,
+  bottomSheetIndicator: {
+    width: 44,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E9D5FF',
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 22,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#1E293B',
+    fontWeight: '900',
+    color: '#1E1B4B',
+    letterSpacing: -0.2,
   },
   closeBtn: {
     padding: 6,
-    borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    backgroundColor: '#FAF5FF',
   },
   modalBody: {
-    gap: 20,
+    gap: 22,
   },
-  amountCard: {
-    backgroundColor: '#F8FAFC',
+  receiptAmountCard: {
+    backgroundColor: '#FAF5FF',
     borderRadius: 24,
-    padding: 20,
+    padding: 22,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E9D5FF',
   },
-  amountCardLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '700',
+  receiptAmountLabel: {
+    fontSize: 11,
+    color: '#8B5CF6',
+    fontWeight: '800',
     textTransform: 'uppercase',
     marginBottom: 6,
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
-  amountCardValue: {
-    fontSize: 32,
+  receiptAmountVal: {
+    fontSize: 34,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#7C3AED',
     marginBottom: 10,
   },
-  statusBadgeLarge: {
+  receiptStatusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
   },
-  statusBadgeTextLarge: {
+  receiptStatusText: {
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  detailsList: {
+  receiptDetails: {
     gap: 14,
   },
-  detailItem: {
+  receiptRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3E8FF',
   },
-  detailLabel: {
+  receiptRowLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#8B5CF6',
     fontWeight: '600',
   },
-  detailValueText: {
+  receiptRowValue: {
     fontSize: 13,
-    color: '#1E293B',
+    color: '#1E1B4B',
     fontWeight: '700',
   },
-  boldText: {
-    fontWeight: '800',
+  boldReceiptVal: {
+    fontWeight: '900',
   },
-  monoText: {
+  monoValue: {
     fontFamily: 'monospace',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
     fontSize: 12,
   },
-  notesContainer: {
-    marginTop: 6,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 16,
-    padding: 14,
+  modalRemarksBlock: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: '#FEF3C7',
+    marginTop: 4,
   },
-  notesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  notesTitle: {
-    fontSize: 12,
+  remarksBlockTitle: {
+    fontSize: 11,
     fontWeight: '800',
     color: '#B45309',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    marginBottom: 4,
   },
-  notesContent: {
+  remarksBlockContent: {
     fontSize: 13,
     color: '#78350F',
-    lineHeight: 18,
-    fontWeight: '500',
+    lineHeight: 20,
+    fontWeight: '600',
   },
-  doneButton: {
-    paddingVertical: 14,
-    borderRadius: 16,
+  dismissBtnLarge: {
+    paddingVertical: 15,
+    borderRadius: 18,
     alignItems: 'center',
-    marginTop: 10,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    marginTop: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
     elevation: 3,
   },
-  doneButtonText: {
-    color: '#fff',
-    fontWeight: '800',
+  dismissBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
     fontSize: 15,
   },
 });
