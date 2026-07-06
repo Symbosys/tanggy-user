@@ -45,6 +45,7 @@ export type RootStackParamList = {
   // User Profile
   Wallet: undefined;
   UpdateProfile: undefined;
+  Refunds: undefined;
 
   // Legal screen
   About: undefined;

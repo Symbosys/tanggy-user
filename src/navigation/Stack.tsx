@@ -36,6 +36,7 @@ import ProfileScreen from '../screens/tabs/Accounts';
 import SearchScreen from '../screens/tabs/Search';
 import TestOrder from '../screens/test-order/TestOrder';
 import MyWalletScreen from '../screens/wallet/Wallet';
+import RefundScreen from '../screens/refunds/RefundScreen';
 import { RootStackParamList } from '../types/type';
 import BottomTab from './Bottom';
 
@@ -81,6 +82,7 @@ export default function StackNavigation() {
         <Stack.Screen name='MyOrders' component={AllOrdersScreen} />
         <Stack.Screen name='Wallet' component={MyWalletScreen} />
         <Stack.Screen name='UpdateProfile' component={UpdateProfile} />
+        <Stack.Screen name='Refunds' component={RefundScreen} />
 
 
         {/* Legal Screen  */}

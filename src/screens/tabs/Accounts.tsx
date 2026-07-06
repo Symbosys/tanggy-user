@@ -35,6 +35,7 @@ const MENU_SECTIONS: { title: string; items: MenuItem[] }[] = [
     title: 'Manage',
     items: [
       { icon: 'location-on', iconFamily: 'material', label: 'My Addresses', subtitle: 'Saved delivery addresses', route: 'Address', color: '#ea580c', bg: '#fff7ed' },
+      { icon: 'history', iconFamily: 'material', label: 'My Refunds', subtitle: 'View cancellation refunds', route: 'Refunds', color: '#059669', bg: '#ecfdf5' },
       { icon: 'delivery-dining', iconFamily: 'material', label: 'How to Track Order', subtitle: 'Track your delivery live', route: 'HowToTrackOrder', color: '#7c3aed', bg: '#f5f3ff' },
       { icon: 'info-outline', iconFamily: 'material', label: 'About Us', subtitle: 'Know more about Minta Fresh', route: 'Docs', params: { type: 'ABOUT_US' }, color: '#0891b2', bg: '#ecfeff' },
     ],
