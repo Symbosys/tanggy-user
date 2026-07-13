@@ -279,7 +279,7 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
             <Polyline
               coordinates={[vendorCoordinate, userCoordinate]}
               strokeColor="black"
-              strokeWidth={6}
+              strokeWidth={8}
               lineDashPattern={[12, 8]}
             />
           )}
@@ -289,7 +289,7 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
             <Polyline
               coordinates={[deliveryLocation, vendorCoordinate]}
               strokeColor="black"
-              strokeWidth={6}
+              strokeWidth={8}
               lineDashPattern={[12, 8]}
             />
           )}
