@@ -33,6 +33,9 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
   const status = order?.status;
   const deliveredAt = order?.timestamps?.deliveredAt;
   const deliveryEtaMinutes = order?.orderDeliveryAssignment?.deliveryEtaMinutes;
+  const isPickedUp = status === OrderStatus.OUT_FOR_DELIVERY || status === OrderStatus.DELIVERED || status === OrderStatus.CANCELLED || status === OrderStatus.REFUNDED || status === OrderStatus.DISPUTED;
+
+  const [routeCoordinates, setRouteCoordinates] = React.useState<Coordinate[]>([]);
 
   // --- COORDINATES & REGION SETUP ---
   const rawUserLat = order?.address?.latitude != null ? Number(order.address.latitude) : NaN;
@@ -59,7 +62,7 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
 
   const getTargetRegion = () => {
     const coords: Coordinate[] = [userCoordinate];
-    if (hasVendor && vendorCoordinate) {
+    if (!isPickedUp && hasVendor && vendorCoordinate) {
       coords.push(vendorCoordinate);
     }
     if (hasDeliveryLoc && deliveryLocation) {
@@ -128,7 +131,44 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
     }, 300); // Small delay ensures map is fully rendered before animating
 
     return () => clearTimeout(timeout);
-  }, [userLat, userLng, vendorLat, vendorLng, deliveryLocation !== null]);
+  }, [userLat, userLng, vendorLat, vendorLng, deliveryLocation !== null, isPickedUp, routeCoordinates.length]);
+
+  React.useEffect(() => {
+    let active = true;
+    const fetchRoute = async () => {
+      if (isPickedUp && hasDeliveryLoc && deliveryLocation) {
+        try {
+          const startLat = deliveryLocation.latitude;
+          const startLng = deliveryLocation.longitude;
+          const endLat = userCoordinate.latitude;
+          const endLng = userCoordinate.longitude;
+          
+          const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (active && data?.routes?.[0]?.geometry?.coordinates) {
+            const coords = data.routes[0].geometry.coordinates.map((c: any) => ({
+              latitude: c[1],
+              longitude: c[0],
+            }));
+            setRouteCoordinates(coords);
+          }
+        } catch (e) {
+          console.warn("Failed to fetch road path from OSRM:", e);
+          if (active) {
+            setRouteCoordinates([deliveryLocation, userCoordinate]);
+          }
+        }
+      } else {
+        setRouteCoordinates([]);
+      }
+    };
+
+    fetchRoute();
+    return () => {
+      active = false;
+    };
+  }, [isPickedUp, userLat, userLng, deliveryLocation?.latitude, deliveryLocation?.longitude]);
 
   // Re-center when map expands (this fixes the zoomed-out state after scrolling)
   React.useEffect(() => {
@@ -234,19 +274,50 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
           showsUserLocation={false}
           showsCompass={false}
         >
-          {hasVendor && vendorCoordinate && (
-            <>
-              <Polyline
-                coordinates={[vendorCoordinate, userCoordinate]}
-                strokeColor="black"
-                strokeWidth={3}
-              />
-              <Marker coordinate={vendorCoordinate} title={vendor?.shopName || "Store"}>
-                <View style={styles.markerStore}>
-                  <Ionicons name="restaurant" size={14} color="white" />
-                </View>
-              </Marker>
-            </>
+          {/* If NOT picked up, draw dashed line between Vendor and User */}
+          {!isPickedUp && hasVendor && vendorCoordinate && (
+            <Polyline
+              coordinates={[vendorCoordinate, userCoordinate]}
+              strokeColor="black"
+              strokeWidth={6}
+              lineDashPattern={[12, 8]}
+            />
+          )}
+
+          {/* If NOT picked up, draw dashed line between Delivery Partner and Vendor */}
+          {!isPickedUp && hasVendor && vendorCoordinate && hasDeliveryLoc && deliveryLocation && (
+            <Polyline
+              coordinates={[deliveryLocation, vendorCoordinate]}
+              strokeColor="black"
+              strokeWidth={6}
+              lineDashPattern={[12, 8]}
+            />
+          )}
+
+          {/* If picked up, draw OSRM road path (proper road) between Delivery Partner and User */}
+          {isPickedUp && routeCoordinates.length > 0 && (
+            <Polyline
+              coordinates={routeCoordinates}
+              strokeColor="black"
+              strokeWidth={6}
+            />
+          )}
+
+          {/* Fallback straight line if OSRM failed or is loading */}
+          {isPickedUp && routeCoordinates.length === 0 && hasDeliveryLoc && deliveryLocation && (
+            <Polyline
+              coordinates={[deliveryLocation, userCoordinate]}
+              strokeColor="black"
+              strokeWidth={6}
+            />
+          )}
+
+          {!isPickedUp && hasVendor && vendorCoordinate && (
+            <Marker coordinate={vendorCoordinate} title={vendor?.shopName || "Store"}>
+              <View style={styles.markerStore}>
+                <Ionicons name="restaurant" size={14} color="white" />
+              </View>
+            </Marker>
           )}
           <Marker coordinate={userCoordinate} title="Delivery Location">
             <View style={styles.markerUser}>

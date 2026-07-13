@@ -251,8 +251,7 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
         {/* Delivery Partner */}
         <DeliveryPartnerCard deliveryPartner={deliveryPartner} />
 
-        {/* Store/Vendor Details */}
-        <StoreVendorCard vendor={vendor} />
+        {/* Store/Vendor Details removed */}
 
         {/* Delivery Details */}
         <DeliveryDetailsCard
@@ -272,7 +271,7 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
         />
 
         {/* Rate and Review */}
-        <RateReviewCard rating={rating} setRating={setRating} />
+        {/* <RateReviewCard rating={rating} setRating={setRating} /> */}
       </Animated.ScrollView>
 
       {/* Switch Order Popup */}

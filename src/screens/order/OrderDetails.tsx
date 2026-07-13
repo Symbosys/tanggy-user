@@ -239,31 +239,6 @@ const OrderDetailsScreen: React.FC = () => {
                         )}
                     </View>
 
-                    {/* Store/Vendor Details Card */}
-                    {vendor && (
-                        <View style={styles.detailsCard}>
-                            <Text style={styles.cardSectionTitle}>Store Details</Text>
-                            <View style={styles.detailsRow}>
-                                <View style={styles.detailsIconContainer}>
-                                    <Icon name="storefront" size={24} color={COLORS.primary} />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.detailsName}>{vendor.shopName}</Text>
-                                    <Text style={styles.detailsSubtitle}>{vendor.ownerName || 'Store Manager'}</Text>
-                                    <Text style={styles.detailsAddress}>{vendor.mainAddress}</Text>
-                                </View>
-                                {vendor.mobile && (
-                                    <TouchableOpacity 
-                                        style={styles.callIconBtn} 
-                                        onPress={() => handleCall(vendor.mobile)}
-                                    >
-                                        <Icon name="call" size={20} color={COLORS.primary} />
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        </View>
-                    )}
-
                     {/* Delivery Partner Details Card */}
                     {deliveryPartner && (
                         <View style={styles.detailsCard}>
@@ -316,13 +291,27 @@ const OrderDetailsScreen: React.FC = () => {
                         <Text style={styles.sectionTitle}>Payment Summary</Text>
                         <View style={styles.paymentList}>
                             <View style={styles.paymentRow}>
-                                <Text style={styles.paymentLabel}>Subtotal</Text>
+                                <Text style={styles.paymentLabel}>Item Total</Text>
                                 <Text style={styles.paymentValue}>₹{parseToDecimal(order.itemTotal).toFixed(2)}</Text>
                             </View>
                             <View style={styles.paymentRow}>
                                 <Text style={styles.paymentLabel}>Delivery Fee</Text>
                                 <Text style={styles.paymentValue}>₹{parseToDecimal(order.deliveryFee).toFixed(2)}</Text>
                             </View>
+                            <View style={styles.paymentRow}>
+                                <Text style={styles.paymentLabel}>Platform Fee</Text>
+                                <Text style={styles.paymentValue}>₹{parseToDecimal(order.platformFee).toFixed(2)}</Text>
+                            </View>
+                            <View style={styles.paymentRow}>
+                                <Text style={styles.paymentLabel}>Packing Fee</Text>
+                                <Text style={styles.paymentValue}>₹{parseToDecimal(order.packingFee).toFixed(2)}</Text>
+                            </View>
+                            {parseToDecimal(order.surcharge) > 0 && (
+                                <View style={styles.paymentRow}>
+                                    <Text style={styles.paymentLabel}>Surcharge</Text>
+                                    <Text style={styles.paymentValue}>₹{parseToDecimal(order.surcharge).toFixed(2)}</Text>
+                                </View>
+                            )}
                             {parseToDecimal(order.discountAmount) > 0 && (
                                 <View style={styles.paymentRow}>
                                     <Text style={styles.paymentLabel}>Discount</Text>
@@ -332,7 +321,16 @@ const OrderDetailsScreen: React.FC = () => {
                             <View style={styles.paymentDivider} />
                             <View style={styles.paymentTotalRow}>
                                 <Text style={styles.paymentTotalLabel}>Total Paid</Text>
-                                <Text style={styles.paymentTotalValue}>₹{parseToDecimal(order.subtotal).toFixed(2)}</Text>
+                                <Text style={styles.paymentTotalValue}>
+                                    ₹{(
+                                        parseToDecimal(order.itemTotal) +
+                                        parseToDecimal(order.deliveryFee) +
+                                        parseToDecimal(order.platformFee) +
+                                        parseToDecimal(order.packingFee) +
+                                        parseToDecimal(order.surcharge) -
+                                        parseToDecimal(order.discountAmount)
+                                    ).toFixed(2)}
+                                </Text>
                             </View>
                         </View>
                         <View style={styles.paymentMethodContainer}>
