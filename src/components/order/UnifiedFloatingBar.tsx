@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -11,6 +11,7 @@ import {
     View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import LottieView from 'lottie-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import MIcon from 'react-native-vector-icons/MaterialIcons';
@@ -25,14 +26,44 @@ const BOTTOM_TAB_HEIGHT = Platform.OS === 'ios' ? 85 : 70;
 const SLIDE_DISTANCE = 80;
 const BUTTON_GRADIENT = ['#6A0DAD', '#D8B4FF'];
 
-const STATUS_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
-    [OrderStatus.PLACED]: { color: '#6366F1', icon: 'package-variant-closed', label: 'Order Placed' },
-    [OrderStatus.VENDOR_PENDING]: { color: '#F59E0B', icon: 'store-search', label: 'Finding Store' },
-    [OrderStatus.VENDOR_ACCEPTED]: { color: '#10B981', icon: 'store-check', label: 'Store Accepted' },
-    [OrderStatus.PREPARING]: { color: '#8B5CF6', icon: 'pot-steam', label: 'Food Preparing' },
-    [OrderStatus.READY_FOR_PICKUP]: { color: '#06B6D4', icon: 'bag-checked', label: 'Ready for Pickup' },
-    [OrderStatus.DELIVERY_PENDING]: { color: '#F59E0B', icon: 'moped-electric', label: 'Assigning Rider' },
-    [OrderStatus.OUT_FOR_DELIVERY]: { color: '#3B82F6', icon: 'moped', label: 'Out for Delivery' },
+const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
+    [OrderStatus.PLACED]: { color: '#818CF8', label: 'Order Placed' },
+    [OrderStatus.VENDOR_PENDING]: { color: '#FBBF24', label: 'Finding Store' },
+    [OrderStatus.VENDOR_ACCEPTED]: { color: '#34D399', label: 'Store Confirmed' },
+    [OrderStatus.PREPARING]: { color: '#A78BFA', label: 'Store Preparing' },
+    [OrderStatus.READY_FOR_PICKUP]: { color: '#22D3EE', label: 'Ready for Pickup' },
+    [OrderStatus.DELIVERY_PENDING]: { color: '#FBBF24', label: 'Assigning Rider' },
+    [OrderStatus.OUT_FOR_DELIVERY]: { color: '#60A5FA', label: 'Out for Delivery' },
+};
+
+const LOTTIE_CONFIG: Record<string, any> = {
+    [OrderStatus.VENDOR_PENDING]: require('../../assets/order/ongoing/finding-shop.json'),
+    [OrderStatus.VENDOR_ACCEPTED]: require('../../assets/order/ongoing/preparing.json'),
+    [OrderStatus.PREPARING]: require('../../assets/order/ongoing/preparing.json'),
+    [OrderStatus.READY_FOR_PICKUP]: require('../../assets/order/ongoing/ready-for-picup.json'),
+    [OrderStatus.DELIVERY_PENDING]: require('../../assets/order/ongoing/ready-for-picup.json'),
+    [OrderStatus.OUT_FOR_DELIVERY]: require('../../assets/order/ongoing/out_for_delivery.json'),
+    [OrderStatus.DELIVERED]: require('../../assets/order/ongoing/Delivered.json'),
+};
+
+const getProgressPercent = (status: string): string => {
+    switch (status) {
+        case OrderStatus.PLACED:
+            return '15%';
+        case OrderStatus.VENDOR_PENDING:
+            return '30%';
+        case OrderStatus.VENDOR_ACCEPTED:
+            return '45%';
+        case OrderStatus.PREPARING:
+            return '60%';
+        case OrderStatus.READY_FOR_PICKUP:
+        case OrderStatus.DELIVERY_PENDING:
+            return '75%';
+        case OrderStatus.OUT_FOR_DELIVERY:
+            return '90%';
+        default:
+            return '50%';
+    }
 };
 
 interface UnifiedFloatingBarProps {
@@ -130,47 +161,62 @@ const CartSlide = ({ totalItems, subTotal, onCartPress, clearCart }: any) => {
 };
 
 const OrderSlide = ({ item, navigation }: any) => {
-    const config = STATUS_CONFIG[item.status] || { color: COLORS.primary, icon: 'package-variant', label: item.status };
+    const config = STATUS_CONFIG[item.status] || { color: '#A78BFA', label: item.status };
     const firstItem = item.items?.[0];
     const otherItemsCount = (item.items?.length || 0) - 1;
+    const progressWidth = getProgressPercent(item.status);
+    
+    const isPlaced = item.status === OrderStatus.PLACED;
+    const lottieSource = LOTTIE_CONFIG[item.status] || require('../../assets/order/ongoing/preparing.json');
 
     return (
         <TouchableOpacity
-            activeOpacity={0.9}
+            activeOpacity={0.95}
             style={styles.slideContainer}
             onPress={() => navigation.navigate('OrderTracking', { id: item.id })}
         >
             <LinearGradient
-                colors={['#1E293B', '#0F172A']}
+                colors={['rgba(146, 53, 208, 0.96)', 'rgba(76, 29, 149, 0.98)']}
                 style={styles.cardGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
             >
                 <View style={styles.contentContainer}>
-                    {/* Status Icon */}
-                    <View style={[styles.iconContainer, { backgroundColor: config.color + '20' }]}>
-                        <MCIcon name={config.icon} size={24} color={config.color} />
-                    </View>
+                    {/* Status Icon or Lottie */}
+                    {isPlaced ? (
+                        <View style={styles.iconContainer}>
+                            <MCIcon name="package-variant-closed" size={22} color="#FFFFFF" />
+                        </View>
+                    ) : (
+                        <View style={styles.lottieContainer}>
+                            <LottieView
+                                source={lottieSource}
+                                autoPlay
+                                loop
+                                style={styles.lottie}
+                            />
+                        </View>
+                    )}
 
                     {/* Order Info */}
                     <View style={styles.textContainer}>
                         <Text style={styles.statusLabel}>{config.label}</Text>
                         <Text style={styles.itemInfo} numberOfLines={1}>
-                            {firstItem?.product?.name || 'Item'}
+                            {firstItem?.product?.name || 'Fresh item'}
                             {otherItemsCount > 0 ? ` + ${otherItemsCount} more` : ''}
                         </Text>
                     </View>
 
                     {/* Track Button */}
-                    <View
-                        style={styles.trackButton}
-                    >
+                    <View style={styles.trackButton}>
                         <Text style={styles.trackText}>Track</Text>
-                        <MCIcon name="chevron-right" size={18} color={COLORS.white} />
+                        <MCIcon name="chevron-right" size={14} color="#9235D0" />
                     </View>
                 </View>
 
-                {/* Progress Bar (Decorative) */}
+                {/* Progress Bar (Modernized) */}
                 <View style={styles.progressBarBg}>
-                    <View style={[styles.progressBarFill, { backgroundColor: config.color, width: '60%' }]} />
+                    <View style={[styles.progressBarFill, { width: progressWidth as any }]} />
                 </View>
             </LinearGradient>
         </TouchableOpacity>
@@ -280,18 +326,23 @@ const styles = StyleSheet.create({
     slideContainer: {
         width: SCREEN_WIDTH,
         paddingHorizontal: 16,
-        height: 72,
+        height: 80,
     },
     cardGradient: {
-        borderRadius: 16,
-        padding: 12,
-        height: 72,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        height: 80,
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.18)',
+        // Shadow (iOS glow)
+        shadowColor: '#9235D0',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        // Elevation (Android)
         elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
     },
     contentContainer: {
         flexDirection: 'row',
@@ -300,10 +351,25 @@ const styles = StyleSheet.create({
     iconContainer: {
         width: 44,
         height: 44,
-        borderRadius: 12,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.12)',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
+    },
+    lottieContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.12)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+        overflow: 'hidden',
+    },
+    lottie: {
+        width: 44,
+        height: 44,
     },
     textContainer: {
         flex: 1,
@@ -311,62 +377,77 @@ const styles = StyleSheet.create({
     statusLabel: {
         color: COLORS.white,
         fontSize: 14,
-        fontWeight: '700',
+        fontWeight: '800',
         marginBottom: 2,
     },
     itemInfo: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: 12,
-        fontWeight: '500',
+        color: 'rgba(255, 255, 255, 0.75)',
+        fontSize: 11,
+        fontWeight: '600',
     },
     trackButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 7,
+        paddingHorizontal: 14,
         borderRadius: 20,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
     },
     trackText: {
-        color: COLORS.white,
+        color: '#9235D0',
         fontSize: 12,
-        fontWeight: '700',
-        marginRight: 2,
+        fontWeight: '800',
+        marginRight: 3,
     },
     progressBarBg: {
-        height: 3,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        height: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
         borderRadius: 2,
-        marginTop: 10,
+        marginTop: 8,
         overflow: 'hidden',
     },
     progressBarFill: {
         height: '100%',
+        backgroundColor: '#FFFFFF',
         borderRadius: 2,
     },
     pagination: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 6,
-        gap: 4,
+        marginTop: 8,
+        gap: 6,
     },
     dot: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: 'rgba(0,0,0,0.2)',
+        backgroundColor: 'rgba(0, 0, 0, 0.15)',
     },
     activeDot: {
-        width: 16,
-        backgroundColor: COLORS.primary,
+        width: 18,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#9235D0',
     },
     // Cart Slide Specific Styles
     slideWrapper: {
         width: SCREEN_WIDTH - 32,
-        height: 72,
-        borderRadius: 16,
+        height: 80,
+        borderRadius: 20,
         overflow: 'hidden',
         position: 'relative',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
     },
     removeContainer: {
         position: 'absolute',
@@ -378,8 +459,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 1,
         backgroundColor: COLORS.primary,
-        borderTopRightRadius: 16,
-        borderBottomRightRadius: 16,
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
     },
     removeText: {
         color: COLORS.white,
@@ -395,13 +476,13 @@ const styles = StyleSheet.create({
     },
     viewCartBar: {
         flex: 1,
-        borderRadius: 16,
+        borderRadius: 20,
         padding: 12,
         paddingRight: 10,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: 72,
+        height: 80,
     },
     cartInfo: {
         flex: 1,
