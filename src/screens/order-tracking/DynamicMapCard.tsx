@@ -21,6 +21,7 @@ interface DynamicMapCardProps {
   scrollY: Animated.Value;
   handleExpandMap: () => void;
   handleCollapseMap: () => void;
+  deliveryEtaMinutes: number;
 }
 
 export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
@@ -29,10 +30,10 @@ export const DynamicMapCard: React.FC<DynamicMapCardProps> = ({
   scrollY,
   handleExpandMap,
   handleCollapseMap,
+  deliveryEtaMinutes
 }) => {
   const status = order?.status;
   const deliveredAt = order?.timestamps?.deliveredAt;
-  const deliveryEtaMinutes = order?.orderDeliveryAssignment?.deliveryEtaMinutes;
   const isPickedUp = status === OrderStatus.OUT_FOR_DELIVERY || status === OrderStatus.DELIVERED || status === OrderStatus.CANCELLED || status === OrderStatus.REFUNDED || status === OrderStatus.DISPUTED;
 
   const [routeCoordinates, setRouteCoordinates] = React.useState<Coordinate[]>([]);

@@ -28,7 +28,7 @@ function getDistance(
 export function calculateEta(
   order: any,
   userCord: cord,
-  vendorCord: cord,
+  vendorCord?: cord,
   deliveryGuyCord?: cord,
 ): number {
   // If no delivery guy coordinate is provided or is invalid, return fixed ETA of 40 minutes
@@ -36,8 +36,13 @@ export function calculateEta(
     !deliveryGuyCord ||
     !deliveryGuyCord.lat ||
     !deliveryGuyCord.lng ||
+    !vendorCord ||
+    !vendorCord.lat ||
+    !vendorCord.lng ||
     isNaN(deliveryGuyCord.lat) ||
-    isNaN(deliveryGuyCord.lng)
+    isNaN(deliveryGuyCord.lng) ||
+    isNaN(vendorCord.lat) ||
+    isNaN(vendorCord.lng)
   ) {
     return 40;
   }

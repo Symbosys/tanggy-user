@@ -2,40 +2,38 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Linking,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-  Linking,
-  RefreshControl,
-  Alert,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import Ads from '../../components/order/Ads';
 import { useQueryClient } from '@tanstack/react-query';
 import { useOrderDetails, useOrders } from '../../api/hooks/useOrder';
+import Ads from '../../components/order/Ads';
 import { OrderStatus } from '../../types/order.type';
 
+import { EVENT_TYPES } from '../../constants/event.constant';
+import { wsService } from '../../socket/websocket.service';
 import { COLORS, EXPAND_SCROLL_Y } from './constants';
-import { StickyHeader } from './StickyHeader';
-import { DynamicMapCard } from './DynamicMapCard';
+import { DeliveryDetailsCard } from './DeliveryDetailsCard';
 import { DeliveryOtpCard } from './DeliveryOtpCard';
 import { DeliveryPartnerCard } from './DeliveryPartnerCard';
-import { StoreVendorCard } from './StoreVendorCard';
-import { DeliveryDetailsCard } from './DeliveryDetailsCard';
-import { SupportSystemCard } from './SupportSystemCard';
+import { DynamicMapCard } from './DynamicMapCard';
 import { OrderSummaryCard } from './OrderSummaryCard';
-import { RateReviewCard } from './RateReviewCard';
+import { StickyHeader } from './StickyHeader';
+import { SupportSystemCard } from './SupportSystemCard';
 import { SwitchOrderModal } from './SwitchOrderModal';
-import { wsService } from '../../socket/websocket.service';
-import { EVENT_TYPES } from '../../constants/event.constant';
 
 const BlinkitFinalClone = ({ navigation, route }: any) => {
   const { id: initialId, orderNumber: initialOrderNumber } = route.params || {};
   const [currentId, setCurrentId] = useState(initialId);
   const [currentOrderNumber, setCurrentOrderNumber] = useState(initialOrderNumber);
+  const [eta, setEta] = useState(30);
 
   const queryClient = useQueryClient();
 
@@ -150,8 +148,6 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
     };
   }, [currentId, currentOrderNumber, order?.id, order?.orderNumber, queryClient]);
 
-
-
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     refetch().finally(() => setRefreshing(false));
@@ -235,6 +231,7 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
 
         {/* Dynamic Map Card */}
         <DynamicMapCard
+          deliveryEtaMinutes={eta}
           order={order}
           deliveryLocation={deliveryLocation}
           scrollY={scrollY}
