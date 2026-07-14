@@ -28,6 +28,8 @@ import { OrderSummaryCard } from './OrderSummaryCard';
 import { StickyHeader } from './StickyHeader';
 import { SupportSystemCard } from './SupportSystemCard';
 import { SwitchOrderModal } from './SwitchOrderModal';
+import { OrderDeliveredScreen } from './OrderDeliveredScreen';
+
 
 const BlinkitFinalClone = ({ navigation, route }: any) => {
   const { id: initialId, orderNumber: initialOrderNumber } = route.params || {};
@@ -176,6 +178,11 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
     );
   }
 
+  if (order?.status === OrderStatus.DELIVERED) {
+    return <OrderDeliveredScreen order={order} navigation={navigation} />;
+  }
+
+
   // --- HANDLERS ---
   const openPhoneDialer = () => {
     Linking.openURL('tel:70506XXXXX');
@@ -242,7 +249,7 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
         {/* OTP Card */}
         <DeliveryOtpCard
           deliveryOtp={deliveryAssignment?.deliveryOtp}
-          isDelivered={order?.status === OrderStatus.DELIVERED}
+          isDelivered={false}
         />
 
         {/* Delivery Partner */}
