@@ -30,7 +30,7 @@ const PaymentScreen = () => {
   // Initialize PhonePe SDK
   useEffect(() => {
     PhonePePaymentSDK.init(ENVIRONMENT, MERCHANT_ID, FLOW_ID, ENABLE_LOGGING)
-      .then(() => console.log('✅ PhonePe SDK Initialized'))
+      .then(() => console.log('✅ PhonePe SDK Initializeds'))
       .catch(err => console.error('❌ SDK Init Failed:', err));
   }, []);
 
