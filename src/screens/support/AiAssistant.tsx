@@ -20,7 +20,12 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useOrderDetails, useOrders } from '../../api/hooks/useOrder';
-import { useCreateTicket } from '../../api/hooks/useSupportTickets';
+import {
+    useInitSupportChatSession,
+    useResolveSupportChatSession,
+    useSendSupportChatMessage,
+    useSupportChatHistory,
+} from '../../api/hooks/useSupportChat';
 import { COLORS } from '../../theme/theme';
 import { Order, OrderStatus } from '../../types/order.type';
 import { AppNavigation } from '../../types/type';
@@ -52,21 +57,13 @@ interface PrimaryCategory {
     subOptions: SubOption[];
 }
 
-// --- Chat Message Type ---
-interface ChatMessage {
+// --- Chat Message Interface ---
+interface UIChatMessage {
     id: string;
     sender: 'ai' | 'user';
     text?: string;
     timestamp: string;
-    cardType?: 
-        | 'category_grid' 
-        | 'sub_options' 
-        | 'solution' 
-        | 'item_picker' 
-        | 'call_support' 
-        | 'cancel_policy' 
-        | 'cancel_allowed_confirm'
-        | 'expired_warning';
+    cardType?: string;
     data?: any;
 }
 
@@ -77,29 +74,43 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
     // --- Dynamic API Hooks Integration ---
     const { data: singleOrder, isLoading: isLoadingSingle } = useOrderDetails({
         id: orderId ? orderId.toString() : undefined,
-        // orderNumber: orderNumber,
     });
 
     // Fallback: fetch latest orders if no specific order route param provided
     const { data: ordersData, isLoading: isLoadingOrders } = useOrders({ page: 1, limit: 1 });
 
     const activeOrder: Order | undefined = singleOrder || ordersData?.orders?.[0];
-    const isLoading = (orderId || orderNumber) ? isLoadingSingle : isLoadingOrders;
+    const isLoadingOrder = (orderId || orderNumber) ? isLoadingSingle : isLoadingOrders;
 
-    const createTicketMutation = useCreateTicket();
+    const resolvedOrderId = activeOrder?.id ? activeOrder.id.toString() : undefined;
 
-    // --- Local State ---
+    // --- Database Chat Session Hooks ---
+    const initChatMutation = useInitSupportChatSession();
+    const sendChatMutation = useSendSupportChatMessage();
+    const resolveChatMutation = useResolveSupportChatSession();
+    const { data: dbChatSession, isLoading: isLoadingChat } = useSupportChatHistory(resolvedOrderId);
+
+    // Local state
     const [messageInput, setMessageInput] = useState('');
-    const [escalationAttempts, setEscalationAttempts] = useState(0);
     const [selectedCategory, setSelectedCategory] = useState<PrimaryCategory | null>(null);
     const [selectedItems, setSelectedItems] = useState<{ [key: string]: boolean }>({});
     const [isTyping, setIsTyping] = useState(false);
     const scrollViewRef = useRef<ScrollView>(null);
 
-    const getCurrentTime = () => {
-        const d = new Date();
+    // Initialize DB Chat Session on mount if needed
+    useEffect(() => {
+        if (resolvedOrderId && !dbChatSession && !initChatMutation.isPending) {
+            initChatMutation.mutate({ orderId: resolvedOrderId });
+        }
+    }, [resolvedOrderId]);
+
+    const getCurrentTime = (dateStr?: string) => {
+        const d = dateStr ? new Date(dateStr) : new Date();
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
+
+    // Escalation Counter synced directly from PostgreSQL Database
+    const escalationAttempts = dbChatSession?.escalationCount || 0;
 
     // --- Business Rules Evaluation Engine ---
     const isVendorPending = useMemo(() => {
@@ -120,7 +131,6 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
 
     const isDelivered = useMemo(() => activeOrder?.status === OrderStatus.DELIVERED, [activeOrder]);
     const isCancelled = useMemo(() => activeOrder?.status === OrderStatus.CANCELLED, [activeOrder]);
-    const isRefunded = useMemo(() => activeOrder?.status === OrderStatus.REFUNDED, [activeOrder]);
 
     // Calculate delivery elapsed time in minutes
     const deliveredTimeAgoMinutes = useMemo(() => {
@@ -132,11 +142,8 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
     }, [isDelivered, activeOrder]);
 
     const isPost30MinDelivered = useMemo(() => isDelivered && deliveredTimeAgoMinutes > 30, [isDelivered, deliveredTimeAgoMinutes]);
-
-    // Vendor / Restaurant Shop Name
     const vendorName = activeOrder?.orderVendorAssignments?.vendor?.shopName || 'Minta Gourmet Partner';
 
-    // Order total amount formatting
     const orderTotalAmount = useMemo(() => {
         if (!activeOrder) return '0.00';
         const amt = activeOrder.subtotal ?? activeOrder.paidAmount ?? activeOrder.itemTotal ?? 0;
@@ -146,10 +153,8 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
     // --- Dynamic Support Categories Generator ---
     const supportCategories: PrimaryCategory[] = useMemo(() => {
         if (!activeOrder) return [];
-
         const categories: PrimaryCategory[] = [];
 
-        // 1. Order Cancellation Category (Dynamic Rule 1)
         if (isVendorPending) {
             categories.push({
                 id: 'cancel_order',
@@ -196,7 +201,6 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
             });
         }
 
-        // 2. Items Missing / Wrong Items Category (Dynamic Rule 2)
         if (isDelivered) {
             if (isPost30MinDelivered) {
                 categories.push({
@@ -237,7 +241,6 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
             }
         }
 
-        // 3. Quality & Quantity Category (Dynamic Rule 2)
         if (isDelivered) {
             categories.push({
                 id: 'food_quality_qty',
@@ -259,7 +262,6 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
             });
         }
 
-        // 4. Delivery Delay & Driver Tracking Category
         if (isVendorAccepted) {
             categories.push({
                 id: 'delivery_delay',
@@ -280,7 +282,6 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
             });
         }
 
-        // 5. Payment & Refund Status Category
         categories.push({
             id: 'payment_refunds',
             title: 'Payment & Wallet Refunds',
@@ -301,38 +302,45 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
         return categories;
     }, [activeOrder, isVendorPending, isVendorAccepted, isDelivered, isPost30MinDelivered, deliveredTimeAgoMinutes, vendorName]);
 
-    // Initial Messages Load
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    // Map database messages to UI format
+    const uiMessages: UIChatMessage[] = useMemo(() => {
+        if (!dbChatSession?.messages || dbChatSession.messages.length === 0) {
+            if (!activeOrder) return [];
+            const orderNum = activeOrder.orderNumber ? activeOrder.orderNumber.split('-').pop() : activeOrder.id.toString();
+            return [
+                {
+                    id: 'msg_welcome',
+                    sender: 'ai',
+                    text: `Hello! 👋 I'm **MintaBot**, your 24/7 AI Support Assistant.\n\nI am connected directly to your order **#${orderNum}**. How can I help you today?`,
+                    timestamp: getCurrentTime(),
+                },
+                {
+                    id: 'msg_order_context',
+                    sender: 'ai',
+                    text: `Order Summary: **${activeOrder.items?.length || 0} Items** • Total: **₹${orderTotalAmount}**\nStatus: **${activeOrder.status}**`,
+                    timestamp: getCurrentTime(),
+                    cardType: 'category_grid',
+                },
+            ];
+        }
 
-    useEffect(() => {
-        if (!activeOrder) return;
-
-        const orderNum = activeOrder.orderNumber ? activeOrder.orderNumber.split('-').pop() : activeOrder.id.toString();
-
-        setMessages([
-            {
-                id: 'msg_welcome',
-                sender: 'ai',
-                text: `Hello! 👋 I'm **MintaBot**, your 24/7 AI Support Assistant.\n\nI am connected directly to your order **#${orderNum}**. How can I help you today?`,
-                timestamp: getCurrentTime(),
-            },
-            {
-                id: 'msg_order_context',
-                sender: 'ai',
-                text: `Order Summary: **${activeOrder.items?.length || 0} Items** • Total: **₹${orderTotalAmount}**\nStatus: **${activeOrder.status}**`,
-                timestamp: getCurrentTime(),
-                cardType: 'category_grid',
-            },
-        ]);
-    }, [activeOrder, orderTotalAmount]);
+        return dbChatSession.messages.map(m => ({
+            id: m.id,
+            sender: m.senderType === 'USER' ? 'user' : 'ai',
+            text: m.messageText,
+            timestamp: getCurrentTime(m.createdAt),
+            cardType: m.cardType || undefined,
+            data: m.cardData,
+        }));
+    }, [dbChatSession, activeOrder, orderTotalAmount]);
 
     useEffect(() => {
         setTimeout(() => {
             scrollViewRef.current?.scrollToEnd({ animated: true });
         }, 200);
-    }, [messages, isTyping]);
+    }, [uiMessages, isTyping]);
 
-    // Animated Typing Dots Component
+    // Animated Typing Indicator Component
     const TypingIndicator = () => {
         const dot1 = useRef(new Animated.Value(0)).current;
         const dot2 = useRef(new Animated.Value(0)).current;
@@ -373,139 +381,40 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
         );
     };
 
-    // Helper to simulate AI response delay
-    const pushAiResponse = (responseMessages: ChatMessage[]) => {
+    // Send Message to DB Endpoint
+    const sendMessageToDb = (text: string, cardType?: string, cardData?: any) => {
+        if (!dbChatSession?.sessionId) return;
         setIsTyping(true);
-        setTimeout(() => {
-            setIsTyping(false);
-            setMessages(prev => [...prev, ...responseMessages]);
-        }, 700);
+        sendChatMutation.mutate(
+            {
+                sessionId: dbChatSession.sessionId,
+                messageText: text,
+                cardType,
+                cardData,
+            },
+            {
+                onSettled: () => setIsTyping(false),
+            }
+        );
     };
 
-    // Handle Primary Category Selection
+    // Category Select Handler
     const handleCategorySelect = (category: PrimaryCategory) => {
         setSelectedCategory(category);
-        const userMsg: ChatMessage = {
-            id: `user_${Date.now()}`,
-            sender: 'user',
-            text: category.title,
-            timestamp: getCurrentTime(),
-        };
-
-        const aiMsg: ChatMessage = {
-            id: `ai_${Date.now()}`,
-            sender: 'ai',
-            text: `Selected topic: **${category.title}**. Please choose a option below:`,
-            timestamp: getCurrentTime(),
-            cardType: 'sub_options',
-            data: category.subOptions,
-        };
-
-        setMessages(prev => [...prev, userMsg]);
-        pushAiResponse([aiMsg]);
+        sendMessageToDb(category.title, 'sub_options', category.subOptions);
     };
 
-    // Handle Sub-option Selection
+    // Sub-option Select Handler
     const handleSubOptionSelect = (subOption: SubOption) => {
-        const userMsg: ChatMessage = {
-            id: `user_${Date.now()}`,
-            sender: 'user',
-            text: subOption.title,
-            timestamp: getCurrentTime(),
-        };
-
-        let aiMsg: ChatMessage;
-
-        if (subOption.actionType === 'cancel_allowed') {
-            aiMsg = {
-                id: `ai_${Date.now()}`,
-                sender: 'ai',
-                text: subOption.solutionText,
-                timestamp: getCurrentTime(),
-                cardType: 'cancel_allowed_confirm',
-                data: subOption,
-            };
-        } else if (subOption.actionType === 'cancel_restricted') {
-            aiMsg = {
-                id: `ai_${Date.now()}`,
-                sender: 'ai',
-                text: subOption.solutionText,
-                timestamp: getCurrentTime(),
-                cardType: 'cancel_policy',
-                data: subOption,
-            };
-        } else if (subOption.actionType === 'claim_expired_30min') {
-            aiMsg = {
-                id: `ai_${Date.now()}`,
-                sender: 'ai',
-                text: subOption.solutionText,
-                timestamp: getCurrentTime(),
-                cardType: 'expired_warning',
-                data: subOption,
-            };
-        } else if (subOption.actionType === 'item_picker') {
-            aiMsg = {
-                id: `ai_${Date.now()}`,
-                sender: 'ai',
-                text: subOption.solutionText,
-                timestamp: getCurrentTime(),
-                cardType: 'item_picker',
-                data: subOption,
-            };
-        } else {
-            aiMsg = {
-                id: `ai_${Date.now()}`,
-                sender: 'ai',
-                text: subOption.solutionText,
-                timestamp: getCurrentTime(),
-                cardType: 'solution',
-                data: subOption,
-            };
-        }
-
-        setMessages(prev => [...prev, userMsg]);
-        pushAiResponse([aiMsg]);
+        sendMessageToDb(subOption.title, subOption.actionType, subOption);
     };
 
-    // Handle Unresolved / Frustration Attempt Counter (5-Attempt Threshold Rule)
+    // Unresolved Issue / Attempt Increment Handler
     const handleUnresolvedIssue = () => {
-        const nextAttempts = escalationAttempts + 1;
-        setEscalationAttempts(nextAttempts);
-
-        const userMsg: ChatMessage = {
-            id: `user_${Date.now()}`,
-            sender: 'user',
-            text: "No, this didn't resolve my issue 😞",
-            timestamp: getCurrentTime(),
-        };
-
-        let aiMsg: ChatMessage;
-
-        // --- STRIKER RULE: Unlock Call Button on 5th Aggressive Attempt ---
-        if (nextAttempts >= 5) {
-            aiMsg = {
-                id: `ai_escalate_${Date.now()}`,
-                sender: 'ai',
-                text: `You have requested assistance ${nextAttempts} times. We understand your concern requires direct human support.\n\nYour priority phone line connection to our Customer Support agent is now unlocked below:`,
-                timestamp: getCurrentTime(),
-                cardType: 'call_support',
-            };
-        } else {
-            // Attempts 1 to 4: Maintain automated guidance & friction
-            aiMsg = {
-                id: `ai_retry_${Date.now()}`,
-                sender: 'ai',
-                text: `I apologize that didn't solve your issue. (Attempt ${nextAttempts}/5).\n\nPlease select another category below or try explaining your concern so I can assist you:`,
-                timestamp: getCurrentTime(),
-                cardType: 'category_grid',
-            };
-        }
-
-        setMessages(prev => [...prev, userMsg]);
-        pushAiResponse([aiMsg]);
+        sendMessageToDb("No, this didn't resolve my issue 😞");
     };
 
-    // Execute Phone Call to Support Agent
+    // Execute Call Customer Support
     const handleCallCustomerSupport = () => {
         const phoneNumber = 'tel:18001239999';
         Linking.canOpenURL(phoneNumber)
@@ -513,11 +422,7 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                 if (supported) {
                     Linking.openURL(phoneNumber);
                 } else {
-                    Alert.alert(
-                        'Direct Customer Support',
-                        'Customer Helpline: +91 1800-123-9999 (24/7 Priority Support)',
-                        [{ text: 'OK' }]
-                    );
+                    Alert.alert('Customer Support', 'Helpline Number: +91 1800-123-9999');
                 }
             })
             .catch(() => {
@@ -525,125 +430,20 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
             });
     };
 
-    // Confirm Cancellation when Allowed (VENDOR_PENDING)
+    // Confirm Cancellation Handler
     const handleConfirmCancelOrder = () => {
-        const userMsg: ChatMessage = {
-            id: `user_cancel_${Date.now()}`,
-            sender: 'user',
-            text: "Confirm Order Cancellation",
-            timestamp: getCurrentTime(),
-        };
-
-        const aiMsg: ChatMessage = {
-            id: `ai_cancelled_${Date.now()}`,
-            sender: 'ai',
-            text: `✅ Order Cancelled Successfully!\n\nOrder #${activeOrder?.orderNumber || activeOrder?.id.toString() || ''} has been cancelled. A 100% refund of ₹${orderTotalAmount} has been credited to your Minta Wallet.`,
-            timestamp: getCurrentTime(),
-            cardType: 'solution',
-        };
-
-        setMessages(prev => [...prev, userMsg]);
-        pushAiResponse([aiMsg]);
+        sendMessageToDb("Confirm Order Cancellation", "cancel_allowed_confirm");
     };
 
-    // Handle Custom Text Message Input
+    // Free Text Send Handler
     const handleSendMessage = () => {
         if (!messageInput.trim()) return;
-
-        const userText = messageInput.trim();
+        const text = messageInput.trim();
         setMessageInput('');
-
-        const userMsg: ChatMessage = {
-            id: `user_${Date.now()}`,
-            sender: 'user',
-            text: userText,
-            timestamp: getCurrentTime(),
-        };
-
-        const lower = userText.toLowerCase();
-
-        // Detect aggressive / human agent request keywords
-        const isEscalationRequest =
-            lower.includes('call') ||
-            lower.includes('human') ||
-            lower.includes('agent') ||
-            lower.includes('speak') ||
-            lower.includes('talk') ||
-            lower.includes('person') ||
-            lower.includes('representative') ||
-            lower.includes('fuck') ||
-            lower.includes('frustrated') ||
-            lower.includes('useless') ||
-            lower.includes('complaint');
-
-        let nextAttempts = escalationAttempts;
-        if (isEscalationRequest) {
-            nextAttempts += 1;
-            setEscalationAttempts(nextAttempts);
-        }
-
-        let aiMsg: ChatMessage;
-
-        if (nextAttempts >= 5) {
-            // Unlocks phone call button on 5th attempt
-            aiMsg = {
-                id: `ai_${Date.now()}`,
-                sender: 'ai',
-                text: `I see you've tried multiple times (${nextAttempts} attempts). Your direct phone call line to human support is unlocked below:`,
-                timestamp: getCurrentTime(),
-                cardType: 'call_support',
-            };
-        } else if (lower.includes('cancel')) {
-            if (isVendorPending) {
-                aiMsg = {
-                    id: `ai_${Date.now()}`,
-                    sender: 'ai',
-                    text: `Your order has not been accepted by the restaurant yet! Free cancellation with 100% refund is available:`,
-                    timestamp: getCurrentTime(),
-                    cardType: 'cancel_allowed_confirm',
-                };
-            } else {
-                aiMsg = {
-                    id: `ai_${Date.now()}`,
-                    sender: 'ai',
-                    text: `Order Cancellation Notice: Kitchen prep is already underway for your order at ${vendorName}. Direct cancellation is restricted per food safety rules:`,
-                    timestamp: getCurrentTime(),
-                    cardType: 'cancel_policy',
-                };
-            }
-        } else if (lower.includes('missing') || lower.includes('item')) {
-            if (isPost30MinDelivered) {
-                aiMsg = {
-                    id: `ai_${Date.now()}`,
-                    sender: 'ai',
-                    text: `Notice: This order was delivered ${deliveredTimeAgoMinutes} minutes ago. Automated missing item claims expire 30 minutes after delivery.`,
-                    timestamp: getCurrentTime(),
-                    cardType: 'expired_warning',
-                };
-            } else {
-                aiMsg = {
-                    id: `ai_${Date.now()}`,
-                    sender: 'ai',
-                    text: `Please select the missing item(s) from your order list below to claim a wallet refund:`,
-                    timestamp: getCurrentTime(),
-                    cardType: 'item_picker',
-                };
-            }
-        } else {
-            aiMsg = {
-                id: `ai_${Date.now()}`,
-                sender: 'ai',
-                text: `Received: "${userText}". Please select a category below so I can assist you with your active order:`,
-                timestamp: getCurrentTime(),
-                cardType: 'category_grid',
-            };
-        }
-
-        setMessages(prev => [...prev, userMsg]);
-        pushAiResponse([aiMsg]);
+        sendMessageToDb(text);
     };
 
-    // Toggle Item Checkbox
+    // Toggle Item Selection
     const toggleItemSelect = (itemId: string) => {
         setSelectedItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
     };
@@ -656,53 +456,28 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
             return;
         }
 
-        // Create support ticket in backend
-        if (activeOrder?.id) {
-            createTicketMutation.mutate({
-                category: 'ORDER_ISSUE',
-                subject: `Missing Items Claim - Order #${activeOrder.id.toString()}`,
-                description: `User reported ${selectedCount} missing items from order ${activeOrder.id.toString()}`,
-                orderId: activeOrder.id.toString(),
-            });
-        }
-
-        const aiMsg: ChatMessage = {
-            id: `ai_refund_${Date.now()}`,
-            sender: 'ai',
-            text: `✅ Claim Approved!\n\nA wallet credit of ₹${(selectedCount * 120).toFixed(2)} for missing items has been processed for Order #${activeOrder?.orderNumber || activeOrder?.id.toString() || ''}.`,
-            timestamp: getCurrentTime(),
-            cardType: 'solution',
-        };
-        pushAiResponse([aiMsg]);
+        sendMessageToDb(
+            `Claiming missing items refund for ${selectedCount} items`,
+            'item_picker',
+            { selectedCount, selectedItems }
+        );
     };
 
-    // Reset Chat Flow
+    // Reset Session Handler
     const handleResetChat = () => {
-        setEscalationAttempts(0);
-        setSelectedCategory(null);
-        if (!activeOrder) return;
-        setMessages([
-            {
-                id: 'msg_welcome',
-                sender: 'ai',
-                text: `Session reset. I'm **MintaBot**, your 24/7 AI Support Assistant. How can I help you today?`,
-                timestamp: getCurrentTime(),
-            },
-            {
-                id: 'msg_order_context',
-                sender: 'ai',
-                text: `Select an option for Order #${activeOrder.orderNumber || activeOrder.id.toString()}:`,
-                timestamp: getCurrentTime(),
-                cardType: 'category_grid',
-            },
-        ]);
+        if (dbChatSession?.sessionId) {
+            resolveChatMutation.mutate({ sessionId: dbChatSession.sessionId });
+        }
+        if (resolvedOrderId) {
+            initChatMutation.mutate({ orderId: resolvedOrderId });
+        }
     };
 
-    if (isLoading) {
+    if (isLoadingOrder || isLoadingChat) {
         return (
             <SafeAreaView style={styles.loadingContainer} edges={['top']}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
-                <Text style={styles.loadingText}>Fetching order details for AI Assistant...</Text>
+                <Text style={styles.loadingText}>Connecting to Support Database...</Text>
             </SafeAreaView>
         );
     }
@@ -731,10 +506,10 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Subtitle & Attempt Counter */}
+                {/* Subtitle & DB Synced Attempt Counter */}
                 <View style={styles.headerSubtitleRow}>
                     <Text style={styles.headerSubtitle}>
-                        Dynamic AI Order Support Engine
+                        Database Synced • Persistent Chat Session
                     </Text>
                     {escalationAttempts > 0 && (
                         <View style={styles.attemptBadge}>
@@ -754,7 +529,7 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                 contentContainerStyle={styles.chatContent}
                 showsVerticalScrollIndicator={false}>
 
-                {/* Real Dynamic Order Banner */}
+                {/* Dynamic Order Context Banner */}
                 {activeOrder && (
                     <View style={styles.activeOrderBanner}>
                         <View style={styles.orderBannerHeader}>
@@ -775,14 +550,14 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
 
                         {isDelivered && (
                             <Text style={styles.deliveryTimestampText}>
-                                Delivered {deliveredTimeAgoMinutes} mins ago {isPost30MinDelivered ? '• (Claim Window Expired)' : '• (Eligible for 30m claims)'}
+                                Delivered {deliveredTimeAgoMinutes} mins ago {isPost30MinDelivered ? '• (30m Cutoff Exceeded)' : '• (Eligible for 30m claims)'}
                             </Text>
                         )}
                     </View>
                 )}
 
-                {/* Messages List */}
-                {messages.map((msg, index) => (
+                {/* Messages List from PostgreSQL */}
+                {uiMessages.map((msg, index) => (
                     <View key={msg.id || index}>
                         {/* Text Message Bubble */}
                         <View style={msg.sender === 'user' ? styles.messageRowUser : styles.messageRow}>
@@ -820,7 +595,7 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
 
                         {/* Interactive Cards */}
 
-                        {/* 1. Dynamic Primary Categories Grid */}
+                        {/* 1. Category Grid */}
                         {msg.cardType === 'category_grid' && (
                             <View style={styles.cardContainer}>
                                 <Text style={styles.sectionHeaderTitle}>Choose how we can help:</Text>
@@ -873,7 +648,7 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                             </View>
                         )}
 
-                        {/* 3. Cancellation Allowed Confirm Card (VENDOR_PENDING) */}
+                        {/* 3. Free Cancellation Confirm Card */}
                         {msg.cardType === 'cancel_allowed_confirm' && (
                             <View style={styles.cardContainer}>
                                 <View style={styles.allowedCancelCard}>
@@ -891,7 +666,7 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                             </View>
                         )}
 
-                        {/* 4. Cancellation Restricted Policy Card (VENDOR_ACCEPTED / PREPARING) */}
+                        {/* 4. Restricted Cancellation Card */}
                         {msg.cardType === 'cancel_policy' && (
                             <View style={styles.cardContainer}>
                                 <View style={styles.policyWarningCard}>
@@ -918,7 +693,7 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                             </View>
                         )}
 
-                        {/* 5. 30-Minute Delivery Expiry Warning Card */}
+                        {/* 5. 30-Minute Expiry Card */}
                         {msg.cardType === 'expired_warning' && (
                             <View style={styles.cardContainer}>
                                 <View style={styles.expiredCard}>
@@ -936,7 +711,7 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                             </View>
                         )}
 
-                        {/* 6. Dynamic Item Picker Card from real order.items */}
+                        {/* 6. Item Picker Card */}
                         {msg.cardType === 'item_picker' && activeOrder?.items && (
                             <View style={styles.cardContainer}>
                                 <View style={styles.itemPickerCard}>
@@ -968,29 +743,7 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                             </View>
                         )}
 
-                        {/* 7. General Solution Feedback Card */}
-                        {msg.cardType === 'solution' && (
-                            <View style={styles.cardContainer}>
-                                <View style={styles.feedbackCard}>
-                                    <Text style={styles.feedbackQuestion}>Did this solution resolve your issue?</Text>
-                                    <View style={styles.feedbackButtonsRow}>
-                                        <TouchableOpacity
-                                            style={styles.yesBtn}
-                                            onPress={() => Alert.alert('Thank You!', 'Glad we could resolve your issue!')}>
-                                            <Icon name="thumb-up" size={16} color={COLORS.white} />
-                                            <Text style={styles.yesBtnText}>Yes, Solved!</Text>
-                                        </TouchableOpacity>
-
-                                        <TouchableOpacity style={styles.noBtn} onPress={handleUnresolvedIssue}>
-                                            <Icon name="thumb-down" size={16} color="#D32F2F" />
-                                            <Text style={styles.noBtnText}>No, Need Help</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            </View>
-                        )}
-
-                        {/* 8. Customer Support Phone Call Escalation Card (Unlocked on 5th Attempt) */}
+                        {/* 7. Call Customer Support Card (Unlocked on 5th Attempt in DB) */}
                         {msg.cardType === 'call_support' && (
                             <View style={styles.cardContainer}>
                                 <LinearGradient
@@ -1051,7 +804,6 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
                 <View style={styles.footer}>
-                    {/* Dynamic Quick Reply Chips */}
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
@@ -1070,7 +822,6 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
                         </TouchableOpacity>
                     </ScrollView>
 
-                    {/* Input Bar */}
                     <View style={styles.inputBar}>
                         <View style={styles.inputWrapper}>
                             <TextInput
@@ -1182,8 +933,6 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingBottom: 24,
     },
-
-    // Active Order Context Card
     activeOrderBanner: {
         backgroundColor: '#F3E5F5',
         borderRadius: 12,
@@ -1226,8 +975,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginTop: 4,
     },
-
-    // Chat Message Rows
     messageRow: {
         flexDirection: 'row',
         alignItems: 'flex-end',
@@ -1314,8 +1061,6 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         backgroundColor: COLORS.primary,
     },
-
-    // Category Grid
     cardContainer: {
         marginBottom: 16,
         marginLeft: 42,
@@ -1380,8 +1125,6 @@ const styles = StyleSheet.create({
         color: '#777',
         lineHeight: 14,
     },
-
-    // Sub Options List
     subOptionCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1409,8 +1152,6 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: '#777',
     },
-
-    // Cancellation Policy Warning Card
     allowedCancelCard: {
         backgroundColor: '#E8F5E9',
         borderRadius: 12,
@@ -1490,8 +1231,6 @@ const styles = StyleSheet.create({
         color: '#D32F2F',
         textDecorationLine: 'underline',
     },
-
-    // Item Picker Card
     itemPickerCard: {
         backgroundColor: COLORS.white,
         borderRadius: 12,
@@ -1536,56 +1275,6 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: COLORS.white,
     },
-
-    // Solution Feedback Card
-    feedbackCard: {
-        backgroundColor: '#F5F5F5',
-        borderRadius: 12,
-        padding: 12,
-        alignItems: 'center',
-    },
-    feedbackQuestion: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-        marginBottom: 10,
-    },
-    feedbackButtonsRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    yesBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: COLORS.success,
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-    },
-    yesBtnText: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: COLORS.white,
-    },
-    noBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: '#FFEBEE',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#FFCDD2',
-    },
-    noBtnText: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: '#D32F2F',
-    },
-
-    // Call Customer Support Escalation Card
     callSupportCard: {
         borderRadius: 16,
         padding: 16,
@@ -1648,8 +1337,6 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: COLORS.white,
     },
-
-    // Footer & Input
     footer: {
         backgroundColor: COLORS.white,
         borderTopWidth: 1,
