@@ -1,29 +1,29 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useRoute } from '@react-navigation/native';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Image,
+    KeyboardAvoidingView,
+    Linking,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
     Text,
     TextInput,
-    ScrollView,
     TouchableOpacity,
-    StyleSheet,
-    StatusBar,
-    Image,
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    Linking,
-    Alert,
-    ActivityIndicator,
+    View,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
-import { useRoute } from '@react-navigation/native';
-import { COLORS } from '../../theme/theme';
-import { AppNavigation } from '../../types/type';
 import { useOrderDetails, useOrders } from '../../api/hooks/useOrder';
 import { useCreateTicket } from '../../api/hooks/useSupportTickets';
+import { COLORS } from '../../theme/theme';
 import { Order, OrderStatus } from '../../types/order.type';
+import { AppNavigation } from '../../types/type';
 import { parseToDecimal } from '../../utils/utils';
 
 // --- Support Option Interfaces ---
