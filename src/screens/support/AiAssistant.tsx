@@ -76,8 +76,8 @@ const AISupportAssistantScreen = ({ navigation }: AppNavigation) => {
 
     // --- Dynamic API Hooks Integration ---
     const { data: singleOrder, isLoading: isLoadingSingle } = useOrderDetails({
-        // id: orderId ? orderId.toString() : undefined,
-        orderNumber: orderNumber,
+        id: orderId ? orderId.toString() : undefined,
+        // orderNumber: orderNumber,
     });
 
     // Fallback: fetch latest orders if no specific order route param provided

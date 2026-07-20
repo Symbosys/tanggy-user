@@ -13,18 +13,18 @@ import { deeplink } from './navigation/deeplink';
 import { navigationRef } from './navigation/NavigationService';
 import StackNavigation from './navigation/Stack';
 import { WebSocketProvider } from './context/WebSocketContext';
-import { queryClient } from './api/queryClient';
+// import { queryClient } from './api/queryClient';
 
-// const queryClient = new QueryClient({
-//   defaultOptions: {
-//     queries: {
-//       refetchOnWindowFocus: false,
-//       refetchOnMount: false,
-//       refetchInterval: false,
-//       staleTime: 5 * 60 * 1000, // 5 minutes
-//     },
-//   },
-// });
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchInterval: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 function App() {
   const isDark = useColorScheme() === 'dark';
