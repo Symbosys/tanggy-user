@@ -545,16 +545,20 @@ const OrderDetailsScreen: React.FC = () => {
                         </TouchableOpacity>
                         
                         <View style={styles.actionButtonsRow}>
-                            <TouchableOpacity style={[
-                                styles.secondaryButton, 
-                                isDelivered && styles.deliveredSecondaryButton,
-                                isCancelled && styles.cancelledSecondaryButton,
-                                (isRefunded || isDisputed) && styles.warningSecondaryButton
-                            ]}>
+                            <TouchableOpacity 
+                                style={[
+                                    styles.secondaryButton, 
+                                    isDelivered && styles.deliveredSecondaryButton,
+                                    isCancelled && styles.cancelledSecondaryButton,
+                                    (isRefunded || isDisputed) && styles.warningSecondaryButton
+                                ]}
+                                onPress={() => navigation.navigate('AiAssistant', { orderId: order.id.toString(), orderNumber: order.orderNumber })}
+                                activeOpacity={0.7}
+                            >
                                 <View style={styles.secondaryButtonContent}>
                                     <Icon 
-                                        name="receipt-long" 
-                                        size={18} 
+                                        name="support-agent" 
+                                        size={20} 
                                         color={isDelivered ? '#059669' : isCancelled ? '#DC2626' : (isRefunded || isDisputed) ? '#D97706' : COLORS.primary} 
                                     />
                                     <Text style={[
@@ -562,27 +566,7 @@ const OrderDetailsScreen: React.FC = () => {
                                         isDelivered && styles.deliveredSecondaryButtonText,
                                         isCancelled && styles.cancelledSecondaryButtonText,
                                         (isRefunded || isDisputed) && styles.warningSecondaryButtonText
-                                    ]}>Invoice</Text>
-                                </View>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[
-                                styles.secondaryButton, 
-                                isDelivered && styles.deliveredSecondaryButton,
-                                isCancelled && styles.cancelledSecondaryButton,
-                                (isRefunded || isDisputed) && styles.warningSecondaryButton
-                            ]}>
-                                <View style={styles.secondaryButtonContent}>
-                                    <Icon 
-                                        name="help-outline" 
-                                        size={18} 
-                                        color={isDelivered ? '#059669' : isCancelled ? '#DC2626' : (isRefunded || isDisputed) ? '#D97706' : COLORS.primary} 
-                                    />
-                                    <Text style={[
-                                        styles.secondaryButtonText, 
-                                        isDelivered && styles.deliveredSecondaryButtonText,
-                                        isCancelled && styles.cancelledSecondaryButtonText,
-                                        (isRefunded || isDisputed) && styles.warningSecondaryButtonText
-                                    ]}>Get Help</Text>
+                                    ]}>Need Help & Support?</Text>
                                 </View>
                             </TouchableOpacity>
                         </View>
