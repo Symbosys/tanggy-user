@@ -4,8 +4,6 @@
 - add a page to request delete account in website 
      https://mintafresh.com/delete-account
 
-npm install react-signature-canvas
-npm install react-native-signature-canvas
 
 
 
