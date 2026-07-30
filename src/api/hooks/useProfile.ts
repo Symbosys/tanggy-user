@@ -18,22 +18,28 @@ const userProfile = async (): Promise<User> => {
     return data.data
 }
 
-const updateProfile = async (updateData: Partial<User>) => {
+type UpdateProfilePayload = Omit<Partial<User>, 'fcmToken'> & { fcmToken?: string | string[] };
+
+const updateProfile = async (updateData: UpdateProfilePayload) => {
     const {data} = await api.put('/user/update', updateData)
     return data.data
 }
 
-export const useUpdateProfile = () => {
+export const useUpdateProfile = (options?: { silent?: boolean }) => {
     const queryClient = useQueryClient()
     
-    return useMutation<User, Error, Partial<User>>({
+    return useMutation<User, Error, UpdateProfilePayload>({
         mutationFn: updateProfile,
         onSuccess: () => {
-            SuccessMessage('Profile updated successfully')
+            if (!options?.silent) {
+                SuccessMessage('Profile updated successfully')
+            }
             queryClient.invalidateQueries({ queryKey: ['profile'] })
         },
         onError: (error) => {
-            ErrorMessage(error)
+            if (!options?.silent) {
+                ErrorMessage(error)
+            }
         }
     })
 }

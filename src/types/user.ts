@@ -4,6 +4,7 @@ export interface User {
   mobile: string;
   longitude: string;
   latitude: string;
+  fcmToken?: string[];
   UserWallet: {
     balance: number;
   };
