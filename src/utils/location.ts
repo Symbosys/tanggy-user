@@ -1,4 +1,4 @@
-import { Order } from '../types/order.type';
+import { DeliveryStatus, Order as IOrder, OrderSource, OrderStatus, PaymentMethod, PaymentStatus } from '../types/order.type';
 
 type cord = {
   lat: number;
@@ -26,7 +26,7 @@ function getDistance(
 }
 
 export function calculateEta(
-  order: any,
+  order: IOrder,
   userCord: cord,
   vendorCord?: cord,
   deliveryGuyCord?: cord,
@@ -82,10 +82,55 @@ export function calculateEta(
   }
 }
 
-const order = {
-  id: 1,
-  deliveryStatus: 'PREPARING',
-  status: 'PICKED_UP',
+const order: IOrder = {
+  id: 1n,
+  status: OrderStatus.PREPARING,
+  orderNumber: "",
+  userId: 1n,
+  addressId: 1n,
+  itemTotal: 100,
+  gstOnItemTotal: 10,
+  deliveryFee: 10,
+  platformFee: 10,
+  gstOnPlatform: 10,
+  packingFee: 10,
+  gstOnPackingFee: 10,
+  tipAmount: 10,
+  surcharge: 10,
+  discountAmount: 10,
+  paidAmount: 10,
+  subtotal: 10,
+  currency: "INR",
+  paymentStatus: PaymentStatus.PAID,
+  deliveryStatus: DeliveryStatus.ASSIGNED,
+  notes: "notes",
+  source: OrderSource.APP,
+  paymentMethod: PaymentMethod.COD,
+  paymentReference: "paymentReference",
+  refundReference: "refundReference",
+  cancelReason: "cancelReason",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  user: {
+    id: 0n,
+    name: ''
+  },
+  address: {
+    id: 0n,
+    receiverName: '',
+    completeAddress: '',
+    latitude: undefined,
+    longitude: undefined
+  },
+  items: [],
+  tracking: [],
+  vendorBroadcasts: [],
+  deliveryBroadcasts: [],
+  notifications: [],
+  vendorWalletTransaction: [],
+  deliveryPartnerWalletTransaction: [],
+  userWalletTransaction: [],
+  payments: []
 };
 
 const eta = calculateEta(

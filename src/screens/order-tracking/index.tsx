@@ -224,7 +224,7 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
       <StickyHeader
         navigation={navigation}
         status={order?.status}
-        deliveryEtaMinutes={deliveryAssignment?.deliveryEtaMinutes}
+        deliveryEtaMinutes={eta}
         ongoingOrdersCount={ongoingOrders.length}
         setSwitchModalVisible={setSwitchModalVisible}
         stickyHeaderOpacity={stickyHeaderOpacity}

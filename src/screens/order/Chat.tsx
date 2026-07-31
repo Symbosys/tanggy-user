@@ -1,14 +1,13 @@
-import React from 'react';
 import {
-    View,
-    Text,
     Image,
-    TextInput,
-    TouchableOpacity,
-    ScrollView,
-    StyleSheet,
     KeyboardAvoidingView,
     Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../theme/theme';
