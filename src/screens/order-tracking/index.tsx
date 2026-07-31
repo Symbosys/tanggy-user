@@ -150,6 +150,15 @@ const BlinkitFinalClone = ({ navigation, route }: any) => {
     };
   }, [currentId, currentOrderNumber, order?.id, order?.orderNumber, queryClient]);
 
+  // --- AUTO REFRESH EVERY 40 SECONDS ---
+  useEffect(() => {
+    const timer = setInterval(() => {
+      refetch();
+    }, 40000);
+
+    return () => clearInterval(timer);
+  }, [refetch]);
+
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     refetch().finally(() => setRefreshing(false));
