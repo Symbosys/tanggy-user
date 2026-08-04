@@ -1,8 +1,12 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationProp } from '@react-navigation/native';
+import { AxiosError } from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
+  KeyboardAvoidingView,
   NativeSyntheticEvent,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -10,15 +14,12 @@ import {
   TextInputKeyPressEventData,
   ToastAndroid,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RootStackParamList } from '../../types/type';
-import { ErrorMessage } from '../../utils/utils';
-import { AxiosError } from 'axios';
 import api from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { RootStackParamList } from '../../types/type';
+import { ErrorMessage } from '../../utils/utils';
 import { PROFILE_INCOMPLETE_KEY } from './CompleteProfile';
 
 const { width } = Dimensions.get('window');
@@ -155,71 +156,83 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
       </View>
 
       {/* Content */}
-      <View style={styles.content}>
-        <View style={styles.otpTopContainer}>
-          <Text style={styles.otpSubtitle}>We've sent a verification code to</Text>
-          <Text style={styles.otpPhoneText}>{phoneNumber}</Text>
-        </View>
-
-        {/* OTP Input Boxes */}
-        <View style={styles.otpContainer}>
-          {otp.map((digit, index) => (
-            <View key={index} style={styles.otpBox}>
-              <TextInput
-                ref={ref => {
-                  inputRefs.current[index] = ref;
-                }}
-                style={styles.otpInput}
-                value={digit}
-                onChangeText={value => handleOtpChange(value, index)}
-                onKeyPress={e => handleKeyPress(e, index)}
-                keyboardType="number-pad"
-                maxLength={1}
-                selectTextOnFocus
-              />
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <View style={styles.otpTopContainer}>
+              <Text style={styles.otpSubtitle}>We've sent a verification code to</Text>
+              <Text style={styles.otpPhoneText}>{phoneNumber}</Text>
             </View>
-          ))}
-        </View>
 
-        <Text style={styles.resendText}>Resend OTP in {timer}</Text>
+            {/* OTP Input Boxes */}
+            <View style={styles.otpContainer}>
+              {otp.map((digit, index) => (
+                <View key={index} style={styles.otpBox}>
+                  <TextInput
+                    ref={ref => {
+                      inputRefs.current[index] = ref;
+                    }}
+                    style={styles.otpInput}
+                    value={digit}
+                    onChangeText={value => handleOtpChange(value, index)}
+                    onKeyPress={e => handleKeyPress(e, index)}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    selectTextOnFocus
+                  />
+                </View>
+              ))}
+            </View>
 
-        {/* Verify Button */}
-        <TouchableOpacity
-          style={[
-            styles.verifyButton,
-            (otp.join('').length < 4 || verifyLoading) &&
-            styles.verifyButtonDisabled,
-          ]}
-          onPress={handleVerify}
-          disabled={otp.join('').length < 4 || verifyLoading}>
-          <Text
-            style={[
-              styles.verifyButtonText,
-              (otp.join('').length < 4 || verifyLoading) &&
-              styles.verifyButtonTextDisabled,
-            ]}>
-            {verifyLoading ? 'Verifying...' : 'Verify'}
-          </Text>
-        </TouchableOpacity>
+            <Text style={styles.resendText}>Resend OTP in {timer}</Text>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View style={styles.buttonsContainer}>
+            {/* Verify Button */}
             <TouchableOpacity
-              style={[styles.button, timer > 0 && styles.buttonDisabled]}
-              disabled={timer > 0 || loading}
-              onPress={handleResendSMS}>
+              style={[
+                styles.verifyButton,
+                (otp.join('').length < 4 || verifyLoading) &&
+                styles.verifyButtonDisabled,
+              ]}
+              onPress={handleVerify}
+              disabled={otp.join('').length < 4 || verifyLoading}>
               <Text
                 style={[
-                  styles.buttonText,
-                  timer > 0 && styles.buttonTextDisabled,
+                  styles.verifyButtonText,
+                  (otp.join('').length < 4 || verifyLoading) &&
+                  styles.verifyButtonTextDisabled,
                 ]}>
-                Get via SMS
+                {verifyLoading ? 'Verifying...' : 'Verify'}
               </Text>
             </TouchableOpacity>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <View style={styles.buttonsContainer}>
+                <TouchableOpacity
+                  style={[styles.button, timer > 0 && styles.buttonDisabled]}
+                  disabled={timer > 0 || loading}
+                  onPress={handleResendSMS}>
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      timer > 0 && styles.buttonTextDisabled,
+                    ]}>
+                    Get via SMS
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -259,6 +272,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#ffff',
     fontWeight: '600',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,

@@ -28,6 +28,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const quantity = getQuantity(product.id);
 
     const handleAdd = () => {
+        if (!product.isAvailable) return;
         if (!isAuthenticated) {
             showAlert({
                 title: 'Login Required',
@@ -42,6 +43,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     };
 
     const handleIncrement = () => {
+        if (!product.isAvailable) return;
         if (!isAuthenticated) {
             showAlert({
                 title: 'Login Required',
@@ -56,6 +58,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     };
 
     const handleDecrement = () => {
+        if (!product.isAvailable) return;
         if (!isAuthenticated) return; // No alert needed on decrement if not logged in
         decrementQuantity(product);
     };
@@ -63,8 +66,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return (
         <TouchableOpacity
             style={styles.productCard}
-            onPress={onPress}
-            activeOpacity={0.95}
+            onPress={product.isAvailable ? onPress : undefined}
+            activeOpacity={product.isAvailable ? 0.95 : 1}
         >
             {!product.isAvailable && (
                 <View style={styles.unavailableOverlay}>

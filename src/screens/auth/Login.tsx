@@ -15,6 +15,7 @@ import {
   View,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -153,38 +154,38 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
               <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]} />
             </TouchableWithoutFeedback>
 
-            <Animated.View
-              style={[
-                styles.modalContent,
-                { transform: [{ translateY: slideAnim }] },
-              ]}
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
             >
-              <View
+              <Animated.View
                 style={[
-                  styles.modalHeader,
-                  { paddingTop: insets.top + 20, paddingBottom: 30 },
+                  styles.modalContent,
+                  { transform: [{ translateY: slideAnim }] },
                 ]}
               >
-                {/* <TouchableOpacity
-                  onPress={async () => {
-                    await skipLogin();
-                    handleCloseModal();
-                    navigation.reset({ index: 0, routes: [{ name: 'BottomTab' }] });
-                  }}
-                  style={[styles.skipButtonModal, { top: insets.top + 12 }]}
+                <View
+                  style={[
+                    styles.modalHeader,
+                    { paddingTop: insets.top + 20, paddingBottom: 30 },
+                  ]}
                 >
-                  <Text style={styles.skipText}>Skip</Text>
-                </TouchableOpacity> */}
+                  {/* <TouchableOpacity
+                    onPress={async () => {
+                      await skipLogin();
+                      handleCloseModal();
+                      navigation.reset({ index: 0, routes: [{ name: 'BottomTab' }] });
+                    }}
+                    style={[styles.skipButtonModal, { top: insets.top + 12 }]}
+                  >
+                    <Text style={styles.skipText}>Skip</Text>
+                  </TouchableOpacity> */}
 
-                <Text style={styles.brandName}>Minta Fresh</Text>
-                <Text style={styles.brandTagline}>Great taste delivered at lowest rate</Text>
-              </View>
+                  <Text style={styles.brandName}>Minta Fresh</Text>
+                  <Text style={styles.brandTagline}>Great taste delivered at lowest rate</Text>
+                </View>
 
-              <View style={styles.modalBody}>
-                <KeyboardAvoidingView
-                  behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                  style={{ flex: 1 }}
-                >
+                <View style={styles.modalBody}>
                   <View style={{ flex: 1, justifyContent: 'space-between' }}>
                     <View style={styles.topContentWrapper}>
                       <Text style={styles.modalTitle}>
@@ -263,9 +264,9 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
                       </View>
                     </View>
                   </View>
-                </KeyboardAvoidingView>
-              </View>
-            </Animated.View>
+                </View>
+              </Animated.View>
+            </KeyboardAvoidingView>
           </View>
         </Modal>
       </View>
@@ -338,11 +339,7 @@ const styles = StyleSheet.create({
   modalContainer: { flex: 1 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.5)' },
   modalContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '100%',
+    flex: 1,
     backgroundColor: 'transparent',
   },
   modalHeader: {

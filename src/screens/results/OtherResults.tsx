@@ -55,7 +55,7 @@ const ProductCard = ({
                         end={{ x: 1, y: 0 }}
                         style={styles.addToCartButton}
                     >
-                        <Text style={styles.addToCartText}>Add to Cart</Text>
+                        <Text style={styles.addToCartText}>Add to Carts</Text>
                     </LinearGradient>
                 </TouchableOpacity>
             </View>
