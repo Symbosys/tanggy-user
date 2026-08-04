@@ -43,3 +43,47 @@ export const useUpdateProfile = (options?: { silent?: boolean }) => {
         }
     })
 }
+
+export interface NearbyDeliveryPartnersCountResponse {
+    onlineDeliveryPartnersCount: number;
+    nearbyVendorsCount: number;
+    areasCount: number;
+}
+
+export interface GetNearbyDeliveryPartnersCountParams {
+    lat?: number | null;
+    lng?: number | null;
+    rangeKm?: number;
+}
+
+const getNearbyDeliveryPartnersCount = async (
+    params: GetNearbyDeliveryPartnersCountParams
+): Promise<NearbyDeliveryPartnersCountResponse> => {
+    const { data } = await api.get('/user/nearby-delivery-partners/count', {
+        params: {
+            lat: params.lat,
+            lng: params.lng,
+            rangeKm: params.rangeKm,
+        },
+    });
+    return data.data;
+};
+
+export const useNearbyDeliveryPartnersCount = (
+    params: GetNearbyDeliveryPartnersCountParams,
+    options?: { enabled?: boolean }
+) => {
+    const hasLocation =
+        params.lat !== undefined &&
+        params.lat !== null &&
+        params.lng !== undefined &&
+        params.lng !== null;
+
+    return useQuery<NearbyDeliveryPartnersCountResponse, Error>({
+        queryKey: ['nearby-delivery-partners-count', params.lat, params.lng, params.rangeKm],
+        queryFn: () => getNearbyDeliveryPartnersCount(params),
+        enabled: (options?.enabled ?? true) && hasLocation,
+        staleTime: 0,
+        gcTime: 5 * 60 * 1000,
+    });
+};

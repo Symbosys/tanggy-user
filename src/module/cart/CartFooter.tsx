@@ -11,12 +11,15 @@ import { useCartCalculations } from './hooks';
 interface Props {
     onCheckout: () => void;
     onPaymentMethodPress: () => void;
+    noDeliveryPartnerAvailable?: boolean;
 }
 
-export const CartFooter: React.FC<Props> = ({ onCheckout, onPaymentMethodPress }) => {
+export const CartFooter: React.FC<Props> = ({ onCheckout, onPaymentMethodPress, noDeliveryPartnerAvailable = false }) => {
     const insets = useSafeAreaInsets();
     const { selectedPaymentMethod } = usePaymentStore();
     const { total } = useCartCalculations();
+
+    const isProceedDisabled = !selectedPaymentMethod || noDeliveryPartnerAvailable;
 
     return (
         <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
@@ -54,12 +57,12 @@ export const CartFooter: React.FC<Props> = ({ onCheckout, onPaymentMethodPress }
 
                 {/* Proceed Button */}
                 <TouchableOpacity
-                    style={[styles.proceedLink, !selectedPaymentMethod && styles.proceedLinkDisabled]}
-                    disabled={!selectedPaymentMethod}
+                    style={[styles.proceedLink, isProceedDisabled && styles.proceedLinkDisabled]}
+                    disabled={isProceedDisabled}
                     onPress={onCheckout}
                 >
                     <LinearGradient
-                        colors={selectedPaymentMethod ? [COLORS.primary, COLORS.accent] : ['#E0E0E0', '#BDBDBD']}
+                        colors={!isProceedDisabled ? [COLORS.primary, COLORS.accent] : ['#E0E0E0', '#BDBDBD']}
                         style={styles.proceedGradient}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}

@@ -1,5 +1,7 @@
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {
   AddressSelectionModal,
   CartAddressSection,
@@ -18,11 +20,14 @@ import {
 import BottomCartPopup from '../../components/ui/popup/BottonCart';
 import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
+import { useCartStore } from '../../store/cart';
 
 const CartScreen = ({ navigation }: AppNavigation) => {
 
   // Initialization Logic
   const { loading, cartItems } = useCartInitialization();
+  const { fetchCart } = useCartStore();
+  const [refreshing, setRefreshing] = useState(false);
 
   // Calculations
   const {
@@ -36,7 +41,28 @@ const CartScreen = ({ navigation }: AppNavigation) => {
   } = useCartUIStore();
 
   // Checkout Logic
-  const { handleCheckout, handleConfirmPayment, isPlacingOrder } = useCheckoutLogic();
+  const {
+    handleCheckout,
+    handleConfirmPayment,
+    isPlacingOrder,
+    noDeliveryPartnerAvailable,
+    onlineDeliveryPartnersCount,
+    refetchPartnerCount,
+  } = useCheckoutLogic();
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchCart(),
+        refetchPartnerCount(),
+      ]);
+    } catch (error) {
+      console.error('Error refreshing cart:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchCart, refetchPartnerCount]);
 
   if (loading) {
     return (
@@ -62,6 +88,13 @@ const CartScreen = ({ navigation }: AppNavigation) => {
         style={styles.main}
         contentContainerStyle={{ paddingBottom: 112 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         <CartHeader onBack={() => navigation.goBack()} />
 
@@ -72,6 +105,15 @@ const CartScreen = ({ navigation }: AppNavigation) => {
         <CartAddressSection />
 
         <CartBillDetails />
+
+        {noDeliveryPartnerAvailable && (
+          <View style={styles.noDeliveryBanner}>
+            <MaterialIcons name="error-outline" size={22} color="#DC2626" />
+            <Text style={styles.noDeliveryBannerText}>
+              Online delivery partners in your area: {onlineDeliveryPartnersCount}. More than 1 required to place an order.
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <AddressSelectionModal
@@ -89,6 +131,7 @@ const CartScreen = ({ navigation }: AppNavigation) => {
       <CartFooter
         onCheckout={handleCheckout}
         onPaymentMethodPress={() => navigation.navigate('PaymentMethod')}
+        noDeliveryPartnerAvailable={noDeliveryPartnerAvailable}
       />
     </SafeAreaView>
   );

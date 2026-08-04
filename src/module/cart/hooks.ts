@@ -13,9 +13,10 @@ import { NavigationProp } from '@react-navigation/native';
 import PhonePePaymentSDK from 'react-native-phonepe-pg';
 import { PHONEPE_CONFIG } from '../../constants/phonepay';
 import { Alert } from 'react-native';
-import api from '../../api/api';
 import { usePlaceOrder } from '../../api/hooks/useOrder';
+import { useNearbyDeliveryPartnersCount } from '../../api/hooks/useProfile';
 import { OrderSource, PaymentMethod } from '../../types/order.type';
+import api from '../../api/api';
 
 export const useCartInitialization = () => {
   const { fetchCart, cartItems, loading } = useCartStore();
@@ -182,12 +183,32 @@ export const useCheckoutLogic = () => {
   } = useCartUIStore();
   const { total, tipAmount } = useCartCalculations();
   const { mutate: placeOrder, isPending: isPlacingOrder } = usePlaceOrder();
+  const { latitude, longitude } = useLocationStore();
+
+  const { data: partnerCountData, isLoading: isPartnerCountLoading, refetch: refetchPartnerCount } = useNearbyDeliveryPartnersCount({
+    lat: latitude,
+    lng: longitude,
+  });
+
+  const hasLocation = latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null;
+  const onlineDeliveryPartnersCount = partnerCountData?.onlineDeliveryPartnersCount ?? 0;
+  const noDeliveryPartnerAvailable = hasLocation && !isPartnerCountLoading && onlineDeliveryPartnersCount <= 1;
 
   const hasDefaultAddress = selectedAddressId
     ? addresses.find((addr: any) => addr.id === selectedAddressId)
     : addresses.find((addr: any) => addr.isDefault);
 
   const handleCheckout = useCallback(() => {
+    if (noDeliveryPartnerAvailable) {
+      showAlert({
+        title: 'Delivery Partner Unavailable',
+        message: `Currently only ${onlineDeliveryPartnersCount} online delivery partner(s) available in your area. More than 1 required to place an order.`,
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        onConfirm: () => { },
+      });
+      return;
+    }
     if (cartItems.length === 0) {
       showAlert({
         title: 'Empty Cart',
@@ -221,6 +242,7 @@ export const useCheckoutLogic = () => {
     }
     setShowCheckoutPopup(true);
   }, [
+    noDeliveryPartnerAvailable,
     cartItems.length, 
     hasDefaultAddress, 
     selectedPaymentMethod, 
@@ -231,6 +253,18 @@ export const useCheckoutLogic = () => {
   ]);
 
   const handleConfirmPayment = useCallback(async () => {
+    if (noDeliveryPartnerAvailable) {
+      setShowCheckoutPopup(false);
+      showAlert({
+        title: 'Delivery Partner Unavailable',
+        message: `Currently only ${onlineDeliveryPartnersCount} online delivery partner(s) available in your area. More than 1 required to place an order.`,
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        onConfirm: () => { },
+      });
+      return;
+    }
+
     setShowCheckoutPopup(false);
     
     // Build order data (shared for all payment methods)
@@ -360,6 +394,8 @@ export const useCheckoutLogic = () => {
       }
     }
   }, [
+    noDeliveryPartnerAvailable,
+    showAlert,
     setShowCheckoutPopup,
     total,
     navigation,
@@ -375,5 +411,9 @@ export const useCheckoutLogic = () => {
     handleCheckout,
     handleConfirmPayment,
     isPlacingOrder,
+    noDeliveryPartnerAvailable,
+    onlineDeliveryPartnersCount,
+    isPartnerCountLoading,
+    refetchPartnerCount,
   };
 };
