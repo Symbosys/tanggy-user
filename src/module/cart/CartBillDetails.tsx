@@ -10,6 +10,7 @@ export const CartBillDetails: React.FC = () => {
         itemTotal,
         deliveryFee,
         platformFee,
+        gstOnPlatform,
         packingFee,
         surcharge,
         tipAmount,
@@ -27,20 +28,30 @@ export const CartBillDetails: React.FC = () => {
                 </View>
 
                 {/* Delivery Fee */}
-                <View style={[styles.subtotalRow, { alignItems: 'flex-start' }]}>
-                    <View>
-                        <Text style={styles.subtotalLabel}>Delivery Fee</Text>
+                {deliveryFee > 0 && (
+                    <View style={[styles.subtotalRow, { alignItems: 'flex-start' }]}>
+                        <View>
+                            <Text style={styles.subtotalLabel}>Delivery Fee</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={styles.subtotalValue}>₹{deliveryFee.toFixed(2)}</Text>
+                        </View>
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={styles.subtotalValue}>₹{deliveryFee.toFixed(2)}</Text>
-                    </View>
-                </View>
+                )}
 
                 {/* Platform Fee */}
                 {platformFee > 0 && (
                     <View style={styles.subtotalRow}>
                         <Text style={styles.subtotalLabel}>Platform Fee</Text>
                         <Text style={styles.subtotalValue}>₹{platformFee.toFixed(2)}</Text>
+                    </View>
+                )}
+
+                {/* GST (18% on Platform Fee) */}
+                {gstOnPlatform > 0 && (
+                    <View style={styles.subtotalRow}>
+                        <Text style={styles.subtotalLabel}>GST (18% on Platform Fee)</Text>
+                        <Text style={styles.subtotalValue}>₹{gstOnPlatform.toFixed(2)}</Text>
                     </View>
                 )}
 

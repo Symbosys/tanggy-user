@@ -59,32 +59,36 @@ export const useCartCalculations = () => {
     0
   );
 
-  // 2. Delivery Fee
-  const deliveryFee = serverDeliveryFee;
+  // 2. Delivery Fee (Free)
+  const deliveryFee = 0;
 
-  // 3. Platform Fee
-  const platformFee = serverPlatformFee;
+  // 3. Platform Fee (₹10)
+  const platformFee = serverPlatformFee || (cartItems.length > 0 ? 10 : 0);
 
-  // 4. Packing Fee
-  const packingFee = serverPackingFee;
+  // 4. GST on Platform Fee (18%)
+  const gstOnPlatform = platformFee > 0 ? parseToDecimal(platformFee * 0.18) : 0;
 
-  // 5. Tip Amount
+  // 5. Packing Fee (Free)
+  const packingFee = 0;
+
+  // 6. Tip Amount
   const tipAmount = selectedTip || 0;
 
-  // 6. Surcharge
+  // 7. Surcharge
   const surcharge = serverSurcharge;
 
-  // 7. Discount
+  // 8. Discount
   const discountAmount = 0;
 
-  // 8. Subtotal
+  // 9. Subtotal
   const subtotal = itemTotal; 
   
-  // 9. Grand Total (No GST/Tax for raw chicken as per Indian govt)
+  // 10. Grand Total
   const total = 
     itemTotal + 
     deliveryFee + 
     platformFee + 
+    gstOnPlatform +
     packingFee + 
     tipAmount + 
     surcharge - 
@@ -94,6 +98,7 @@ export const useCartCalculations = () => {
     itemTotal,
     deliveryFee,
     platformFee,
+    gstOnPlatform,
     packingFee,
     tipAmount,
     surcharge,

@@ -83,8 +83,10 @@ const ExploreCategories = ({ navigation }: AppNavigation) => {
         showsVerticalScrollIndicator={false}>
         <View style={styles.grid}>
           {categories.map((cat, index) => (
-            <View
+            <TouchableOpacity
               key={cat.id || index}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('CategoryResults', { categoryId: cat.id, categoryName: cat.name })}
               style={[
                 styles.cardWrapper,
                 { width: itemWidth, minHeight: cardMinHeight, marginBottom: 16 },
@@ -108,16 +110,13 @@ const ExploreCategories = ({ navigation }: AppNavigation) => {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.buttonGradient}>
-                    <TouchableOpacity
-                      style={styles.buttonTouchable}
-                      onPress={() => navigation.navigate('CategoryResults', { categoryId: cat.id, categoryName: cat.name })}
-                    >
+                    <View style={styles.buttonTouchable}>
                       <Text style={styles.buttonText}>View Products</Text>
-                    </TouchableOpacity>
+                    </View>
                   </LinearGradient>
                 </View>
               </LinearGradient>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>

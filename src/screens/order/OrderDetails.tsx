@@ -476,18 +476,28 @@ const OrderDetailsScreen: React.FC = () => {
                                 <Text style={styles.paymentLabel}>Item Total</Text>
                                 <Text style={styles.paymentValue}>₹{parseToDecimal(order.itemTotal).toFixed(2)}</Text>
                             </View>
-                            <View style={styles.paymentRow}>
-                                <Text style={styles.paymentLabel}>Delivery Fee</Text>
-                                <Text style={styles.paymentValue}>₹{parseToDecimal(order.deliveryFee).toFixed(2)}</Text>
-                            </View>
+                            {parseToDecimal(order.deliveryFee) > 0 && (
+                                <View style={styles.paymentRow}>
+                                    <Text style={styles.paymentLabel}>Delivery Fee</Text>
+                                    <Text style={styles.paymentValue}>₹{parseToDecimal(order.deliveryFee).toFixed(2)}</Text>
+                                </View>
+                            )}
                             <View style={styles.paymentRow}>
                                 <Text style={styles.paymentLabel}>Platform Fee</Text>
                                 <Text style={styles.paymentValue}>₹{parseToDecimal(order.platformFee).toFixed(2)}</Text>
                             </View>
-                            <View style={styles.paymentRow}>
-                                <Text style={styles.paymentLabel}>Packing Fee</Text>
-                                <Text style={styles.paymentValue}>₹{parseToDecimal(order.packingFee).toFixed(2)}</Text>
-                            </View>
+                            {parseToDecimal(order.gstOnPlatform) > 0 && (
+                                <View style={styles.paymentRow}>
+                                    <Text style={styles.paymentLabel}>GST (18% on Platform Fee)</Text>
+                                    <Text style={styles.paymentValue}>₹{parseToDecimal(order.gstOnPlatform).toFixed(2)}</Text>
+                                </View>
+                            )}
+                            {parseToDecimal(order.packingFee) > 0 && (
+                                <View style={styles.paymentRow}>
+                                    <Text style={styles.paymentLabel}>Packing Fee</Text>
+                                    <Text style={styles.paymentValue}>₹{parseToDecimal(order.packingFee).toFixed(2)}</Text>
+                                </View>
+                            )}
                             {parseToDecimal(order.surcharge) > 0 && (
                                 <View style={styles.paymentRow}>
                                     <Text style={styles.paymentLabel}>Surcharge</Text>
@@ -508,6 +518,7 @@ const OrderDetailsScreen: React.FC = () => {
                                         parseToDecimal(order.itemTotal) +
                                         parseToDecimal(order.deliveryFee) +
                                         parseToDecimal(order.platformFee) +
+                                        parseToDecimal(order.gstOnPlatform) +
                                         parseToDecimal(order.packingFee) +
                                         parseToDecimal(order.surcharge) -
                                         parseToDecimal(order.discountAmount)
