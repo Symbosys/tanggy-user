@@ -6,7 +6,7 @@ export interface PaymentMethodType {
     description: string;
     icon: string;
     isAvailable: boolean;
-    type: 'upi' | 'card' | 'netbanking' | 'cod' | 'wallet';
+    type: 'upi' | 'card' | 'netbanking' | 'cod' | 'wallet' | 'razorpay';
 }
 
 interface PaymentState {

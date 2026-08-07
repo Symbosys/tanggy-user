@@ -4,7 +4,11 @@ import { useCartStore } from '../../store/cart';
 import { useCartUIStore } from './store';
 import { useAddressStore } from '../../store/address';
 import { usePaymentStore } from '../../store/payment';
-import { parseToDecimal, handlePayment as handlePaymentUtil, ErrorMessage } from '../../utils/utils';
+import {
+  parseToDecimal,
+  handlePayment as handlePaymentUtil,
+  ErrorMessage,
+} from '../../utils/utils';
 import { useLocationStore } from '../../store/location';
 import { useAlertStore } from '../../store/alert.store';
 import { CartItem } from './types';
@@ -39,7 +43,6 @@ export const useCartInitialization = () => {
   return { loading, cartItems };
 };
 
-
 export const useCartCalculations = () => {
   const {
     cartItems,
@@ -49,7 +52,7 @@ export const useCartCalculations = () => {
     surcharge: serverSurcharge,
   } = useCartStore();
   const { selectedTip } = useCartUIStore();
-  
+
   const getSellingPrice = useCallback((item: CartItem | any): number => {
     return parseToDecimal(item?.product?.sellingPrice) || 0;
   }, []);
@@ -57,7 +60,7 @@ export const useCartCalculations = () => {
   // 1. Item Total
   const itemTotal = cartItems.reduce(
     (acc: number, item: any) => acc + getSellingPrice(item) * item.quantity,
-    0
+    0,
   );
 
   // 2. Delivery Fee (Free)
@@ -67,7 +70,8 @@ export const useCartCalculations = () => {
   const platformFee = serverPlatformFee || (cartItems.length > 0 ? 10 : 0);
 
   // 4. GST on Platform Fee (18%)
-  const gstOnPlatform = platformFee > 0 ? parseToDecimal(platformFee * 0.18) : 0;
+  const gstOnPlatform =
+    platformFee > 0 ? parseToDecimal(platformFee * 0.18) : 0;
 
   // 5. Packing Fee (Free)
   const packingFee = 0;
@@ -82,17 +86,17 @@ export const useCartCalculations = () => {
   const discountAmount = 0;
 
   // 9. Subtotal
-  const subtotal = itemTotal; 
-  
+  const subtotal = itemTotal;
+
   // 10. Grand Total
-  const total = 
-    itemTotal + 
-    deliveryFee + 
-    platformFee + 
+  const total =
+    itemTotal +
+    deliveryFee +
+    platformFee +
     gstOnPlatform +
-    packingFee + 
-    tipAmount + 
-    surcharge - 
+    packingFee +
+    tipAmount +
+    surcharge -
     discountAmount;
 
   return {
@@ -109,7 +113,6 @@ export const useCartCalculations = () => {
     getSellingPrice,
   };
 };
-
 
 export const useCartActions = () => {
   const { addToCart, clearCart } = useCartStore();
@@ -131,14 +134,14 @@ export const useCartActions = () => {
       }
       await addToCart(String(item.productId), newQuantity, item.product);
     },
-    [addToCart, showAlert]
+    [addToCart, showAlert],
   );
 
   const increaseQty = useCallback(
     (item: CartItem | any) => {
       updateCartItem(item, item.quantity + 1);
     },
-    [updateCartItem]
+    [updateCartItem],
   );
 
   const decreaseQty = useCallback(
@@ -147,7 +150,7 @@ export const useCartActions = () => {
         updateCartItem(item, item.quantity - 1);
       }
     },
-    [updateCartItem]
+    [updateCartItem],
   );
 
   const handleClearCart = useCallback(() => {
@@ -171,28 +174,35 @@ export const useCartActions = () => {
 };
 
 export const useCheckoutLogic = () => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList >>();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { cartItems } = useCartStore();
   const { addresses } = useAddressStore();
   const { selectedPaymentMethod } = usePaymentStore();
   const { showAlert } = useAlertStore();
-  const { 
-    selectedAddressId, 
-    setShowAddressModal, 
-    setShowCheckoutPopup 
-  } = useCartUIStore();
+  const { selectedAddressId, setShowAddressModal, setShowCheckoutPopup } =
+    useCartUIStore();
   const { total, tipAmount } = useCartCalculations();
   const { mutate: placeOrder, isPending: isPlacingOrder } = usePlaceOrder();
   const { latitude, longitude } = useLocationStore();
 
-  const { data: partnerCountData, isLoading: isPartnerCountLoading, refetch: refetchPartnerCount } = useNearbyDeliveryPartnersCount({
+  const {
+    data: partnerCountData,
+    isLoading: isPartnerCountLoading,
+    refetch: refetchPartnerCount,
+  } = useNearbyDeliveryPartnersCount({
     lat: latitude,
     lng: longitude,
   });
 
-  const hasLocation = latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null;
-  const onlineDeliveryPartnersCount = partnerCountData?.onlineDeliveryPartnersCount ?? 0;
-  const noDeliveryPartnerAvailable = hasLocation && !isPartnerCountLoading && onlineDeliveryPartnersCount <= 1;
+  const hasLocation =
+    latitude !== undefined &&
+    latitude !== null &&
+    longitude !== undefined &&
+    longitude !== null;
+  const onlineDeliveryPartnersCount =
+    partnerCountData?.onlineDeliveryPartnersCount ?? 0;
+  const noDeliveryPartnerAvailable =
+    hasLocation && !isPartnerCountLoading && onlineDeliveryPartnersCount <= 1;
 
   const hasDefaultAddress = selectedAddressId
     ? addresses.find((addr: any) => addr.id === selectedAddressId)
@@ -205,7 +215,7 @@ export const useCheckoutLogic = () => {
         message: `Currently only ${onlineDeliveryPartnersCount} online delivery partner(s) available in your area. More than 1 required to place an order.`,
         confirmText: 'OK',
         cancelText: 'Cancel',
-        onConfirm: () => { },
+        onConfirm: () => {},
       });
       return;
     }
@@ -215,7 +225,7 @@ export const useCheckoutLogic = () => {
         message: 'Your cart is empty. Add some items to proceed.',
         confirmText: 'OK',
         cancelText: 'Cancel',
-        onConfirm: () => { },
+        onConfirm: () => {},
       });
       return;
     }
@@ -225,7 +235,7 @@ export const useCheckoutLogic = () => {
         message: 'Please select a delivery address to proceed.',
         confirmText: 'OK',
         cancelText: 'Cancel',
-        onConfirm: () => { },
+        onConfirm: () => {},
       });
       setShowAddressModal(true);
       return;
@@ -243,13 +253,13 @@ export const useCheckoutLogic = () => {
     setShowCheckoutPopup(true);
   }, [
     noDeliveryPartnerAvailable,
-    cartItems.length, 
-    hasDefaultAddress, 
-    selectedPaymentMethod, 
-    showAlert, 
-    navigation, 
-    setShowAddressModal, 
-    setShowCheckoutPopup
+    cartItems.length,
+    hasDefaultAddress,
+    selectedPaymentMethod,
+    showAlert,
+    navigation,
+    setShowAddressModal,
+    setShowCheckoutPopup,
   ]);
 
   const handleConfirmPayment = useCallback(async () => {
@@ -260,13 +270,13 @@ export const useCheckoutLogic = () => {
         message: `Currently only ${onlineDeliveryPartnersCount} online delivery partner(s) available in your area. More than 1 required to place an order.`,
         confirmText: 'OK',
         cancelText: 'Cancel',
-        onConfirm: () => { },
+        onConfirm: () => {},
       });
       return;
     }
 
     setShowCheckoutPopup(false);
-    
+
     // Build order data (shared for all payment methods)
     const orderData = {
       addressId: String(selectedAddressId || hasDefaultAddress?.id),
@@ -286,12 +296,15 @@ export const useCheckoutLogic = () => {
       placeOrder(
         { ...orderData, paymentMethod: PaymentMethod.WALLET },
         {
-          onSuccess: (res) => {
+          onSuccess: res => {
             if (res.success) {
-              navigation.navigate('OrderPlaced', { orderId: String(res.data.id), orderNumber: res.data.orderNumber } as never);
+              navigation.navigate('OrderPlaced', {
+                orderId: String(res.data.id),
+                orderNumber: res.data.orderNumber,
+              } as never);
             }
           },
-        }
+        },
       );
       return;
     } else if (selectedPaymentMethod?.type === 'cod') {
@@ -299,12 +312,15 @@ export const useCheckoutLogic = () => {
       placeOrder(
         { ...orderData, paymentMethod: PaymentMethod.COD },
         {
-          onSuccess: (res) => {
+          onSuccess: res => {
             if (res.success) {
-              navigation.navigate('OrderPlaced', { orderId: String(res.data.id), orderNumber: res.data.orderNumber } as never);
+              navigation.navigate('OrderPlaced', {
+                orderId: String(res.data.id),
+                orderNumber: res.data.orderNumber,
+              } as never);
             }
           },
-        }
+        },
       );
       return;
     } else if (selectedPaymentMethod?.id === 'phonepe') {
@@ -315,7 +331,7 @@ export const useCheckoutLogic = () => {
           PHONEPE_CONFIG.ENVIRONMENT,
           PHONEPE_CONFIG.MERCHANT_ID,
           PHONEPE_CONFIG.FLOW_ID,
-          PHONEPE_CONFIG.ENABLE_LOGGING
+          PHONEPE_CONFIG.ENABLE_LOGGING,
         );
 
         // 2. Place order via backend (returns PhonePe token)
@@ -352,9 +368,9 @@ export const useCheckoutLogic = () => {
         // 4. Start PhonePe Payment
         const sdkResult = await PhonePePaymentSDK.startTransaction(
           requestBody,
-          null
+          null,
         );
-        console.log({ sdkResult })
+        console.log({ sdkResult });
 
         if (sdkResult?.status === 'SUCCESS') {
           // 5. Verify payment on backend
@@ -371,17 +387,25 @@ export const useCheckoutLogic = () => {
           } else {
             Alert.alert(
               'Payment Verification Failed',
-              'Please contact support if amount was deducted.'
+              'Please contact support if amount was deducted.',
             );
           }
         } else if (sdkResult?.status === 'FAILED') {
-          Alert.alert('Payment Failed', 'Your payment could not be processed. Please try again.');
+          Alert.alert(
+            'Payment Failed',
+            'Your payment could not be processed. Please try again.',
+          );
         } else if (sdkResult?.status === 'CANCELLED') {
-          Alert.alert('Payment Cancelled', 'You cancelled the payment. Your order is saved — you can retry payment.');
+          Alert.alert(
+            'Payment Cancelled',
+            'You cancelled the payment. Your order is saved — you can retry payment.',
+          );
         }
       } catch (error: any) {
-        ErrorMessage(error)
+        ErrorMessage(error);
       }
+    } else if (selectedPaymentMethod?.type === 'razorpay') {
+      
     } else {
       // For UPI and others, use the payment handler
       const paymentInitiated = await handlePaymentUtil(total.toString());
