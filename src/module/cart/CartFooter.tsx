@@ -17,9 +17,10 @@ interface Props {
 export const CartFooter: React.FC<Props> = ({ onCheckout, onPaymentMethodPress, noDeliveryPartnerAvailable = false }) => {
     const insets = useSafeAreaInsets();
     const { selectedPaymentMethod } = usePaymentStore();
-    const { total } = useCartCalculations();
+    const { total, walletDeduction, payableTotal } = useCartCalculations();
 
-    const isProceedDisabled = !selectedPaymentMethod || noDeliveryPartnerAvailable;
+    const isFullyPaidByWallet = payableTotal === 0 && walletDeduction > 0;
+    const isProceedDisabled = (!isFullyPaidByWallet && !selectedPaymentMethod) || noDeliveryPartnerAvailable;
 
     return (
         <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
@@ -28,14 +29,29 @@ export const CartFooter: React.FC<Props> = ({ onCheckout, onPaymentMethodPress, 
                 <TouchableOpacity
                     style={styles.paymentSelector}
                     onPress={onPaymentMethodPress}
+                    disabled={isFullyPaidByWallet}
                 >
-                    {selectedPaymentMethod ? (
+                    {isFullyPaidByWallet ? (
+                        <View style={styles.paymentSelectedContent}>
+                            <View style={styles.paymentIconWrapper}>
+                                <MaterialIcons name="account-balance-wallet" size={20} color={COLORS.primary} />
+                            </View>
+                            <View style={styles.paymentTextInfo}>
+                                <Text style={styles.payUsingText}>Pay using</Text>
+                                <Text style={styles.paymentMethodName} numberOfLines={1}>
+                                    User Wallet (Fully Paid)
+                                </Text>
+                            </View>
+                        </View>
+                    ) : selectedPaymentMethod ? (
                         <View style={styles.paymentSelectedContent}>
                             <View style={styles.paymentIconWrapper}>
                                 <MaterialIcons name={selectedPaymentMethod.icon} size={20} color={COLORS.primary} />
                             </View>
                             <View style={styles.paymentTextInfo}>
-                                <Text style={styles.payUsingText}>Pay using</Text>
+                                <Text style={styles.payUsingText}>
+                                    {walletDeduction > 0 ? `Pay remaining (₹${walletDeduction.toFixed(2)} wallet used)` : 'Pay using'}
+                                </Text>
                                 <Text style={styles.paymentMethodName} numberOfLines={1}>
                                     {selectedPaymentMethod.name}
                                 </Text>
@@ -48,7 +64,9 @@ export const CartFooter: React.FC<Props> = ({ onCheckout, onPaymentMethodPress, 
                                 <MaterialIcons name="payment" size={20} color={COLORS.primary} />
                             </View>
                             <View style={styles.paymentTextInfo}>
-                                <Text style={styles.selectPaymentText}>Select Payment</Text>
+                                <Text style={styles.selectPaymentText}>
+                                    {walletDeduction > 0 ? `Select secondary payment` : 'Select Payment'}
+                                </Text>
                             </View>
                             <MaterialIcons name="keyboard-arrow-right" size={20} color={COLORS.textSecondary} />
                         </View>
@@ -68,7 +86,7 @@ export const CartFooter: React.FC<Props> = ({ onCheckout, onPaymentMethodPress, 
                         end={{ x: 1, y: 0 }}
                     >
                         <View style={styles.proceedContent}>
-                            <Text style={styles.totalAmount}>₹{total.toFixed(2)}</Text>
+                            <Text style={styles.totalAmount}>₹{payableTotal.toFixed(2)}</Text>
                             <Text style={styles.proceedLabel}>Proceed</Text>
                         </View>
                     </LinearGradient>

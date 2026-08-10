@@ -19,6 +19,7 @@ import { PHONEPE_CONFIG } from '../../constants/phonepay';
 import { Alert } from 'react-native';
 import { usePlaceOrder } from '../../api/hooks/useOrder';
 import { useNearbyDeliveryPartnersCount } from '../../api/hooks/useProfile';
+import { useUserWallet } from '../../api/hooks/useWallet';
 import { OrderSource, PaymentMethod } from '../../types/order.type';
 import api from '../../api/api';
 
@@ -52,6 +53,9 @@ export const useCartCalculations = () => {
     surcharge: serverSurcharge,
   } = useCartStore();
   const { selectedTip } = useCartUIStore();
+  const { data: walletData, refetch: refetchWallet } = useUserWallet();
+
+  const walletBalance = parseToDecimal(walletData?.balance);
 
   const getSellingPrice = useCallback((item: CartItem | any): number => {
     return parseToDecimal(item?.product?.sellingPrice) || 0;
@@ -99,6 +103,10 @@ export const useCartCalculations = () => {
     surcharge -
     discountAmount;
 
+  // 11. Primary Wallet Deduction & Payable Total
+  const walletDeduction = Math.min(walletBalance, total);
+  const payableTotal = Math.max(0, parseToDecimal(total - walletDeduction));
+
   return {
     itemTotal,
     deliveryFee,
@@ -110,6 +118,10 @@ export const useCartCalculations = () => {
     discountAmount,
     subtotal,
     total,
+    walletBalance,
+    walletDeduction,
+    payableTotal,
+    refetchWallet,
     getSellingPrice,
   };
 };
@@ -181,7 +193,7 @@ export const useCheckoutLogic = () => {
   const { showAlert } = useAlertStore();
   const { selectedAddressId, setShowAddressModal, setShowCheckoutPopup } =
     useCartUIStore();
-  const { total, tipAmount } = useCartCalculations();
+  const { total, tipAmount, payableTotal } = useCartCalculations();
   const { mutate: placeOrder, isPending: isPlacingOrder } = usePlaceOrder();
   const { latitude, longitude } = useLocationStore();
 
@@ -240,10 +252,10 @@ export const useCheckoutLogic = () => {
       setShowAddressModal(true);
       return;
     }
-    if (!selectedPaymentMethod) {
+    if (payableTotal > 0 && !selectedPaymentMethod) {
       showAlert({
         title: 'Payment Method',
-        message: 'Please select a payment method to proceed.',
+        message: 'Please select a payment method to proceed for the remaining balance.',
         confirmText: 'Select',
         cancelText: 'Cancel',
         onConfirm: () => navigation.navigate('PaymentMethod'),
@@ -255,6 +267,7 @@ export const useCheckoutLogic = () => {
     noDeliveryPartnerAvailable,
     cartItems.length,
     hasDefaultAddress,
+    payableTotal,
     selectedPaymentMethod,
     showAlert,
     navigation,
@@ -290,8 +303,8 @@ export const useCheckoutLogic = () => {
       source: OrderSource.APP,
     };
 
-    // Check payment method type
-    if (selectedPaymentMethod?.type === 'wallet') {
+    // Check if fully covered by wallet OR explicitly wallet selected
+    if (payableTotal === 0 || selectedPaymentMethod?.type === 'wallet') {
       // 🚀 Place order via backend for Wallet Payment
       placeOrder(
         { ...orderData, paymentMethod: PaymentMethod.WALLET },

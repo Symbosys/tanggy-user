@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     ScrollView,
     StatusBar,
+    RefreshControl,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -13,11 +14,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
 import { usePaymentStore, PaymentMethodType } from '../../store/payment';
-import { useUserWalletTransactions } from '../../api/hooks/useWallet';
+import { useUserWallet } from '../../api/hooks/useWallet';
 import { useCartCalculations } from '../../module/cart/hooks';
 import { parseToDecimal } from '../../utils/utils';
-
-
 
 const PAYMENT_METHODS: PaymentMethodType[] = [
     {
@@ -28,38 +27,14 @@ const PAYMENT_METHODS: PaymentMethodType[] = [
         isAvailable: true,
         type: 'upi',
     },
-    // {
-    //     id: '1',
-    //     name: 'UPI',
-    //     description: 'Google Pay, Paytm, etc.',
-    //     icon: 'account-balance-wallet',
-    //     isAvailable: false,
-    //     type: 'upi',
-    // },
-    // {
-    //     id: '2',
-    //     name: 'Credit / Debit Card',
-    //     description: 'Visa, Mastercard, RuPay',
-    //     icon: 'credit-card',
-    //     isAvailable: false,
-    //     type: 'card',
-    // },
     {
         id: '3',
         name: 'Wallet',
         description: 'Pay from your app balance',
         icon: 'wallet',
-        isAvailable: false,
+        isAvailable: true,
         type: 'wallet',
     },
-    // {
-    //     id: '4',
-    //     name: 'Net Banking',
-    //     description: 'Available for all major banks',
-    //     icon: 'account-balance',
-    //     isAvailable: false,
-    //     type: 'netbanking',
-    // },
     {
         id: '5',
         name: 'Cash on Delivery',
@@ -70,44 +45,88 @@ const PAYMENT_METHODS: PaymentMethodType[] = [
     },
 ];
 
+interface RenderablePaymentMethod extends PaymentMethodType {
+    badgeText?: string;
+    badgeColor?: string;
+    badgeBgColor?: string;
+}
+
 const PaymentMethodScreen = ({ navigation }: AppNavigation) => {
     const insets = useSafeAreaInsets();
     const { selectedPaymentMethod, setSelectedPaymentMethod } = usePaymentStore();
     const [localSelected, setLocalSelected] = useState<string | null>(selectedPaymentMethod?.id || null);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const { data: walletData } = useUserWalletTransactions({
-        page: 1,
-        limit: 1,
-    });
+    const { data: walletData, refetch, isFetching } = useUserWallet();
     const { total } = useCartCalculations();
     
-    // Safely parse the balance to decimal (handles string, number, and DecimalObj from server)
+    // Safely parse the balance to decimal
     const walletBalance = parseToDecimal(walletData?.balance);
+    const walletDeduction = Math.min(walletBalance, total);
+    const remainingAmount = Math.max(0, parseToDecimal(total - walletDeduction));
 
-    const isWalletAvailable = walletBalance > 0 && walletBalance >= total;
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await refetch();
+        } catch (err) {
+            console.log('Error refreshing wallet in PaymentMethodScreen:', err);
+        } finally {
+            setRefreshing(false);
+        }
+    }, [refetch]);
 
-    // Dynamically adjust availability and description of payment methods
-    const dynamicPaymentMethods = PAYMENT_METHODS.map(method => {
+    // Reset selected method if localSelected is Wallet ('3') but wallet cannot cover full order amount
+    useEffect(() => {
+        if (localSelected === '3' && walletBalance < total) {
+            setLocalSelected(null);
+        }
+    }, [walletBalance, total, localSelected]);
+
+    // Dynamically adjust availability, descriptions, and status badges of payment methods
+    const dynamicPaymentMethods: RenderablePaymentMethod[] = PAYMENT_METHODS.map(method => {
         if (method.type === 'wallet') {
+            if (walletBalance >= total && total > 0) {
+                return {
+                    ...method,
+                    isAvailable: true,
+                    description: `Full amount paid from wallet (Balance: ₹${walletBalance.toFixed(2)})`,
+                    badgeText: 'Full Payment Covered',
+                    badgeColor: COLORS.success,
+                    badgeBgColor: '#E6F4EA',
+                };
+            } else if (walletBalance > 0) {
+                return {
+                    ...method,
+                    isAvailable: false, // Cannot select Wallet as secondary method for remaining balance
+                    description: `₹${walletBalance.toFixed(2)} auto-applied as primary payment. Select PhonePe or COD below for remaining ₹${remainingAmount.toFixed(2)}.`,
+                    badgeText: `Primary Applied: ₹${walletBalance.toFixed(2)}`,
+                    badgeColor: COLORS.primary,
+                    badgeBgColor: COLORS.primary + '18',
+                };
+            } else {
+                return {
+                    ...method,
+                    isAvailable: false,
+                    description: `App wallet balance is ₹0.00`,
+                    badgeText: '₹0.00 Balance',
+                    badgeColor: COLORS.muted,
+                    badgeBgColor: '#F3F4F6',
+                };
+            }
+        }
+        if (!method.isAvailable) {
             return {
                 ...method,
-                isAvailable: isWalletAvailable,
-                description: isWalletAvailable
-                    ? `Pay from your app balance (Balance: ₹${walletBalance.toFixed(2)})`
-                    : `Insufficient balance (Balance: ₹${walletBalance.toFixed(2)})`,
+                badgeText: 'Currently Unavailable',
+                badgeColor: '#EF4444',
+                badgeBgColor: '#FEE2E2',
             };
         }
         return method;
     });
 
-    // Reset selected method if the wallet is selected but has insufficient balance
-    useEffect(() => {
-        if (localSelected === '3' && !isWalletAvailable) {
-            setLocalSelected(null);
-        }
-    }, [isWalletAvailable, localSelected]);
-
-    const handleSelect = (method: PaymentMethodType) => {
+    const handleSelect = (method: RenderablePaymentMethod) => {
         if (!method.isAvailable) return;
         setLocalSelected(method.id);
     };
@@ -122,7 +141,7 @@ const PaymentMethodScreen = ({ navigation }: AppNavigation) => {
         }
     };
 
-    const renderMethod = (method: PaymentMethodType) => {
+    const renderMethod = (method: RenderablePaymentMethod) => {
         const isSelected = localSelected === method.id;
         const isDisabled = !method.isAvailable;
 
@@ -155,10 +174,10 @@ const PaymentMethodScreen = ({ navigation }: AppNavigation) => {
                     <Text style={[styles.methodDesc, isDisabled && styles.textDisabled]}>
                         {method.description}
                     </Text>
-                    {isDisabled && (
-                        <View style={styles.unavailableBadge}>
-                            <Text style={styles.unavailableText}>
-                                {method.type === 'wallet' ? 'Insufficient Balance' : 'Currently Unavailable'}
+                    {method.badgeText && (
+                        <View style={[styles.badge, { backgroundColor: method.badgeBgColor || '#FEE2E2' }]}>
+                            <Text style={[styles.badgeText, { color: method.badgeColor || '#EF4444' }]}>
+                                {method.badgeText}
                             </Text>
                         </View>
                     )}
@@ -200,7 +219,24 @@ const PaymentMethodScreen = ({ navigation }: AppNavigation) => {
                 style={styles.scroll}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: 150 + insets.bottom }]}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing || isFetching}
+                        onRefresh={onRefresh}
+                        colors={[COLORS.primary]}
+                        tintColor={COLORS.primary}
+                    />
+                }
             >
+                {walletBalance > 0 && walletBalance < total && (
+                    <View style={styles.walletInfoBanner}>
+                        <MaterialIcons name="account-balance-wallet" size={22} color={COLORS.primary} />
+                        <Text style={styles.walletInfoBannerText}>
+                            <Text style={{ fontWeight: '800', color: COLORS.primary }}>₹{walletBalance.toFixed(2)}</Text> wallet balance will be auto-applied! Select PhonePe or COD below to pay the remaining <Text style={{ fontWeight: '800', color: COLORS.textPrimary }}>₹{remainingAmount.toFixed(2)}</Text>.
+                        </Text>
+                    </View>
+                )}
+
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Online Payments</Text>
                     {dynamicPaymentMethods.filter(m => m.type !== 'cod').map(renderMethod)}
@@ -282,6 +318,23 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 24,
     },
+    walletInfoBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.primary + '12',
+        padding: 14,
+        borderRadius: 14,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: COLORS.primary + '30',
+    },
+    walletInfoBannerText: {
+        flex: 1,
+        fontSize: 13,
+        color: COLORS.textSecondary,
+        lineHeight: 19,
+        marginLeft: 10,
+    },
     sectionTitle: {
         fontSize: 14,
         fontWeight: '700',
@@ -353,17 +406,15 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#E5E7EB',
     },
-    unavailableBadge: {
+    badge: {
         marginTop: 6,
         paddingHorizontal: 8,
-        paddingVertical: 2,
-        backgroundColor: '#FEE2E2',
+        paddingVertical: 3,
         borderRadius: 6,
         alignSelf: 'flex-start',
     },
-    unavailableText: {
-        fontSize: 10,
-        color: '#EF4444',
+    badgeText: {
+        fontSize: 11,
         fontWeight: '700',
     },
     guaranteeContainer: {

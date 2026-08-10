@@ -44,3 +44,13 @@ export const useUserWalletTransactions = (params: FetchWalletTransactionsParams 
         queryFn: () => fetchUserWalletTransactions(params),
     });
 };
+
+export const useUserWallet = () => {
+    return useQuery<{ walletId: string; balance: number; currency: string; isLocked: boolean }, Error>({
+        queryKey: ["user-wallet"],
+        queryFn: async () => {
+            const { data } = await api.get("/user/wallet");
+            return data.data;
+        },
+    });
+};

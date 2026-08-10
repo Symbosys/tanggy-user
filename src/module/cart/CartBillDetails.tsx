@@ -16,6 +16,8 @@ export const CartBillDetails: React.FC = () => {
         tipAmount,
         discountAmount,
         total,
+        walletDeduction,
+        payableTotal,
     } = useCartCalculations();
 
     return (
@@ -87,6 +89,18 @@ export const CartBillDetails: React.FC = () => {
                     </View>
                 )}
 
+                {/* Wallet Applied */}
+                {walletDeduction > 0 && (
+                    <View style={styles.subtotalRow}>
+                        <Text style={[styles.subtotalLabel, { color: COLORS.success, fontWeight: '600' }]}>
+                            Wallet Balance Applied
+                        </Text>
+                        <Text style={[styles.subtotalValue, { color: COLORS.success, fontWeight: '600' }]}>
+                            - ₹{walletDeduction.toFixed(2)}
+                        </Text>
+                    </View>
+                )}
+
                 <View style={styles.dashedBorder} />
 
                 {/* Total */}
@@ -96,7 +110,7 @@ export const CartBillDetails: React.FC = () => {
                         colors={[COLORS.primary, COLORS.accent]}
                         style={styles.gradientTextContainer}
                     >
-                        <Text style={styles.gradientText}>₹{total.toFixed(2)}</Text>
+                        <Text style={styles.gradientText}>₹{payableTotal.toFixed(2)}</Text>
                     </LinearGradient>
                 </View>
             </View>

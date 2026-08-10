@@ -31,7 +31,8 @@ const CartScreen = ({ navigation }: AppNavigation) => {
 
   // Calculations
   const {
-    total
+    total,
+    refetchWallet,
   } = useCartCalculations();
 
   // UI State
@@ -56,13 +57,14 @@ const CartScreen = ({ navigation }: AppNavigation) => {
       await Promise.all([
         fetchCart(),
         refetchPartnerCount(),
+        refetchWallet(),
       ]);
     } catch (error) {
       console.error('Error refreshing cart:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [fetchCart, refetchPartnerCount]);
+  }, [fetchCart, refetchPartnerCount, refetchWallet]);
 
   if (loading) {
     return (
