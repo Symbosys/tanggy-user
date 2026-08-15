@@ -226,6 +226,7 @@ const OrderSlide = ({ item, navigation }: any) => {
 export default function UnifiedFloatingBar({
     hasBottomTab = false,
     onCartPress,
+    
 }: UnifiedFloatingBarProps) {
     const insets = useSafeAreaInsets();
     const navigation = useNavigation<any>();
