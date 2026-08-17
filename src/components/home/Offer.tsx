@@ -28,12 +28,27 @@ const Offer = ({ category, navigation }: OfferProps) => {
     const { data: offers } = useGetAllOffers(true);
     const [activeIndex, setActiveIndex] = useState<number>(0);
 
-    const bannerOffers: BannerOffer[] = offers?.map((offer) => ({
-        id: offer.id,
-        image: offer.image.url,
-        title: offer.title,
-        searchQuery: offer.searchQuery,
-    })) ?? [];
+    const offersList = Array.isArray(offers)
+        ? offers
+        : Array.isArray((offers as any)?.offers)
+        ? (offers as any).offers
+        : [];
+
+    const bannerOffers: BannerOffer[] = offersList
+        .map((offer: any) => {
+            const imgUrl =
+                offer?.bannerImage?.url ||
+                offer?.image?.url ||
+                (typeof offer?.image === 'string' ? offer.image : '') ||
+                '';
+            return {
+                id: String(offer.id || offer.uuid || Math.random()),
+                image: imgUrl,
+                title: offer.title || '',
+                searchQuery: offer.searchQuery || offer.title || '',
+            };
+        })
+        .filter((b: BannerOffer) => !!b.image);
 
     const handleTapOffer = (offer: BannerOffer) => {
         const searchQuery = offer.searchQuery?.trim() || offer.title?.trim() || 'Offers';

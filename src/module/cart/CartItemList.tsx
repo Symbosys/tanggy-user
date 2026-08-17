@@ -26,7 +26,27 @@ export const CartItemList: React.FC = () => {
                             <Text style={styles.itemName} numberOfLines={1}>
                                 {item.product.name}
                             </Text>
-                            <Text style={styles.itemPrice}>₹{getSellingPrice(item).toFixed(2)}</Text>
+                            {item.pricing && item.pricing.discountAmount > 0 ? (
+                                <View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Text style={styles.itemOriginalPrice}>
+                                            ₹{item.pricing.originalPrice.toFixed(2)}
+                                        </Text>
+                                        <Text style={[styles.itemPrice, { color: '#059669', fontWeight: '800' }]}>
+                                            ₹{item.pricing.finalPrice.toFixed(2)}
+                                        </Text>
+                                    </View>
+                                    {item.pricing.appliedOffer?.badgeText ? (
+                                        <View style={styles.itemOfferBadge}>
+                                            <Text style={styles.itemOfferBadgeText}>
+                                                {item.pricing.appliedOffer.badgeText}
+                                            </Text>
+                                        </View>
+                                    ) : null}
+                                </View>
+                            ) : (
+                                <Text style={styles.itemPrice}>₹{getSellingPrice(item).toFixed(2)}</Text>
+                            )}
                         </View>
                     </View>
                     <View style={styles.quantityContainer}>

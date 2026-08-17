@@ -7,6 +7,7 @@ export * from './CartEmptyState';
 export * from './CartItemList';
 export * from './CartTipSection';
 export * from './CartAddressSection';
+export * from './CartApplyOfferSection';
 export * from './CartBillDetails';
 export * from './CartFooter';
 export * from './AddressSelectionModal';

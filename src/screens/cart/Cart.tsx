@@ -5,6 +5,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {
   AddressSelectionModal,
   CartAddressSection,
+  CartApplyOfferSection,
   CartBillDetails,
   CartEmptyState,
   CartFooter,
@@ -105,6 +106,8 @@ const CartScreen = ({ navigation }: AppNavigation) => {
         <CartTipSection />
 
         <CartAddressSection />
+
+        <CartApplyOfferSection />
 
         <CartBillDetails />
 

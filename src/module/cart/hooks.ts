@@ -47,10 +47,20 @@ export const useCartInitialization = () => {
 export const useCartCalculations = () => {
   const {
     cartItems,
+    itemTotal: serverItemTotal,
+    itemDiscountTotal: serverItemDiscountTotal,
+    promoDiscountTotal: serverPromoDiscountTotal,
+    discountTotal: serverDiscountTotal,
+    cashbackTotal: serverCashbackTotal,
+    finalItemTotal: serverFinalItemTotal,
     deliveryFee: serverDeliveryFee,
     platformFee: serverPlatformFee,
+    gstOnPlatform: serverGstOnPlatform,
     packingFee: serverPackingFee,
     surcharge: serverSurcharge,
+    appliedOffers,
+    appliedPromoCode,
+    promoCode,
   } = useCartStore();
   const { selectedTip } = useCartUIStore();
   const { data: walletData, refetch: refetchWallet } = useUserWallet();
@@ -61,47 +71,56 @@ export const useCartCalculations = () => {
     return parseToDecimal(item?.product?.sellingPrice) || 0;
   }, []);
 
-  // 1. Item Total
-  const itemTotal = cartItems.reduce(
-    (acc: number, item: any) => acc + getSellingPrice(item) * item.quantity,
-    0,
-  );
+  const getDiscountedPrice = useCallback((item: CartItem | any): number => {
+    if (item?.pricing?.finalPrice !== undefined) {
+      return parseToDecimal(item.pricing.finalPrice);
+    }
+    return getSellingPrice(item);
+  }, [getSellingPrice]);
 
-  // 2. Delivery Fee (Free)
-  const deliveryFee = 0;
+  // 1. Item Total (Gross before discount)
+  const itemTotal = serverItemTotal > 0
+    ? serverItemTotal
+    : cartItems.reduce((acc: number, item: any) => acc + getSellingPrice(item) * item.quantity, 0);
 
-  // 3. Platform Fee (₹10)
+  // 2. Discounts
+  const itemDiscountAmount = serverItemDiscountTotal || 0;
+  const promoDiscountAmount = serverPromoDiscountTotal || 0;
+  const discountAmount = serverDiscountTotal || (itemDiscountAmount + promoDiscountAmount);
+  const cashbackAmount = serverCashbackTotal || 0;
+  const finalItemTotal = serverFinalItemTotal > 0 ? serverFinalItemTotal : Math.max(0, itemTotal - discountAmount);
+
+  // 3. Delivery Fee (Server-computed, 0 for Elite/Free delivery offers)
+  const deliveryFee = serverDeliveryFee || 0;
+
+  // 4. Platform Fee
   const platformFee = serverPlatformFee || (cartItems.length > 0 ? 10 : 0);
 
-  // 4. GST on Platform Fee (18%)
-  const gstOnPlatform =
-    platformFee > 0 ? parseToDecimal(platformFee * 0.18) : 0;
+  // 5. GST on Platform Fee (18%)
+  const gstOnPlatform = serverGstOnPlatform || (platformFee > 0 ? parseToDecimal(platformFee * 0.18) : 0);
 
-  // 5. Packing Fee (Free)
-  const packingFee = 0;
+  // 6. Packing Fee
+  const packingFee = serverPackingFee || 0;
 
-  // 6. Tip Amount
+  // 7. Tip Amount
   const tipAmount = selectedTip || 0;
 
-  // 7. Surcharge
-  const surcharge = serverSurcharge;
-
-  // 8. Discount
-  const discountAmount = 0;
+  // 8. Surcharge
+  const surcharge = serverSurcharge || 0;
 
   // 9. Subtotal
-  const subtotal = itemTotal;
+  const subtotal = finalItemTotal;
 
   // 10. Grand Total
-  const total =
-    itemTotal +
+  const total = parseToDecimal(
+    finalItemTotal +
     deliveryFee +
     platformFee +
     gstOnPlatform +
     packingFee +
     tipAmount +
-    surcharge -
-    discountAmount;
+    surcharge
+  );
 
   // 11. Primary Wallet Deduction & Payable Total
   const walletDeduction = Math.min(walletBalance, total);
@@ -109,20 +128,28 @@ export const useCartCalculations = () => {
 
   return {
     itemTotal,
+    itemDiscountAmount,
+    promoDiscountAmount,
+    discountAmount,
+    cashbackAmount,
+    finalItemTotal,
     deliveryFee,
     platformFee,
     gstOnPlatform,
     packingFee,
     tipAmount,
     surcharge,
-    discountAmount,
     subtotal,
     total,
     walletBalance,
     walletDeduction,
     payableTotal,
+    appliedOffers,
+    appliedPromoCode,
+    promoCode,
     refetchWallet,
     getSellingPrice,
+    getDiscountedPrice,
   };
 };
 
@@ -299,6 +326,7 @@ export const useCheckoutLogic = () => {
         notes: item.notes || null,
       })),
       tipAmount: tipAmount,
+      promoCode: useCartStore.getState().appliedPromoCode || undefined,
       notes: null,
       source: OrderSource.APP,
     };

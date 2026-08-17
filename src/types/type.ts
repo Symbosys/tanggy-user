@@ -16,6 +16,7 @@ export type RootStackParamList = {
 
   BottomTab: undefined;
   Cart: undefined;
+  ApplyOffers: undefined;
 
   Search: undefined;
   

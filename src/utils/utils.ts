@@ -37,15 +37,17 @@ export function calculateDiscount(
   return Math.round(discount); // round to nearest integer (e.g., 25%)
 }
 
-export const ErrorMessage = (error: AxiosError | Error) => {
-  if (error instanceof AxiosError) {
-        const serverMessage = error.response?.data?.message;
-        ToastAndroid.show(serverMessage || error.message || "An unexpected server error occurred", ToastAndroid.LONG);
-    } else if (error instanceof Error) {
-        ToastAndroid.show(error.message || "Something went wrong", ToastAndroid.LONG);
-    } else {
-        ToastAndroid.show("An unknown error occurred", ToastAndroid.LONG);
-    }
+export const ErrorMessage = (error: string | AxiosError | Error | any) => {
+  if (typeof error === 'string') {
+    ToastAndroid.show(error, ToastAndroid.LONG);
+  } else if (error instanceof AxiosError) {
+    const serverMessage = error.response?.data?.message;
+    ToastAndroid.show(serverMessage || error.message || "An unexpected server error occurred", ToastAndroid.LONG);
+  } else if (error instanceof Error) {
+    ToastAndroid.show(error.message || "Something went wrong", ToastAndroid.LONG);
+  } else {
+    ToastAndroid.show("An unknown error occurred", ToastAndroid.LONG);
+  }
 };
 
 export const SuccessMessage = (message: string) => {
