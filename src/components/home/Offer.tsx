@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
+import { useFocusEffect } from '@react-navigation/native';
 import { AppNavigation } from '../../types/type';
 import { Category } from '../../types/product.type';
 import { useGetAllOffers } from '../../api/hooks/offer.hook';
@@ -19,28 +20,45 @@ interface BannerOffer {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// Card dimensions for a professional rounded look with full-impact height
 const CARD_MARGIN = 16;
 const CARD_WIDTH = SCREEN_WIDTH - (CARD_MARGIN * 2);
 const BANNER_HEIGHT = 350; // Restore large immersive height
 
 const Offer = ({ category, navigation }: OfferProps) => {
-    const { data: offers } = useGetAllOffers(true);
+    const { data: offers, refetch } = useGetAllOffers(true);
     const [activeIndex, setActiveIndex] = useState<number>(0);
+
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
 
     const offersList = Array.isArray(offers)
         ? offers
         : Array.isArray((offers as any)?.offers)
         ? (offers as any).offers
+        : Array.isArray((offers as any)?.data)
+        ? (offers as any).data
         : [];
 
     const bannerOffers: BannerOffer[] = offersList
         .map((offer: any) => {
-            const imgUrl =
-                offer?.bannerImage?.url ||
-                offer?.image?.url ||
-                (typeof offer?.image === 'string' ? offer.image : '') ||
-                '';
+            let imgUrl = '';
+            if (typeof offer?.bannerImage === 'string' && offer.bannerImage) {
+                imgUrl = offer.bannerImage;
+            } else if (offer?.bannerImage?.url) {
+                imgUrl = offer.bannerImage.url;
+            } else if (offer?.bannerImage?.secure_url) {
+                imgUrl = offer.bannerImage.secure_url;
+            } else if (typeof offer?.image === 'string' && offer.image) {
+                imgUrl = offer.image;
+            } else if (offer?.image?.url) {
+                imgUrl = offer.image.url;
+            } else if (offer?.image?.secure_url) {
+                imgUrl = offer.image.secure_url;
+            }
+
             return {
                 id: String(offer.id || offer.uuid || Math.random()),
                 image: imgUrl,
@@ -100,10 +118,11 @@ const Offer = ({ category, navigation }: OfferProps) => {
     return (
         <View style={styles.container}>
             <Carousel
-                loop
+                key={`banner-carousel-${bannerOffers.length}`}
+                loop={bannerOffers.length > 1}
                 width={SCREEN_WIDTH}
                 height={BANNER_HEIGHT + 20}
-                autoPlay={true}
+                autoPlay={bannerOffers.length > 1}
                 data={bannerOffers}
                 scrollAnimationDuration={800}
                 autoPlayInterval={3500}

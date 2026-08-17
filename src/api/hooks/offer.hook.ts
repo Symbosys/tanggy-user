@@ -39,8 +39,8 @@ export const useGetAllOffers = (isActive?: boolean) => {
     queryKey: ["all-offers", isActive],
     queryFn: async () => {
       try {
-        const { data } = await apiClient.get<any>("/offers/sliders");
-        const raw = data?.data;
+        const res = await apiClient.get<any>("/offers/sliders");
+        const raw = res.data?.data ?? res.data;
         if (Array.isArray(raw)) {
           return raw;
         }
@@ -52,7 +52,8 @@ export const useGetAllOffers = (isActive?: boolean) => {
         return [];
       }
     },
-    initialData: [],
+    staleTime: 0,
+    refetchOnMount: true,
   });
 };
 
