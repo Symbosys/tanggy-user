@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import apiClient from "../api";
 
 // ── Types ───────────────────────────────────────────────────
@@ -32,6 +32,29 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+export interface AvailableOffer {
+  id: string;
+  uuid?: string;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  badgeText?: string | null;
+  discountType: string;
+  discountValue: number;
+  type: string;
+  startDate: string;
+  endDate: string;
+  codes?: Array<{ code: string; isActive: boolean }>;
+  metadata?: {
+    minCartValue?: number;
+    minCartItems?: number;
+    applicableDays?: string[];
+    isStackable?: boolean;
+    termsAndConditions?: string | null;
+  } | null;
+  productTargets?: Array<{ productId: string; product?: { name: string } }>;
+}
+
 // ── Hooks ───────────────────────────────────────────────────
 
 export const useGetAllOffers = (isActive?: boolean) => {
@@ -57,33 +80,6 @@ export const useGetAllOffers = (isActive?: boolean) => {
   });
 };
 
-export interface AvailableOffer {
-  id: string;
-  uuid?: string;
-  title: string;
-  subtitle?: string | null;
-  description?: string | null;
-  badgeText?: string | null;
-  discountType: string;
-  discountValue: number;
-  type: string;
-  applicableScope: string;
-  startDate: string;
-  endDate: string;
-  codes?: Array<{ code: string; isActive: boolean }>;
-  metadata?: {
-    minCartValue?: number;
-    maxCartValue?: number;
-    maxDiscount?: number;
-    minCartItems?: number;
-    applicableDays?: string[];
-    termsAndConditions?: string | null;
-  } | null;
-  productTargets?: Array<{ productId: string; product?: { name: string } }>;
-  categoryTargets?: Array<{ categoryId: string; category?: { name: string } }>;
-  subCategoryTargets?: Array<{ subCategoryId: string; subCategory?: { name: string } }>;
-}
-
 export const useGetAvailableOffers = () => {
   return useQuery<AvailableOffer[]>({
     queryKey: ["available-customer-offers"],
@@ -105,4 +101,3 @@ export const useGetAvailableOffers = () => {
     initialData: [],
   });
 };
-

@@ -318,6 +318,7 @@ export const useCheckoutLogic = () => {
     setShowCheckoutPopup(false);
 
     // Build order data (shared for all payment methods)
+    const cartState = useCartStore.getState();
     const orderData = {
       addressId: String(selectedAddressId || hasDefaultAddress?.id),
       items: cartItems.map((item: any) => ({
@@ -326,7 +327,10 @@ export const useCheckoutLogic = () => {
         notes: item.notes || null,
       })),
       tipAmount: tipAmount,
-      promoCode: useCartStore.getState().appliedPromoCode || undefined,
+      promoCode: cartState.appliedPromoCode || undefined,
+      promoCodes: cartState.appliedPromoCodes?.length ? cartState.appliedPromoCodes : undefined,
+      offerId: cartState.selectedOfferId || undefined,
+      offerIds: cartState.selectedOfferIds?.length ? cartState.selectedOfferIds : undefined,
       notes: null,
       source: OrderSource.APP,
     };

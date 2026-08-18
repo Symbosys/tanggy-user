@@ -8,8 +8,6 @@ import { useCartCalculations } from './hooks';
 export const CartBillDetails: React.FC = () => {
     const {
         itemTotal,
-        itemDiscountAmount,
-        promoDiscountAmount,
         discountAmount,
         cashbackAmount,
         deliveryFee,
@@ -20,7 +18,7 @@ export const CartBillDetails: React.FC = () => {
         tipAmount,
         walletDeduction,
         payableTotal,
-        appliedPromoCode,
+        appliedOffers,
     } = useCartCalculations();
 
     return (
@@ -32,29 +30,30 @@ export const CartBillDetails: React.FC = () => {
                     <Text style={styles.subtotalValue}>₹{itemTotal.toFixed(2)}</Text>
                 </View>
 
-                {/* Auto Offer Discount */}
-                {itemDiscountAmount > 0 && (
+                {/* Individual Applied Offers Breakdown */}
+                {appliedOffers && appliedOffers.length > 0 ? (
+                    appliedOffers.map((offer, idx) => (
+                        <View key={offer.id || `bill-offer-${idx}`} style={styles.subtotalRow}>
+                            <Text style={[styles.subtotalLabel, { color: COLORS.success, fontWeight: '600', flex: 1 }]} numberOfLines={1}>
+                                🏷️ {offer.title || (offer.badgeText || 'Offer Discount')}
+                            </Text>
+                            <Text style={[styles.subtotalValue, { color: COLORS.success, fontWeight: '700' }]}>
+                                {offer.discountAmount > 0
+                                    ? `- ₹${offer.discountAmount.toFixed(2)}`
+                                    : `+ ₹${offer.cashbackAmount.toFixed(2)} CB`}
+                            </Text>
+                        </View>
+                    ))
+                ) : discountAmount > 0 ? (
                     <View style={styles.subtotalRow}>
                         <Text style={[styles.subtotalLabel, { color: COLORS.success, fontWeight: '600' }]}>
                             🏷️ Offer Discount
                         </Text>
                         <Text style={[styles.subtotalValue, { color: COLORS.success, fontWeight: '700' }]}>
-                            - ₹{itemDiscountAmount.toFixed(2)}
+                            - ₹{discountAmount.toFixed(2)}
                         </Text>
                     </View>
-                )}
-
-                {/* Promo Code Discount */}
-                {promoDiscountAmount > 0 && (
-                    <View style={styles.subtotalRow}>
-                        <Text style={[styles.subtotalLabel, { color: COLORS.success, fontWeight: '600' }]}>
-                            🎟️ Promo Discount {appliedPromoCode ? `(${appliedPromoCode})` : ''}
-                        </Text>
-                        <Text style={[styles.subtotalValue, { color: COLORS.success, fontWeight: '700' }]}>
-                            - ₹{promoDiscountAmount.toFixed(2)}
-                        </Text>
-                    </View>
-                )}
+                ) : null}
 
                 {/* Delivery Fee */}
                 <View style={[styles.subtotalRow, { alignItems: 'flex-start' }]}>

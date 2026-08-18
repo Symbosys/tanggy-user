@@ -43,7 +43,8 @@ export interface AppliedOfferSummary {
   discountAmount: number;
   cashbackAmount: number;
   isCashback: boolean;
-  appliedScope: string;
+  isStackable?: boolean;
+  appliedScope?: string;
 }
 
 export interface OfferProgress {
@@ -83,16 +84,20 @@ interface CartState {
   // Promo Code & Offers State
   promoCode: string | null;
   selectedOfferId: string | null;
+  selectedOfferIds: string[];
   appliedPromoCode: string | null;
+  appliedPromoCodes: string[];
   appliedOffer: AppliedOfferSummary | null;
   promoError: string | null;
   appliedOffers: AppliedOfferSummary[];
   offerProgress: OfferProgress | null;
 
   // Actions
-  fetchCart: (explicitPromoCode?: string, explicitOfferId?: string) => Promise<void>;
-  applyOfferById: (offerId: string) => Promise<boolean>;
-  applyPromoCode: (code: string) => Promise<boolean>;
+  fetchCart: (explicitPromoCodes?: string | string[], explicitOfferIds?: string | string[]) => Promise<void>;
+  applyOfferById: (offerId: string, isStackable?: boolean) => Promise<boolean>;
+  removeOfferById: (offerId: string) => Promise<void>;
+  applyPromoCode: (code: string, isStackable?: boolean) => Promise<boolean>;
+  removePromoCodeByCode: (code: string) => Promise<void>;
   removeAppliedOffer: () => Promise<void>;
   removePromoCode: () => Promise<void>;
   addToCart: (productId: string, quantity: number, product?: any) => Promise<void>;
@@ -121,26 +126,36 @@ export const useCartStore = create<CartState>((set, get) => ({
   surcharge: 0,
   promoCode: null,
   selectedOfferId: null,
+  selectedOfferIds: [],
   appliedPromoCode: null,
+  appliedPromoCodes: [],
   appliedOffer: null,
   promoError: null,
   appliedOffers: [],
   offerProgress: null,
 
   // Fetch all items from backend with active offers & promo calculation
-  fetchCart: async (explicitPromoCode?: string, explicitOfferId?: string) => {
+  fetchCart: async (explicitPromoCodes?: string | string[], explicitOfferIds?: string | string[]) => {
     set({ loading: true, error: null });
     try {
       const { latitude, longitude } = useLocationStore.getState();
-      const codeToSend = explicitPromoCode !== undefined ? explicitPromoCode : get().promoCode;
-      const offerIdToSend = explicitOfferId !== undefined ? explicitOfferId : get().selectedOfferId;
+      
+      const codesArray = explicitPromoCodes !== undefined
+        ? (Array.isArray(explicitPromoCodes) ? explicitPromoCodes : explicitPromoCodes ? [explicitPromoCodes] : [])
+        : get().appliedPromoCodes;
+
+      const offerIdsArray = explicitOfferIds !== undefined
+        ? (Array.isArray(explicitOfferIds) ? explicitOfferIds : explicitOfferIds ? [explicitOfferIds] : [])
+        : get().selectedOfferIds;
 
       const res = await api.get("/user/cart/all", {
         params: {
           latitude,
           longitude,
-          promoCode: codeToSend || undefined,
-          appliedOfferId: offerIdToSend || undefined,
+          promoCodes: codesArray.length > 0 ? codesArray.join(",") : undefined,
+          promoCode: codesArray.length > 0 ? codesArray[0] : undefined,
+          appliedOfferIds: offerIdsArray.length > 0 ? offerIdsArray.join(",") : undefined,
+          appliedOfferId: offerIdsArray.length > 0 ? offerIdsArray[0] : undefined,
         },
       });
 
@@ -180,7 +195,10 @@ export const useCartStore = create<CartState>((set, get) => ({
         surcharge,
         appliedOffers: appliedOffersList,
         appliedOffer: singleAppliedOffer,
-        appliedPromoCode: data.appliedPromoCode || null,
+        selectedOfferIds: offerIdsArray,
+        selectedOfferId: offerIdsArray[0] || null,
+        appliedPromoCode: data.appliedPromoCode || (codesArray[0] || null),
+        appliedPromoCodes: codesArray,
         promoError: data.promoError || null,
         offerProgress: data.offerProgress || null,
         loading: false,
@@ -191,24 +209,50 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  // Apply an Offer by ID (for non-code or tap-to-apply offers)
-  applyOfferById: async (offerId: string) => {
+  // Apply an Offer by ID (with stacking support & max 2 offers limit)
+  applyOfferById: async (offerId: string, isStackable?: boolean) => {
     if (!offerId) return false;
     set({ loading: true, promoError: null });
 
     try {
-      const res = await api.post("/user/cart/apply-offer", { offerId });
-      if (res.data?.success) {
-        set({ selectedOfferId: offerId, promoCode: null, promoError: null });
-        SuccessMessage(res.data.message || "Offer applied successfully!");
-        await get().fetchCart("", offerId);
-        return true;
+      let nextOfferIds: string[];
+      let nextPromoCodes: string[];
+      const currentOffers = get().appliedOffers;
+
+      if (isStackable === false) {
+        // Non-stackable offer: clear all other offers and promo codes (always allowed as 1 offer)
+        nextOfferIds = [offerId];
+        nextPromoCodes = [];
       } else {
-        const msg = res.data?.message || "Failed to apply offer";
-        set({ promoError: msg, loading: false });
-        ErrorMessage(msg);
-        return false;
+        const isAlreadyApplied = currentOffers.some((o) => String(o.id) === String(offerId) || String(o.uuid) === String(offerId)) || get().selectedOfferIds.includes(offerId);
+        
+        if (!isAlreadyApplied && currentOffers.length >= 2) {
+          const errorMsg = "Maximum 2 offers can be applied per order. Please remove an offer to add a new one.";
+          set({ promoError: errorMsg, loading: false });
+          ErrorMessage(errorMsg);
+          return false;
+        }
+
+        // Stackable offer: remove any currently applied non-stackable offers
+        const nonStackableIds = currentOffers.filter((o) => !o.isStackable).map((o) => o.id);
+        nextOfferIds = get().selectedOfferIds.filter((id) => !nonStackableIds.includes(id));
+        if (!nextOfferIds.includes(offerId)) {
+          nextOfferIds.push(offerId);
+        }
+        nextPromoCodes = get().appliedPromoCodes;
       }
+
+      set({
+        selectedOfferIds: nextOfferIds,
+        selectedOfferId: nextOfferIds[0] || null,
+        appliedPromoCodes: nextPromoCodes,
+        appliedPromoCode: nextPromoCodes[0] || null,
+        promoError: null,
+      });
+
+      SuccessMessage("Offer applied successfully!");
+      await get().fetchCart(nextPromoCodes, nextOfferIds);
+      return true;
     } catch (err: any) {
       set({ promoError: err?.response?.data?.message || "Failed to apply offer", loading: false });
       ErrorMessage(err as AxiosError | Error);
@@ -216,8 +260,26 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  // Apply Promo Code
-  applyPromoCode: async (code: string) => {
+  // Remove a specific applied Offer by ID
+  removeOfferById: async (offerId: string) => {
+    const nextOfferIds = get().selectedOfferIds.filter((id) => String(id) !== String(offerId));
+    const nextPromoCodes = get().appliedPromoCodes.filter((c) => c.toUpperCase() !== String(offerId).toUpperCase());
+    const remainingOffers = get().appliedOffers.filter((o) => String(o.id) !== String(offerId) && String(o.uuid) !== String(offerId));
+
+    set({
+      selectedOfferIds: nextOfferIds,
+      selectedOfferId: nextOfferIds[0] || null,
+      appliedPromoCodes: nextPromoCodes,
+      appliedPromoCode: nextPromoCodes[0] || null,
+      appliedOffers: remainingOffers,
+      appliedOffer: remainingOffers[0] || null,
+    });
+    SuccessMessage("Offer removed");
+    await get().fetchCart(nextPromoCodes, nextOfferIds);
+  },
+
+  // Apply Promo Code (with stacking support & max 2 offers limit)
+  applyPromoCode: async (code: string, isStackable?: boolean) => {
     if (!code || !code.trim()) {
       ErrorMessage("Please enter a valid promo code");
       return false;
@@ -226,18 +288,41 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ loading: true, promoError: null });
 
     try {
-      const res = await api.post("/user/cart/apply-promo", { code: cleanCode });
-      if (res.data?.success) {
-        set({ promoCode: cleanCode, selectedOfferId: null, promoError: null });
-        SuccessMessage(res.data.message || `Promo code ${cleanCode} applied!`);
-        await get().fetchCart(cleanCode, "");
-        return true;
+      let nextPromoCodes: string[];
+      let nextOfferIds: string[];
+      const currentOffers = get().appliedOffers;
+
+      if (isStackable === false) {
+        // Non-stackable: clear all (always allowed as 1 offer)
+        nextPromoCodes = [cleanCode];
+        nextOfferIds = [];
       } else {
-        const msg = res.data?.message || "Invalid promo code";
-        set({ promoError: msg, loading: false });
-        ErrorMessage(msg);
-        return false;
+        const isAlreadyApplied = get().appliedPromoCodes.includes(cleanCode);
+        if (!isAlreadyApplied && currentOffers.length >= 2) {
+          const errorMsg = "Maximum 2 offers can be applied per order. Please remove an offer to add a new one.";
+          set({ promoError: errorMsg, loading: false });
+          ErrorMessage(errorMsg);
+          return false;
+        }
+
+        // Stackable: filter out non-stackables
+        const nonStackableIds = currentOffers.filter((o) => !o.isStackable).map((o) => o.id);
+        nextOfferIds = get().selectedOfferIds.filter((id) => !nonStackableIds.includes(id));
+        nextPromoCodes = [...get().appliedPromoCodes.filter((c) => c !== cleanCode), cleanCode];
       }
+
+      set({
+        promoCode: cleanCode,
+        appliedPromoCodes: nextPromoCodes,
+        appliedPromoCode: nextPromoCodes[0] || null,
+        selectedOfferIds: nextOfferIds,
+        selectedOfferId: nextOfferIds[0] || null,
+        promoError: null,
+      });
+
+      SuccessMessage(`Promo code ${cleanCode} applied!`);
+      await get().fetchCart(nextPromoCodes, nextOfferIds);
+      return true;
     } catch (err: any) {
       set({ promoError: err?.response?.data?.message || "Failed to apply promo code", loading: false });
       ErrorMessage(err as AxiosError | Error);
@@ -245,11 +330,37 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  // Remove Applied Offer or Promo Code
+  // Remove a specific Promo Code
+  removePromoCodeByCode: async (code: string) => {
+    const cleanCode = code.toUpperCase();
+    const nextPromoCodes = get().appliedPromoCodes.filter((c) => c.toUpperCase() !== cleanCode);
+    const remainingOffers = get().appliedOffers.filter((o) => !o.title?.toUpperCase().includes(cleanCode) && !o.badgeText?.toUpperCase().includes(cleanCode));
+
+    set({
+      appliedPromoCodes: nextPromoCodes,
+      appliedPromoCode: nextPromoCodes[0] || null,
+      promoCode: nextPromoCodes[0] || null,
+      appliedOffers: remainingOffers,
+      appliedOffer: remainingOffers[0] || null,
+    });
+    SuccessMessage("Promo code removed");
+    await get().fetchCart(nextPromoCodes, get().selectedOfferIds);
+  },
+
+  // Remove All Applied Offers & Promo Codes
   removeAppliedOffer: async () => {
-    set({ promoCode: null, selectedOfferId: null, appliedPromoCode: null, appliedOffer: null, promoError: null });
-    SuccessMessage("Offer removed");
-    await get().fetchCart("", "");
+    set({
+      promoCode: null,
+      selectedOfferId: null,
+      selectedOfferIds: [],
+      appliedPromoCode: null,
+      appliedPromoCodes: [],
+      appliedOffer: null,
+      appliedOffers: [],
+      promoError: null,
+    });
+    SuccessMessage("All offers removed");
+    await get().fetchCart([], []);
   },
 
   removePromoCode: async () => {

@@ -16,7 +16,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useCartStore } from '../../store/cart';
 import { useGetAvailableOffers, AvailableOffer } from '../../api/hooks/offer.hook';
 import { COLORS } from '../../theme/theme';
-import { parseToDecimal } from '../../utils/utils';
+import { parseToDecimal, ErrorMessage } from '../../utils/utils';
 
 export const ApplyOffersScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -34,51 +34,112 @@ export const ApplyOffersScreen: React.FC = () => {
   const {
     itemTotal,
     subtotal,
+    totalItems,
     selectedOfferId,
+    selectedOfferIds,
     appliedPromoCode,
+    appliedPromoCodes,
+    appliedOffers,
     applyOfferById,
+    removeOfferById,
     applyPromoCode,
+    removePromoCodeByCode,
     removeAppliedOffer,
     loading: cartLoading,
   } = useCartStore();
 
   const [inputCode, setInputCode] = useState('');
-  const [isApplying, setIsApplying] = useState(false);
+  const [isApplyingCode, setIsApplyingCode] = useState(false);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
 
+  const isAnyActionLoading = cartLoading || isApplyingCode || !!applyingId;
   const currentCartValue = parseToDecimal(itemTotal || subtotal || 0);
 
   const handleApplyCode = async () => {
     if (!inputCode.trim()) return;
-    setIsApplying(true);
-    const success = await applyPromoCode(inputCode.trim());
-    setIsApplying(false);
-    if (success) {
-      navigation.goBack();
+    const clean = inputCode.trim().toUpperCase();
+    const matchingOffer = offers.find((o) => o.codes?.some((c) => c.code.toUpperCase() === clean));
+    const isStackable = matchingOffer ? (matchingOffer.metadata?.isStackable ?? false) : true;
+    
+    const appliedCount = appliedOffers?.length || 0;
+    if (isStackable && appliedCount >= 2 && !appliedPromoCodes.includes(clean)) {
+      ErrorMessage("Maximum 2 offers can be applied per order. Please remove an offer to add a new one.");
+      return;
     }
+
+    setIsApplyingCode(true);
+    await applyPromoCode(clean, isStackable);
+    setIsApplyingCode(false);
+    setInputCode('');
   };
 
-  const handleUsePromoCode = (code: string) => {
-    setInputCode(code.toUpperCase());
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-    setTimeout(() => {
-      promoInputRef.current?.focus();
-    }, 250);
+  const handleUsePromoCode = async (offerId: string, code: string, isStackable: boolean) => {
+    const appliedCount = appliedOffers?.length || 0;
+    if (isStackable && appliedCount >= 2 && !appliedPromoCodes.includes(code.toUpperCase())) {
+      ErrorMessage("Maximum 2 offers can be applied per order. Please remove an offer to add a new one.");
+      return;
+    }
+    setApplyingId(offerId);
+    await applyPromoCode(code, isStackable);
+    setApplyingId(null);
   };
 
   const handleApplyOffer = async (offer: AvailableOffer) => {
-    setIsApplying(true);
-    const success = await applyOfferById(offer.id);
-    setIsApplying(false);
-    if (success) {
-      navigation.goBack();
+    const isStackable = offer.metadata?.isStackable ?? false;
+    const appliedCount = appliedOffers?.length || 0;
+    if (isStackable && appliedCount >= 2 && !isOfferCurrentlyApplied(offer)) {
+      ErrorMessage("Maximum 2 offers can be applied per order. Please remove an offer to add a new one.");
+      return;
     }
+    setApplyingId(offer.id);
+    await applyOfferById(offer.id, isStackable);
+    setApplyingId(null);
+  };
+
+  const handleRemoveOffer = async (offer: AvailableOffer) => {
+    setApplyingId(offer.id);
+    const matchingCode = offer.codes?.find((c) =>
+      appliedPromoCodes.some((pc) => pc.toUpperCase() === c.code.toUpperCase())
+    );
+    if (matchingCode) {
+      await removePromoCodeByCode(matchingCode.code);
+    }
+    await removeOfferById(offer.id);
+    setApplyingId(null);
   };
 
   const isOfferCurrentlyApplied = (offer: AvailableOffer) => {
+    if (
+      appliedOffers &&
+      appliedOffers.some(
+        (ao) =>
+          ao.id === offer.id ||
+          ao.uuid === offer.id ||
+          ao.id === offer.uuid ||
+          ao.uuid === offer.uuid
+      )
+    ) {
+      return true;
+    }
+    if (selectedOfferIds && selectedOfferIds.includes(offer.id)) {
+      return true;
+    }
+    if (
+      appliedPromoCodes &&
+      appliedPromoCodes.length > 0 &&
+      offer.codes?.some((c) =>
+        appliedPromoCodes.some((pc) => pc.toUpperCase() === c.code.toUpperCase())
+      )
+    ) {
+      return true;
+    }
     if (selectedOfferId && (selectedOfferId === offer.id || selectedOfferId === offer.uuid)) {
       return true;
     }
-    if (appliedPromoCode && offer.codes?.some((c) => c.code.toUpperCase() === appliedPromoCode.toUpperCase())) {
+    if (
+      appliedPromoCode &&
+      offer.codes?.some((c) => c.code.toUpperCase() === appliedPromoCode.toUpperCase())
+    ) {
       return true;
     }
     return false;
@@ -88,7 +149,7 @@ export const ApplyOffersScreen: React.FC = () => {
     const val = parseToDecimal(offer.discountValue);
     const type = (offer.discountType || '').toUpperCase();
 
-    if (type === 'PERCENTAGE' || type === 'PERCENTAGE_CAPPED') {
+    if (type === 'PERCENTAGE') {
       return `${val}% OFF`;
     }
     if (type === 'FIXED_AMOUNT' || type === 'FLAT' || type === 'FIXED') {
@@ -99,9 +160,6 @@ export const ApplyOffersScreen: React.FC = () => {
     }
     if (type === 'WALLET_CASHBACK_FLAT' || type === 'WALLET_CASHBACK') {
       return `₹${val.toFixed(0)} CASHBACK`;
-    }
-    if (type === 'FREE_DELIVERY') {
-      return 'FREE DELIVERY';
     }
     if (type === 'BUY_X_GET_Y') {
       return 'BUY & GET';
@@ -158,17 +216,18 @@ export const ApplyOffersScreen: React.FC = () => {
               onChangeText={(text) => setInputCode(text.toUpperCase())}
               autoCapitalize="characters"
               autoCorrect={false}
+              editable={!isAnyActionLoading}
             />
             <TouchableOpacity
               style={[
                 styles.applyBtn,
-                (!inputCode.trim() || isApplying) && { opacity: 0.6 },
+                (!inputCode.trim() || isAnyActionLoading) && { opacity: 0.6 },
               ]}
               onPress={handleApplyCode}
-              disabled={!inputCode.trim() || isApplying}
+              disabled={!inputCode.trim() || isAnyActionLoading}
               activeOpacity={0.8}
             >
-              {isApplying ? (
+              {isApplyingCode ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.applyBtnText}>APPLY</Text>
@@ -178,6 +237,15 @@ export const ApplyOffersScreen: React.FC = () => {
         </View>
 
         {/* Available Offers List Section */}
+        {(appliedOffers?.length || 0) >= 2 && (
+          <View style={{ backgroundColor: '#ECFDF5', borderColor: '#A7F3D0', borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <MaterialIcons name="info-outline" size={18} color="#059669" />
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#065F46', flex: 1 }}>
+              Maximum 2 offers applied. To apply a different offer, please remove an applied offer first.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Available Offers</Text>
           <Text style={styles.cartValueBadge}>
@@ -201,10 +269,17 @@ export const ApplyOffersScreen: React.FC = () => {
         ) : (
           offers.map((offer) => {
             const minCartVal = parseToDecimal(offer.metadata?.minCartValue || 0);
-            const isQualified = minCartVal <= 0 || currentCartValue >= minCartVal;
+            const minCartItems = offer.metadata?.minCartItems ?? 1;
+            const isValQualified = minCartVal <= 0 || currentCartValue >= minCartVal;
+            const isItemsQualified = minCartItems <= 1 || totalItems >= minCartItems;
+            const isQualified = isValQualified && isItemsQualified;
             const amountNeeded = Math.max(0, minCartVal - currentCartValue);
+            const itemsNeeded = Math.max(0, minCartItems - totalItems);
             const isApplied = isOfferCurrentlyApplied(offer);
             const promoCodeStr = offer.codes?.find((c) => c.isActive && c.code)?.code;
+            const isStackable = offer.metadata?.isStackable ?? false;
+            const hasProductTargets = (offer.productTargets?.length ?? 0) > 0;
+            const isCardActionLoading = applyingId === offer.id;
 
             return (
               <View
@@ -224,47 +299,70 @@ export const ApplyOffersScreen: React.FC = () => {
                       </Text>
                     </View>
                     {promoCodeStr ? (
-                      <TouchableOpacity
-                        style={styles.codeBadge}
-                        onPress={() => handleUsePromoCode(promoCodeStr)}
-                        activeOpacity={0.7}
-                      >
+                      <View style={styles.codeBadge}>
                         <MaterialIcons name="confirmation-number" size={12} color="#4338CA" />
                         <Text style={styles.codeBadgeText}>{promoCodeStr}</Text>
-                        <MaterialIcons name="content-copy" size={11} color="#4338CA" style={{ marginLeft: 2 }} />
-                      </TouchableOpacity>
+                      </View>
                     ) : null}
+                    {isStackable ? (
+                      <View style={[styles.codeBadge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                        <MaterialIcons name="layers" size={11} color="#059669" />
+                        <Text style={[styles.codeBadgeText, { color: '#059669' }]}>Stackable</Text>
+                      </View>
+                    ) : (
+                      <View style={[styles.codeBadge, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+                        <MaterialIcons name="lock-outline" size={11} color="#D97706" />
+                        <Text style={[styles.codeBadgeText, { color: '#D97706' }]}>Single Offer</Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Apply / Remove / Use Code Button */}
                   {isApplied ? (
                     <TouchableOpacity
                       style={styles.appliedBtn}
-                      onPress={removeAppliedOffer}
-                      disabled={cartLoading || isApplying}
+                      onPress={() => handleRemoveOffer(offer)}
+                      disabled={isAnyActionLoading}
                       activeOpacity={0.8}
                     >
-                      <MaterialIcons name="check" size={14} color="#059669" />
-                      <Text style={styles.appliedBtnText}>APPLIED</Text>
+                      {isCardActionLoading ? (
+                        <ActivityIndicator size="small" color="#059669" style={{ marginHorizontal: 8 }} />
+                      ) : (
+                        <>
+                          <MaterialIcons name="check" size={14} color="#059669" />
+                          <Text style={styles.appliedBtnText}>APPLIED</Text>
+                        </>
+                      )}
                     </TouchableOpacity>
                   ) : isQualified ? (
                     promoCodeStr ? (
                       <TouchableOpacity
                         style={styles.cardUseCodeBtn}
-                        onPress={() => handleUsePromoCode(promoCodeStr)}
+                        onPress={() => handleUsePromoCode(offer.id, promoCodeStr, isStackable)}
                         activeOpacity={0.8}
+                        disabled={isAnyActionLoading}
                       >
-                        <MaterialIcons name="content-copy" size={12} color={COLORS.primary} />
-                        <Text style={styles.cardUseCodeBtnText}>USE CODE</Text>
+                        {isCardActionLoading ? (
+                          <ActivityIndicator size="small" color={COLORS.primary} style={{ marginHorizontal: 12 }} />
+                        ) : (
+                          <>
+                            <MaterialIcons name="content-copy" size={12} color={COLORS.primary} />
+                            <Text style={styles.cardUseCodeBtnText}>USE CODE</Text>
+                          </>
+                        )}
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity
                         style={styles.cardApplyBtn}
                         onPress={() => handleApplyOffer(offer)}
-                        disabled={cartLoading || isApplying}
+                        disabled={isAnyActionLoading}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.cardApplyBtnText}>APPLY</Text>
+                        {isCardActionLoading ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" style={{ marginHorizontal: 10 }} />
+                        ) : (
+                          <Text style={styles.cardApplyBtnText}>APPLY</Text>
+                        )}
                       </TouchableOpacity>
                     )
                   ) : (
@@ -284,11 +382,13 @@ export const ApplyOffersScreen: React.FC = () => {
                 ) : null}
 
                 {/* Qualification Warning if locked */}
-                {!isQualified && amountNeeded > 0 ? (
+                {!isQualified ? (
                   <View style={styles.lockInfoBox}>
                     <MaterialIcons name="info-outline" size={14} color="#B45309" />
                     <Text style={styles.lockInfoText}>
-                      Add ₹{amountNeeded.toFixed(2)} more items to unlock this offer (Min Cart: ₹{minCartVal.toFixed(2)})
+                      {!isValQualified
+                        ? `Add ₹${amountNeeded.toFixed(2)} more to unlock this offer (Min Cart: ₹${minCartVal.toFixed(0)})`
+                        : `Add ${itemsNeeded} more item(s) to unlock this offer (Min Items: ${minCartItems})`}
                     </Text>
                   </View>
                 ) : null}
@@ -299,15 +399,38 @@ export const ApplyOffersScreen: React.FC = () => {
                   {minCartVal > 0 ? (
                     <View style={styles.ruleItem}>
                       <MaterialIcons name="shopping-bag" size={13} color="#6B7280" />
-                      <Text style={styles.ruleText}>Min Order: ₹{minCartVal.toFixed(2)}</Text>
+                      <Text style={styles.ruleText}>Min Order: ₹{minCartVal.toFixed(0)}</Text>
                     </View>
                   ) : null}
-                  {offer.metadata?.maxDiscount ? (
+                  {minCartItems > 1 ? (
                     <View style={styles.ruleItem}>
-                      <MaterialIcons name="trending-down" size={13} color="#6B7280" />
-                      <Text style={styles.ruleText}>Max Discount: ₹{parseToDecimal(offer.metadata.maxDiscount).toFixed(2)}</Text>
+                      <MaterialIcons name="format-list-numbered" size={13} color="#6B7280" />
+                      <Text style={styles.ruleText}>Min Items: {minCartItems}</Text>
                     </View>
                   ) : null}
+                  {hasProductTargets ? (
+                    <View style={styles.ruleItem}>
+                      <MaterialIcons name="check-circle-outline" size={13} color="#6B7280" />
+                      <Text style={styles.ruleText}>Select Products</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.ruleItem}>
+                    {isStackable ? (
+                      <>
+                        <MaterialIcons name="layers" size={13} color="#059669" />
+                        <Text style={[styles.ruleText, { color: '#059669', fontWeight: '700' }]}>
+                          Can combine with other offers
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <MaterialIcons name="lock-outline" size={13} color="#D97706" />
+                        <Text style={[styles.ruleText, { color: '#D97706', fontWeight: '700' }]}>
+                          Cannot combine with other offers
+                        </Text>
+                      </>
+                    )}
+                  </View>
                   <View style={styles.ruleItem}>
                     <MaterialIcons name="event" size={13} color="#6B7280" />
                     <Text style={styles.ruleText}>{formatDaysText(offer.metadata?.applicableDays)}</Text>
