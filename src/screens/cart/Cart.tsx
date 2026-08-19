@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   AddressSelectionModal,
   CartAddressSection,
@@ -29,6 +30,12 @@ const CartScreen = ({ navigation }: AppNavigation) => {
   const { loading, cartItems } = useCartInitialization();
   const { fetchCart } = useCartStore();
   const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCart();
+    }, [fetchCart])
+  );
 
   // Calculations
   const {

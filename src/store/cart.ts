@@ -178,6 +178,18 @@ export const useCartStore = create<CartState>((set, get) => ({
       const appliedOffersList: AppliedOfferSummary[] = data.appliedOffers || [];
       const singleAppliedOffer = data.appliedOffer || (appliedOffersList.length > 0 ? appliedOffersList[0] : null);
 
+      // Keep selectedOfferIds and appliedPromoCodes in sync with server-validated applied offers
+      const serverAppliedIds = new Set(appliedOffersList.map((o) => String(o.id)));
+      const serverAppliedUuids = new Set(appliedOffersList.map((o) => String(o.uuid)));
+      const validatedOfferIds = offerIdsArray.filter(
+        (id) => serverAppliedIds.has(String(id)) || serverAppliedUuids.has(String(id))
+      );
+
+      const serverAppliedCode = data.appliedPromoCode || null;
+      const validatedPromoCodes = serverAppliedCode
+        ? codesArray.filter((c) => c.toUpperCase() === serverAppliedCode.toUpperCase())
+        : [];
+
       set({
         cartItems: data.items || [],
         subtotal,
@@ -195,10 +207,10 @@ export const useCartStore = create<CartState>((set, get) => ({
         surcharge,
         appliedOffers: appliedOffersList,
         appliedOffer: singleAppliedOffer,
-        selectedOfferIds: offerIdsArray,
-        selectedOfferId: offerIdsArray[0] || null,
-        appliedPromoCode: data.appliedPromoCode || (codesArray[0] || null),
-        appliedPromoCodes: codesArray,
+        selectedOfferIds: validatedOfferIds,
+        selectedOfferId: validatedOfferIds[0] || null,
+        appliedPromoCode: serverAppliedCode,
+        appliedPromoCodes: validatedPromoCodes,
         promoError: data.promoError || null,
         offerProgress: data.offerProgress || null,
         loading: false,
@@ -260,11 +272,14 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  // Remove a specific applied Offer by ID
+  // Remove a specific applied Offer by ID or UUID
   removeOfferById: async (offerId: string) => {
-    const nextOfferIds = get().selectedOfferIds.filter((id) => String(id) !== String(offerId));
-    const nextPromoCodes = get().appliedPromoCodes.filter((c) => c.toUpperCase() !== String(offerId).toUpperCase());
-    const remainingOffers = get().appliedOffers.filter((o) => String(o.id) !== String(offerId) && String(o.uuid) !== String(offerId));
+    const target = String(offerId).trim().toUpperCase();
+    const nextOfferIds = get().selectedOfferIds.filter((id) => String(id).toUpperCase() !== target);
+    const nextPromoCodes = get().appliedPromoCodes.filter((c) => c.toUpperCase() !== target);
+    const remainingOffers = get().appliedOffers.filter(
+      (o) => String(o.id).toUpperCase() !== target && (!o.uuid || String(o.uuid).toUpperCase() !== target)
+    );
 
     set({
       selectedOfferIds: nextOfferIds,
@@ -306,8 +321,11 @@ export const useCartStore = create<CartState>((set, get) => ({
         }
 
         // Stackable: filter out non-stackables
-        const nonStackableIds = currentOffers.filter((o) => !o.isStackable).map((o) => o.id);
-        nextOfferIds = get().selectedOfferIds.filter((id) => !nonStackableIds.includes(id));
+        const nonStackableIds = currentOffers.filter((o) => !o.isStackable).map((o) => String(o.id));
+        const nonStackableUuids = currentOffers.filter((o) => !o.isStackable).map((o) => String(o.uuid));
+        nextOfferIds = get().selectedOfferIds.filter(
+          (id) => !nonStackableIds.includes(String(id)) && !nonStackableUuids.includes(String(id))
+        );
         nextPromoCodes = [...get().appliedPromoCodes.filter((c) => c !== cleanCode), cleanCode];
       }
 
@@ -332,19 +350,26 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   // Remove a specific Promo Code
   removePromoCodeByCode: async (code: string) => {
-    const cleanCode = code.toUpperCase();
+    const cleanCode = code.trim().toUpperCase();
     const nextPromoCodes = get().appliedPromoCodes.filter((c) => c.toUpperCase() !== cleanCode);
-    const remainingOffers = get().appliedOffers.filter((o) => !o.title?.toUpperCase().includes(cleanCode) && !o.badgeText?.toUpperCase().includes(cleanCode));
+    const nextOfferIds = get().selectedOfferIds.filter((id) => String(id).toUpperCase() !== cleanCode);
+    const remainingOffers = get().appliedOffers.filter(
+      (o) =>
+        !o.title?.toUpperCase().includes(cleanCode) &&
+        !o.badgeText?.toUpperCase().includes(cleanCode)
+    );
 
     set({
       appliedPromoCodes: nextPromoCodes,
       appliedPromoCode: nextPromoCodes[0] || null,
       promoCode: nextPromoCodes[0] || null,
+      selectedOfferIds: nextOfferIds,
+      selectedOfferId: nextOfferIds[0] || null,
       appliedOffers: remainingOffers,
       appliedOffer: remainingOffers[0] || null,
     });
     SuccessMessage("Promo code removed");
-    await get().fetchCart(nextPromoCodes, get().selectedOfferIds);
+    await get().fetchCart(nextPromoCodes, nextOfferIds);
   },
 
   // Remove All Applied Offers & Promo Codes
@@ -427,9 +452,14 @@ export const useCartStore = create<CartState>((set, get) => ({
         packingFee: 0,
         surcharge: 0,
         promoCode: null,
+        selectedOfferId: null,
+        selectedOfferIds: [],
         appliedPromoCode: null,
-        promoError: null,
+        appliedPromoCodes: [],
+        appliedOffer: null,
         appliedOffers: [],
+        promoError: null,
+        offerProgress: null,
         loading: false,
       });
     } catch (err: any) {

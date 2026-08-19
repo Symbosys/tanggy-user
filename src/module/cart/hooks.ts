@@ -343,6 +343,7 @@ export const useCheckoutLogic = () => {
         {
           onSuccess: res => {
             if (res.success) {
+              useCartStore.getState().clearCart();
               navigation.navigate('OrderPlaced', {
                 orderId: String(res.data.id),
                 orderNumber: res.data.orderNumber,
@@ -359,6 +360,7 @@ export const useCheckoutLogic = () => {
         {
           onSuccess: res => {
             if (res.success) {
+              useCartStore.getState().clearCart();
               navigation.navigate('OrderPlaced', {
                 orderId: String(res.data.id),
                 orderNumber: res.data.orderNumber,
@@ -425,6 +427,7 @@ export const useCheckoutLogic = () => {
           const verifyData = verifyRes.data;
 
           if (verifyData.success && verifyData.data?.success) {
+            useCartStore.getState().clearCart();
             navigation.navigate('OrderPlaced', {
               orderId: String(order?.id),
               orderNumber: order?.orderNumber,

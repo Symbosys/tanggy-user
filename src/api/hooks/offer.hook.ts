@@ -32,6 +32,20 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+export interface UserPeriodProgress {
+  id?: string;
+  currentCycleNumber: number;
+  status: "IN_PROGRESS" | "UNLOCKED" | "REDEEMED" | "EXPIRED";
+  cycleStartDate: string;
+  cycleEndDate: string;
+  completedOrderCount: number;
+  targetOrderCount: number;
+  unlockedAt?: string | null;
+  redeemedAt?: string | null;
+  remainingDays?: number;
+  progressPercentage?: number;
+}
+
 export interface AvailableOffer {
   id: string;
   uuid?: string;
@@ -44,6 +58,13 @@ export interface AvailableOffer {
   type: string;
   startDate: string;
   endDate: string;
+  isPeriodOffer?: boolean;
+  periodRule?: {
+    periodDurationType: string;
+    periodDurationValue: number;
+    targetOrderCount: number;
+  } | null;
+  userPeriodProgress?: UserPeriodProgress | null;
   codes?: Array<{ code: string; isActive: boolean }>;
   metadata?: {
     minCartValue?: number;

@@ -28,6 +28,7 @@ export const ApplyOffersScreen: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       refetch();
+      useCartStore.getState().fetchCart();
     }, [refetch])
   );
 
@@ -103,45 +104,46 @@ export const ApplyOffersScreen: React.FC = () => {
     );
     if (matchingCode) {
       await removePromoCodeByCode(matchingCode.code);
+    } else {
+      await removeOfferById(offer.id);
     }
-    await removeOfferById(offer.id);
     setApplyingId(null);
   };
 
   const isOfferCurrentlyApplied = (offer: AvailableOffer) => {
+    // A period offer can ONLY be applied if it is UNLOCKED in the user's active cycle
+    if (offer.isPeriodOffer && offer.userPeriodProgress?.status !== 'UNLOCKED') {
+      return false;
+    }
+
+    const offerIdStr = String(offer.id);
+    const offerUuidStr = offer.uuid ? String(offer.uuid) : null;
+    const promoCodeUpperList = offer.codes?.map((c) => c.code.toUpperCase()) || [];
+
+    // Strictly check if this offer is in the validated appliedOffers list
     if (
       appliedOffers &&
       appliedOffers.some(
         (ao) =>
-          ao.id === offer.id ||
-          ao.uuid === offer.id ||
-          ao.id === offer.uuid ||
-          ao.uuid === offer.uuid
+          String(ao.id) === offerIdStr ||
+          (offerUuidStr && String(ao.id) === offerUuidStr) ||
+          String(ao.uuid) === offerIdStr ||
+          (offerUuidStr && String(ao.uuid) === offerUuidStr) ||
+          (ao.title && offer.title && ao.title.trim().toUpperCase() === offer.title.trim().toUpperCase())
       )
     ) {
       return true;
     }
-    if (selectedOfferIds && selectedOfferIds.includes(offer.id)) {
-      return true;
-    }
+
+    // Or if any of its promo codes is in the validated appliedPromoCodes list
     if (
       appliedPromoCodes &&
       appliedPromoCodes.length > 0 &&
-      offer.codes?.some((c) =>
-        appliedPromoCodes.some((pc) => pc.toUpperCase() === c.code.toUpperCase())
-      )
+      promoCodeUpperList.some((c) => appliedPromoCodes.includes(c))
     ) {
       return true;
     }
-    if (selectedOfferId && (selectedOfferId === offer.id || selectedOfferId === offer.uuid)) {
-      return true;
-    }
-    if (
-      appliedPromoCode &&
-      offer.codes?.some((c) => c.code.toUpperCase() === appliedPromoCode.toUpperCase())
-    ) {
-      return true;
-    }
+
     return false;
   };
 
@@ -149,6 +151,9 @@ export const ApplyOffersScreen: React.FC = () => {
     const val = parseToDecimal(offer.discountValue);
     const type = (offer.discountType || '').toUpperCase();
 
+    if (offer.isPeriodOffer && type === 'PERCENTAGE' && val === 100) {
+      return '100% FREE ORDER';
+    }
     if (type === 'PERCENTAGE') {
       return `${val}% OFF`;
     }
@@ -268,13 +273,28 @@ export const ApplyOffersScreen: React.FC = () => {
           </View>
         ) : (
           offers.map((offer) => {
+            const isPeriodOffer = offer.isPeriodOffer ?? false;
+            const progress = offer.userPeriodProgress;
+            const periodRule = offer.periodRule;
             const minCartVal = parseToDecimal(offer.metadata?.minCartValue || 0);
             const minCartItems = offer.metadata?.minCartItems ?? 1;
-            const isValQualified = minCartVal <= 0 || currentCartValue >= minCartVal;
-            const isItemsQualified = minCartItems <= 1 || totalItems >= minCartItems;
-            const isQualified = isValQualified && isItemsQualified;
-            const amountNeeded = Math.max(0, minCartVal - currentCartValue);
-            const itemsNeeded = Math.max(0, minCartItems - totalItems);
+
+            let isQualified = false;
+            let isValQualified = true;
+            let isItemsQualified = true;
+            let amountNeeded = 0;
+            let itemsNeeded = 0;
+
+            if (isPeriodOffer) {
+              isQualified = progress?.status === 'UNLOCKED';
+            } else {
+              isValQualified = minCartVal <= 0 || currentCartValue >= minCartVal;
+              isItemsQualified = minCartItems <= 1 || totalItems >= minCartItems;
+              isQualified = isValQualified && isItemsQualified;
+              amountNeeded = Math.max(0, minCartVal - currentCartValue);
+              itemsNeeded = Math.max(0, minCartItems - totalItems);
+            }
+
             const isApplied = isOfferCurrentlyApplied(offer);
             const promoCodeStr = offer.codes?.find((c) => c.isActive && c.code)?.code;
             const isStackable = offer.metadata?.isStackable ?? false;
@@ -287,7 +307,8 @@ export const ApplyOffersScreen: React.FC = () => {
                 style={[
                   styles.offerCard,
                   isApplied && styles.offerCardApplied,
-                  !isQualified && styles.offerCardLocked,
+                  isPeriodOffer && styles.offerCardPeriod,
+                  !isQualified && !isApplied && styles.offerCardLocked,
                 ]}
               >
                 {/* Top Badge Row */}
@@ -298,7 +319,12 @@ export const ApplyOffersScreen: React.FC = () => {
                         {formatBenefitText(offer)}
                       </Text>
                     </View>
-                    {promoCodeStr ? (
+                    {isPeriodOffer ? (
+                      <View style={[styles.codeBadge, { backgroundColor: '#F3E8FF', borderColor: '#D8B4FE' }]}>
+                        <MaterialIcons name="auto-awesome" size={11} color="#7E22CE" />
+                        <Text style={[styles.codeBadgeText, { color: '#7E22CE' }]}>Period Milestone</Text>
+                      </View>
+                    ) : promoCodeStr ? (
                       <View style={styles.codeBadge}>
                         <MaterialIcons name="confirmation-number" size={12} color="#4338CA" />
                         <Text style={styles.codeBadgeText}>{promoCodeStr}</Text>
@@ -368,7 +394,9 @@ export const ApplyOffersScreen: React.FC = () => {
                   ) : (
                     <View style={styles.lockedBtn}>
                       <MaterialIcons name="lock" size={14} color="#9CA3AF" />
-                      <Text style={styles.lockedBtnText}>LOCKED</Text>
+                      <Text style={styles.lockedBtnText}>
+                        {isPeriodOffer && progress?.status === 'REDEEMED' ? 'REDEEMED' : 'LOCKED'}
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -381,8 +409,70 @@ export const ApplyOffersScreen: React.FC = () => {
                   </Text>
                 ) : null}
 
-                {/* Qualification Warning if locked */}
-                {!isQualified ? (
+                {/* 🔄 Dedicated Period Offer Milestone Progress Card */}
+                {isPeriodOffer && progress && (
+                  <View style={styles.periodProgressBox}>
+                    <View style={styles.periodProgressHeader}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                        <MaterialIcons
+                          name={progress.status === 'UNLOCKED' ? 'stars' : progress.status === 'REDEEMED' ? 'check-circle' : 'trending-up'}
+                          size={16}
+                          color={progress.status === 'UNLOCKED' ? '#059669' : progress.status === 'REDEEMED' ? '#4F46E5' : '#7E22CE'}
+                        />
+                        <Text style={styles.periodProgressTitle} numberOfLines={1}>
+                          {progress.status === 'UNLOCKED'
+                            ? '🎉 Milestone Completed!'
+                            : progress.status === 'REDEEMED'
+                            ? '✅ Reward Claimed for Current Cycle'
+                            : `Milestone: ${progress.completedOrderCount} of ${progress.targetOrderCount} Delivered Orders`}
+                        </Text>
+                      </View>
+                      <Text style={styles.periodCycleTag}>Cycle #{progress.currentCycleNumber}</Text>
+                    </View>
+
+                    {/* Progress Bar */}
+                    <View style={styles.progressBarTrack}>
+                      <View
+                        style={[
+                          styles.progressBarFill,
+                          {
+                            width: `${Math.min(100, Math.max(0, progress.progressPercentage ?? (progress.completedOrderCount / progress.targetOrderCount) * 100))}%`,
+                            backgroundColor: progress.status === 'UNLOCKED' ? '#10B981' : '#8B5CF6',
+                          },
+                        ]}
+                      />
+                    </View>
+
+                    {/* Status Explainer */}
+                    <View style={styles.periodStatusRow}>
+                      {progress.status === 'IN_PROGRESS' && (
+                        <>
+                          <Text style={styles.periodStatusText}>
+                            🚚 Complete {Math.max(0, progress.targetOrderCount - progress.completedOrderCount)} more delivered order(s) to unlock this reward!
+                          </Text>
+                          {progress.remainingDays !== undefined && (
+                            <Text style={styles.periodDaysLeftText}>
+                              ⏳ {progress.remainingDays} {progress.remainingDays === 1 ? 'day' : 'days'} left
+                            </Text>
+                          )}
+                        </>
+                      )}
+                      {progress.status === 'UNLOCKED' && (
+                        <Text style={[styles.periodStatusText, { color: '#059669', fontWeight: '700' }]}>
+                          ✨ Unlocked! Tap APPLY to receive this benefit on your current order.
+                        </Text>
+                      )}
+                      {progress.status === 'REDEEMED' && (
+                        <Text style={styles.periodStatusText}>
+                          You have used this reward. A fresh cycle begins automatically on your next delivered order.
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                {/* Qualification Warning if standard offer locked */}
+                {!isPeriodOffer && !isQualified ? (
                   <View style={styles.lockInfoBox}>
                     <MaterialIcons name="info-outline" size={14} color="#B45309" />
                     <Text style={styles.lockInfoText}>
@@ -396,18 +486,36 @@ export const ApplyOffersScreen: React.FC = () => {
                 {/* Offer Rules & Terms Breakdown */}
                 <View style={styles.termsDivider} />
                 <View style={styles.rulesContainer}>
-                  {minCartVal > 0 ? (
-                    <View style={styles.ruleItem}>
-                      <MaterialIcons name="shopping-bag" size={13} color="#6B7280" />
-                      <Text style={styles.ruleText}>Min Order: ₹{minCartVal.toFixed(0)}</Text>
-                    </View>
-                  ) : null}
-                  {minCartItems > 1 ? (
-                    <View style={styles.ruleItem}>
-                      <MaterialIcons name="format-list-numbered" size={13} color="#6B7280" />
-                      <Text style={styles.ruleText}>Min Items: {minCartItems}</Text>
-                    </View>
-                  ) : null}
+                  {isPeriodOffer ? (
+                    <>
+                      <View style={styles.ruleItem}>
+                        <MaterialIcons name="track-changes" size={13} color="#7E22CE" />
+                        <Text style={[styles.ruleText, { color: '#6B21A8', fontWeight: '700' }]}>
+                          Target: {periodRule?.targetOrderCount || progress?.targetOrderCount || 5} Orders in {periodRule?.periodDurationValue || 1} {periodRule?.periodDurationType === 'DAYS' ? 'Days' : 'Month(s)'}
+                        </Text>
+                      </View>
+                      <View style={styles.ruleItem}>
+                        <MaterialIcons name="autorenew" size={13} color="#6B7280" />
+                        <Text style={styles.ruleText}>Recurring Lifetime Cycles</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      {minCartVal > 0 ? (
+                        <View style={styles.ruleItem}>
+                          <MaterialIcons name="shopping-bag" size={13} color="#6B7280" />
+                          <Text style={styles.ruleText}>Min Order: ₹{minCartVal.toFixed(0)}</Text>
+                        </View>
+                      ) : null}
+                      {minCartItems > 1 ? (
+                        <View style={styles.ruleItem}>
+                          <MaterialIcons name="format-list-numbered" size={13} color="#6B7280" />
+                          <Text style={styles.ruleText}>Min Items: {minCartItems}</Text>
+                        </View>
+                      ) : null}
+                    </>
+                  )}
+
                   {hasProductTargets ? (
                     <View style={styles.ruleItem}>
                       <MaterialIcons name="check-circle-outline" size={13} color="#6B7280" />
@@ -431,18 +539,22 @@ export const ApplyOffersScreen: React.FC = () => {
                       </>
                     )}
                   </View>
-                  <View style={styles.ruleItem}>
-                    <MaterialIcons name="event" size={13} color="#6B7280" />
-                    <Text style={styles.ruleText}>{formatDaysText(offer.metadata?.applicableDays)}</Text>
-                  </View>
-                  {offer.endDate ? (
-                    <View style={styles.ruleItem}>
-                      <MaterialIcons name="schedule" size={13} color="#6B7280" />
-                      <Text style={styles.ruleText}>
-                        Expires: {new Date(offer.endDate).toLocaleDateString()}
-                      </Text>
-                    </View>
-                  ) : null}
+                  {!isPeriodOffer && (
+                    <>
+                      <View style={styles.ruleItem}>
+                        <MaterialIcons name="event" size={13} color="#6B7280" />
+                        <Text style={styles.ruleText}>{formatDaysText(offer.metadata?.applicableDays)}</Text>
+                      </View>
+                      {offer.endDate ? (
+                        <View style={styles.ruleItem}>
+                          <MaterialIcons name="schedule" size={13} color="#6B7280" />
+                          <Text style={styles.ruleText}>
+                            Expires: {new Date(offer.endDate).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </>
+                  )}
                 </View>
               </View>
             );
@@ -737,6 +849,70 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#F3F4F6',
     marginVertical: 8,
+  },
+  offerCardPeriod: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#8B5CF6',
+  },
+  periodProgressBox: {
+    backgroundColor: '#FAF5FF',
+    borderColor: '#E9D5FF',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginVertical: 8,
+  },
+  periodProgressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  periodProgressTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#6B21A8',
+    flex: 1,
+  },
+  periodCycleTag: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#7E22CE',
+    backgroundColor: '#F3E8FF',
+    borderColor: '#D8B4FE',
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: '#E9D5FF',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  periodStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  periodStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#7E22CE',
+    flex: 1,
+  },
+  periodDaysLeftText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9333EA',
   },
   rulesContainer: {
     flexDirection: 'row',
