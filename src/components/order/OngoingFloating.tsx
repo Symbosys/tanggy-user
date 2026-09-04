@@ -23,7 +23,7 @@ const BOTTOM_TAB_HEIGHT = Platform.OS === 'ios' ? 85 : 70;
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
     [OrderStatus.PLACED]: { color: '#818CF8', label: 'Order Placed' },
-    [OrderStatus.VENDOR_PENDING]: { color: '#FBBF24', label: 'Finding Store' },
+    [OrderStatus.VENDOR_PENDING]: { color: '#FBBF24', label: 'Finding Minta Store' },
     [OrderStatus.VENDOR_ACCEPTED]: { color: '#34D399', label: 'Store Confirmed' },
     [OrderStatus.PREPARING]: { color: '#A78BFA', label: 'Store Preparing' },
     [OrderStatus.READY_FOR_PICKUP]: { color: '#22D3EE', label: 'Ready for Pickup' },
