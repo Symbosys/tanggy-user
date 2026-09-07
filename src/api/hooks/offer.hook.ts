@@ -119,6 +119,7 @@ export const useGetAvailableOffers = () => {
         return [];
       }
     },
-    initialData: [],
+    staleTime: 0,
+    refetchOnMount: true,
   });
 };

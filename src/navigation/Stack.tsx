@@ -8,6 +8,7 @@ import Login from '../screens/auth/Login';
 import Otp from '../screens/auth/Otp';
 import CartScreen from '../screens/cart/Cart';
 import ApplyOffersScreen from '../screens/offers/ApplyOffers';
+import OfferDetailsScreen from '../screens/offers/OfferDetailsScreen';
 import EliteMembershipScreen from '../screens/elite-membership/EliteMember';
 import AboutUs from '../screens/legal/About';
 import Docs from '../screens/legal/Docs';
@@ -64,6 +65,7 @@ export default function StackNavigation() {
         <Stack.Screen name='ProductDetails' component={ProductDetailsScreen} />
         <Stack.Screen name='Cart' component={CartScreen} />
         <Stack.Screen name='ApplyOffers' component={ApplyOffersScreen} />
+        <Stack.Screen name='OfferDetails' component={OfferDetailsScreen} />
 
         <Stack.Screen name='CategoryResults' component={CategoryResults} />
 

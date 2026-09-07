@@ -17,6 +17,7 @@ interface BannerOffer {
     image: string;
     title?: string | null;
     searchQuery?: string | null;
+    rawOffer?: any;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -64,15 +65,15 @@ const Offer = ({ category, navigation }: OfferProps) => {
                 image: imgUrl,
                 title: offer.title || '',
                 searchQuery: offer.searchQuery || offer.title || '',
+                rawOffer: offer,
             };
         })
         .filter((b: BannerOffer) => !!b.image);
 
     const handleTapOffer = (offer: BannerOffer) => {
-        const searchQuery = offer.searchQuery?.trim() || offer.title?.trim() || 'Offers';
-        navigation.navigate('CategoryResults', {
-            categoryName: offer.title || 'Offers',
-            search: searchQuery,
+        navigation.navigate('OfferDetails', {
+            offerId: offer.id,
+            offer: offer.rawOffer,
         });
     };
 
