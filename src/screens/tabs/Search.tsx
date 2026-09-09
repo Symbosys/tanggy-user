@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   FlatList,
   Image,
   Keyboard,
@@ -16,6 +17,7 @@ import {
   ScrollView,
   TouchableWithoutFeedback
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -34,6 +36,7 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   
   const inputRef = useRef<TextInput>(null);
+  const isNavigatingToDetails = useRef(false);
   const { latitude, longitude } = useLocationStore();
 
   const TRENDING = [
@@ -42,11 +45,38 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
     { id: '3', name: 'Mutton', icon: 'outdoor-grill' },
   ];
 
+  // Auto focus input on focus; reset search state when navigating away from search
+  useFocusEffect(
+    useCallback(() => {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 400);
+
+      return () => {
+        clearTimeout(timer);
+        if (!isNavigatingToDetails.current) {
+          setSearchText('');
+          setDebouncedSearch('');
+        }
+        isNavigatingToDetails.current = false;
+      };
+    }, [])
+  );
+
+  // Hardware back press listener to reset state
   useEffect(() => {
-    const timer = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 500);
-    return () => clearTimeout(timer);
+    const onBackPress = () => {
+      setSearchText('');
+      setDebouncedSearch('');
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onBackPress
+    );
+
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
@@ -107,6 +137,12 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
     return String(value) || 'Unknown';
   };
 
+  const handleBack = () => {
+    setSearchText('');
+    setDebouncedSearch('');
+    navigation.goBack();
+  };
+
   const clearSearch = () => {
     setSearchText('');
     setDebouncedSearch('');
@@ -114,6 +150,7 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
   };
 
   const handleProductPress = (product: Product) => {
+    isNavigatingToDetails.current = true;
     navigation.navigate('ProductDetails', { product });
   };
 
@@ -187,7 +224,7 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
             <View style={styles.navRow}>
               <TouchableOpacity 
                 style={styles.circleBack} 
-                onPress={() => navigation.goBack()}
+                onPress={handleBack}
               >
                 <Icon name="chevron-left" size={28} color="white" />
               </TouchableOpacity>
