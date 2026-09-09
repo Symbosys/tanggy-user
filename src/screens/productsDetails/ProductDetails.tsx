@@ -139,18 +139,6 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                     )}
                 />
 
-                {/* Top Navigation Bar */}
-                <SafeAreaView style={styles.topBarSafe}>
-                    <View style={styles.topBar}>
-                        <TouchableOpacity
-                            style={styles.iconButton}
-                            onPress={() => navigation.goBack()}
-                        >
-                            <Icon name="arrow-back" size={24} color="white" />
-                        </TouchableOpacity>
-                    </View>
-                </SafeAreaView>
-
                 {initialProduct.isActive && initialProduct.isAvailable && (
                     <View style={[styles.badgeContainer, { top: insets.top + 60 }]}>
                         <View style={styles.bestsellerBadge}>
@@ -323,6 +311,26 @@ const ProductDetailsScreen: React.FC<ProductDetailsScreenProps> = ({ route, navi
                     )}
                 </View>
             )}
+
+            {/* Top Navigation Bar */}
+            <SafeAreaView style={styles.topBarSafe} pointerEvents="box-none">
+                <View style={styles.topBar} pointerEvents="box-none">
+                    <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => {
+                            if (navigation?.canGoBack?.()) {
+                                navigation.goBack();
+                            } else {
+                                navigation.navigate('BottomTab');
+                            }
+                        }}
+                        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                        activeOpacity={0.7}
+                    >
+                        <Icon name="arrow-back" size={24} color="white" />
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
         </View>
     );
 };
@@ -354,6 +362,8 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
+        zIndex: 999,
+        elevation: 999,
     },
     topBar: {
         flexDirection: 'row',

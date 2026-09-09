@@ -86,7 +86,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <View style={styles.productInfo}>
                 <Text style={styles.productName}>{product.name}</Text>
                 <Text style={styles.productWeight}>
-                    {product.weight}g | {product.pieces}{' '}
+                    {product.weight} | {product.pieces}{' '}
                     {Number(product.pieces) === 1 ? 'piece' : 'pieces'}
                 </Text>
                 <View style={styles.productFooter}>
