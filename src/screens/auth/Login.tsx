@@ -91,6 +91,7 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
   };
 
   const handleLogin = async () => {
+    Keyboard.dismiss();
     setLoading(true);
     try {
       if (isValidMobile) {
@@ -166,7 +167,7 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
             </TouchableWithoutFeedback>
 
             <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
               style={{ flex: 1 }}
             >
               <Animated.View

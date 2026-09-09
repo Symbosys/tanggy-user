@@ -6,6 +6,7 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,6 +17,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import api from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import { RootStackParamList } from '../../types/type';
@@ -34,7 +36,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
   route,
 }) => {
   const [otp, setOtp] = useState<string[]>(['', '', '', '']);
-  const [timer, setTimer] = useState<number>(60);
+  const [timer, setTimer] = useState<number>(48);
   const [loading, _setLoading] = useState<boolean>(false);
   const [verifyLoading, setVerifyLoading] = useState<boolean>(false);
   const inputRefs = useRef<Array<TextInput | null>>([]);
@@ -85,7 +87,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
   };
 
   const handleResendSMS = async () => {
-    setTimer(60);
+    setTimer(48);
     setOtp(['', '', '', '']);
     try {
       const res = await api.post('/auth/user/request-otp', { mobile: phoneNumber });
@@ -149,6 +151,13 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
 
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Icon name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>Minta Fresh</Text>
         </View>
@@ -157,7 +166,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
 
       {/* Content */}
       <KeyboardAvoidingView
-        behavior="padding"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -169,7 +178,18 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
           <View style={styles.content}>
             <View style={styles.otpTopContainer}>
               <Text style={styles.otpSubtitle}>We've sent a verification code to</Text>
-              <Text style={styles.otpPhoneText}>{phoneNumber}</Text>
+              <View style={styles.phoneRow}>
+                <Text style={styles.otpPhoneText}>
+                  {phoneNumber.startsWith('+91') ? phoneNumber : `+91 ${phoneNumber}`}
+                </Text>
+                <TouchableOpacity
+                  style={styles.changeNumberBtn}
+                  onPress={() => navigation.goBack()}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.changeNumberText}>Change</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* OTP Input Boxes */}
@@ -192,7 +212,9 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
               ))}
             </View>
 
-            <Text style={styles.resendText}>Resend OTP in {timer}</Text>
+            <Text style={styles.resendText}>
+              {timer > 0 ? `Resend OTP in ${timer}s` : 'You can resend OTP now'}
+            </Text>
 
             {/* Verify Button */}
             <TouchableOpacity
@@ -247,6 +269,14 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 30,
     alignItems: 'center',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20,
+    top: 52,
+    zIndex: 10,
+    padding: 6,
   },
   logoContainer: {
     alignItems: 'center',
@@ -298,6 +328,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#111827',
     fontWeight: '600',
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  changeNumberBtn: {
+    marginLeft: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#8719C6',
+  },
+  changeNumberText: {
+    fontSize: 12,
+    color: '#8719C6',
+    fontWeight: '700',
   },
   otpContainer: {
     flexDirection: 'row',
