@@ -25,6 +25,7 @@ export type RootStackParamList = {
   Category: undefined;
   Profile: undefined;
   Discount: undefined;
+  Accounts: undefined;
 
   AddAddress: undefined;
   EditAddress: { id: number };

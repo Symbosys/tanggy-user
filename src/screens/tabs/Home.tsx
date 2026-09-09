@@ -222,7 +222,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
 
               <TouchableOpacity
                 style={styles.notificationButton}
-                onPress={() => { navigation.navigate('Profile') }}
+                onPress={() => { navigation.navigate('Accounts') }}
                 activeOpacity={0.7}
               >
                 <Icon name="person" size={35} color={COLORS.textPrimary} />

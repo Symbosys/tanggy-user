@@ -28,7 +28,8 @@ import { COLORS } from '../../theme/theme';
 import { AppNavigation, RootStackParamList } from '../../types/type';
 import { useAddressStore } from '../../store/address';
 import { AxiosError } from 'axios';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useRoute, useNavigation, NavigationProp } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const { height, width } = Dimensions.get('window');
 
@@ -61,10 +62,20 @@ const initialRegion: Region = {
     longitudeDelta: 0.0020,
 };
 
-function EditAddress({ navigation }: AppNavigation) {
+function EditAddress({ navigation: propNavigation }: AppNavigation) {
+    const nav = useNavigation<NavigationProp<RootStackParamList>>();
+    const navigation = propNavigation || nav;
     const route = useRoute<RouteProp<RootStackParamList, 'EditAddress'>>();
     const { id } = route.params;
     const { addresses, updateAddress } = useAddressStore();
+
+    const handleBack = () => {
+        if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+        } else {
+            navigation.navigate('Address');
+        }
+    };
 
     // Find address
     const addressToEdit = addresses.find(a => a.id === id);
@@ -387,8 +398,13 @@ function EditAddress({ navigation }: AppNavigation) {
             {/* Header */}
             <SafeAreaView style={styles.header} edges={['top', 'left', 'right']}>
                 <View style={styles.headerContent}>
-                    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                        <Text style={styles.backArrow}>←</Text>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBack}
+                        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                        activeOpacity={0.7}
+                    >
+                        <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Update delivery location</Text>
                 </View>
@@ -678,7 +694,12 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.white },
     header: { backgroundColor: COLORS.white, borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
     headerContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
-    backButton: { marginRight: 16 },
+    backButton: {
+        padding: 4,
+        marginRight: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     backArrow: { fontSize: 24, color: COLORS.textPrimary },
     headerTitle: { fontSize: 18, fontWeight: '500', color: COLORS.textPrimary },
     searchContainer: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, backgroundColor: COLORS.white },

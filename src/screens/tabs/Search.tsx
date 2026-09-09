@@ -1,30 +1,28 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
+  Dimensions,
   FlatList,
   Image,
   Keyboard,
-  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Dimensions,
-  Platform,
-  KeyboardAvoidingView,
-  ScrollView,
-  TouchableWithoutFeedback
+  View
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { InlineLoading } from '../../components/ui/loader/InlineLoading';
 import { useGetAllProducts } from '../../api/hooks/useProduct';
+import { InlineLoading } from '../../components/ui/loader/InlineLoading';
 import { useLocationStore } from '../../store/location';
-import { COLORS, FONTS } from '../../theme/theme';
+import { COLORS } from '../../theme/theme';
 import { Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
 import { parseToDecimal } from '../../utils/utils';

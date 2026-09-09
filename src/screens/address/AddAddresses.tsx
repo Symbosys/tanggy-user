@@ -17,9 +17,11 @@ import {
 } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAddressStore } from '../../store/address';
 import { COLORS } from '../../theme/theme';
-import { AppNavigation } from '../../types/type';
+import { AppNavigation, RootStackParamList } from '../../types/type';
 import {
     checkLocationPermission,
     getCurrentLocation,
@@ -51,7 +53,9 @@ interface PlaceDetails {
     };
 }
 
-function AddAddresses({ navigation }: AppNavigation) {
+function AddAddresses({ navigation: propNavigation }: AppNavigation) {
+    const nav = useNavigation<NavigationProp<RootStackParamList>>();
+    const navigation = propNavigation || nav;
     const { createAddress } = useAddressStore();
     const insets = useSafeAreaInsets();
     const [showBottomSheet, setShowBottomSheet] = useState(false);
@@ -107,6 +111,14 @@ function AddAddresses({ navigation }: AppNavigation) {
     };
     const handleAddDetailsPress = () => {
         setShowBottomSheet(true);
+    };
+
+    const handleBack = () => {
+        if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+        } else {
+            navigation.navigate('Address');
+        }
     };
     const handleChangePress = () => {
         setShowBottomSheet(true);
@@ -417,8 +429,13 @@ function AddAddresses({ navigation }: AppNavigation) {
             {/* Header */}
             <SafeAreaView style={styles.header} edges={['top', 'left', 'right']}>
                 <View style={styles.headerContent}>
-                    <TouchableOpacity style={styles.backButton}>
-                        <Text style={styles.backArrow}>←</Text>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBack}
+                        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                        activeOpacity={0.7}
+                    >
+                        <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Confirm delivery location</Text>
                 </View>
@@ -822,7 +839,10 @@ const styles = StyleSheet.create({
         paddingBottom: 4,
     },
     backButton: {
-        marginRight: 16,
+        padding: 4,
+        marginRight: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     backArrow: {
         fontSize: 24,
