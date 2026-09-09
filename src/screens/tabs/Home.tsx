@@ -1,7 +1,9 @@
 import { AxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
+  FlatList,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,13 +18,13 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { VideoRef } from 'react-native-video';
 import api from '../../api/api';
 import { useQueryClient } from '@tanstack/react-query';
+import { useGetAllProducts } from '../../api/hooks/useProduct';
 import { EliteMemberShipCard, FloatingEliteMembership } from '../../components/common/EliteMembership';
 import UnifiedFloatingBar from '../../components/order/UnifiedFloatingBar';
 import HomeLoading from '../../components/skeleton/HomeSkeleton';
 import CategoryList from '../../components/ui/CategoryList';
 import ProductCard from '../../components/ui/products/Product';
 import { useAuth } from '../../context/AuthContext';
-import { getAllProducts } from '../../services/product.service';
 import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
 import { COLORS } from '../../theme/theme';
@@ -36,8 +38,6 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen({ navigation }: AppNavigation) {
   const queryClient = useQueryClient();
   const [category, setCategory] = useState<Category[]>([]);
-  const [bestSellerProducts, setBestSellerProducts] = useState<Product[]>([]);
-  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -54,6 +54,47 @@ export default function HomeScreen({ navigation }: AppNavigation) {
   console.log('isAuthenticated', isAuthenticated)
 
   console.log('cartItems', totalCartItems, subTotal, isAuthenticated, userId);
+
+  // TanStack Query for Bestsellers (horizontal infinite scroll, limit: 10)
+  const {
+    data: bestSellersData,
+    fetchNextPage: fetchNextBestSellers,
+    hasNextPage: hasNextBestSellers,
+    isFetchingNextPage: isFetchingNextBestSellers,
+  } = useGetAllProducts({
+    isBestSeller: true,
+    limit: 10,
+    isActive: true,
+    lat: latitude ?? undefined,
+    lng: longitude ?? undefined,
+    userId: userId ?? undefined,
+  });
+
+  const bestsellerProducts =
+    bestSellersData?.pages.flatMap((page) => page.products) || [];
+
+  // TanStack Query for Recommended Products (horizontal infinite scroll, limit: 10)
+  const {
+    data: recommendedData,
+    fetchNextPage: fetchNextRecommended,
+    hasNextPage: hasNextRecommended,
+    isFetchingNextPage: isFetchingNextRecommended,
+  } = useGetAllProducts(
+    {
+      isRecommended: true,
+      limit: 10,
+      isActive: true,
+      lat: latitude ?? undefined,
+      lng: longitude ?? undefined,
+      userId: userId ?? undefined,
+    },
+    {
+      enabled: Boolean(isAuthenticated),
+    }
+  );
+
+  const recommendedProducts =
+    recommendedData?.pages.flatMap((page) => page.products) || [];
 
   const fetchCategories = async () => {
     try {
@@ -74,49 +115,14 @@ export default function HomeScreen({ navigation }: AppNavigation) {
     }
   };
 
-  const fetchBestSellerProducts = async () => {
-    try {
-      const response = await getAllProducts({
-        lat: latitude ?? undefined,
-        lng: longitude ?? undefined,
-        isActive: true,
-        userId: userId ?? undefined,
-        isBestSeller: true,
-      });
-      console.log('Best seller products:', response.data);
-      setBestSellerProducts(response.data.products);
-    } catch (error) {
-      ErrorMessage(error as AxiosError | Error);
-    }
-  };
-
-  const fetchRecommendedProducts = async () => {
-    try {
-      const response = await getAllProducts({
-        lat: latitude ?? undefined,
-        lng: longitude ?? undefined,
-        isActive: true,
-        userId: userId ?? undefined,
-        isRecommended: true,
-      });
-      setRecommendedProducts(response.data.products);
-      console.log('Recommended products:', response.data);
-    } catch (error) {
-      ErrorMessage(error as AxiosError | Error);
-    }
-  };
-
   // Unified Data Fetching with Loading State
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // We use Promise.allSettled so one failure doesn't stop others
         await Promise.allSettled([
           fetchCategories(),
-          fetchBestSellerProducts(),
           userId ? fetchCart() : Promise.resolve(),
-          userId ? fetchRecommendedProducts() : Promise.resolve(),
         ]);
       } catch (error) {
         console.error('Error loading home data', error);
@@ -155,8 +161,6 @@ export default function HomeScreen({ navigation }: AppNavigation) {
     navigation.navigate('Search');
   };
 
-  const bestsellerProducts = bestSellerProducts;
-
   // Render Loading State
   if (isLoading) {
     return <HomeLoading />;
@@ -178,9 +182,8 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 try {
                   await Promise.allSettled([
                     fetchCategories(),
-                    fetchBestSellerProducts(),
                     userId ? fetchCart() : Promise.resolve(),
-                    userId ? fetchRecommendedProducts() : Promise.resolve(),
+                    queryClient.invalidateQueries({ queryKey: ['products'] }),
                     queryClient.invalidateQueries({ queryKey: ['orders'] }),
                   ]);
                 } catch (error) {
@@ -271,20 +274,34 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                   <Icon name="arrow-forward" size={16} color={COLORS.primary} />
                 </TouchableOpacity>
               </View>
-              <ScrollView
+              <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.productScroll}
-              >
-                {bestsellerProducts.map(product => (
+                data={bestsellerProducts}
+                keyExtractor={(product) => String(product.id)}
+                renderItem={({ item: product }) => (
                   <ProductCard
                     key={product.id}
                     product={product}
                     onPress={() => handleNavigateToDetails(product)}
                     showBestsellerBadge={true}
                   />
-                ))}
-              </ScrollView>
+                )}
+                onEndReached={() => {
+                  if (hasNextBestSellers && !isFetchingNextBestSellers) {
+                    fetchNextBestSellers();
+                  }
+                }}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={
+                  isFetchingNextBestSellers ? (
+                    <View style={{ justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 }}>
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+                    </View>
+                  ) : null
+                }
+              />
             </View>
 
             {/* Recommended Section */}
@@ -304,20 +321,34 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                     <Icon name="arrow-forward" size={16} color={COLORS.primary} />
                   </TouchableOpacity>
                 </View>
-                <ScrollView
+                <FlatList
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.productScroll}
-                >
-                  {recommendedProducts.map(product => (
+                  data={recommendedProducts}
+                  keyExtractor={(product) => String(product.id)}
+                  renderItem={({ item: product }) => (
                     <ProductCard
                       key={product.id}
                       product={product}
                       onPress={() => handleNavigateToDetails(product)}
                       showBestsellerBadge={false}
                     />
-                  ))}
-                </ScrollView>
+                  )}
+                  onEndReached={() => {
+                    if (hasNextRecommended && !isFetchingNextRecommended) {
+                      fetchNextRecommended();
+                    }
+                  }}
+                  onEndReachedThreshold={0.5}
+                  ListFooterComponent={
+                    isFetchingNextRecommended ? (
+                      <View style={{ justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 }}>
+                        <ActivityIndicator size="small" color={COLORS.primary} />
+                      </View>
+                    ) : null
+                  }
+                />
               </View>
             )}
 

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -13,17 +14,18 @@ import { useGetAllProducts } from '../../api/hooks/useProduct';
 import { Product } from '../../types/product.type';
 import { COLORS } from '../../theme/theme';
 
-
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface OfferProductsSectionProps {
   offerId: string | number;
   isPeriodOffer?: boolean;
+  onRegisterLoadMore?: (fn: () => void) => void;
 }
 
 export const OfferProductsSection: React.FC<OfferProductsSectionProps> = ({
   offerId,
   isPeriodOffer = false,
+  onRegisterLoadMore,
 }) => {
   const navigation = useNavigation<any>();
 
@@ -31,13 +33,17 @@ export const OfferProductsSection: React.FC<OfferProductsSectionProps> = ({
   const {
     data: offerProductsData,
     isLoading: isLoadingOfferProducts,
-    isError: isOfferError,
+    fetchNextPage: fetchNextOfferProducts,
+    hasNextPage: hasNextOfferProducts,
+    isFetchingNextPage: isFetchingNextOfferProducts,
   } = useGetAllProducts({
     offerId,
     isActive: true,
+    limit: 5,
   });
 
-  const offerProducts = offerProductsData?.products || [];
+  const offerProducts =
+    offerProductsData?.pages.flatMap((page) => page.products) || [];
   const hasSpecificProducts = offerProducts.length > 0;
 
   // If it's a periodic offer and has no specific products linked, fall back to all store products
@@ -47,17 +53,47 @@ export const OfferProductsSection: React.FC<OfferProductsSectionProps> = ({
   const {
     data: allProductsData,
     isLoading: isLoadingAllProducts,
+    fetchNextPage: fetchNextAllProducts,
+    hasNextPage: hasNextAllProducts,
+    isFetchingNextPage: isFetchingNextAllProducts,
   } = useGetAllProducts(
-    { isActive: true },
+    { isActive: true, limit: 5 },
     { enabled: shouldFallbackToAll }
   );
 
   const isLoading =
     isLoadingOfferProducts || (shouldFallbackToAll && isLoadingAllProducts);
 
-  const displayProducts: Product[] = shouldFallbackToAll
-    ? allProductsData?.products || []
-    : offerProducts;
+  const activeQuery = shouldFallbackToAll
+    ? {
+        data: allProductsData,
+        fetchNextPage: fetchNextAllProducts,
+        hasNextPage: hasNextAllProducts,
+        isFetchingNextPage: isFetchingNextAllProducts,
+      }
+    : {
+        data: offerProductsData,
+        fetchNextPage: fetchNextOfferProducts,
+        hasNextPage: hasNextOfferProducts,
+        isFetchingNextPage: isFetchingNextOfferProducts,
+      };
+
+  const displayProducts: Product[] =
+    activeQuery.data?.pages.flatMap((page) => page.products) || [];
+  const hasNextPage = Boolean(activeQuery.hasNextPage);
+  const isFetchingNextPage = Boolean(activeQuery.isFetchingNextPage);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      activeQuery.fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, activeQuery]);
+
+  useEffect(() => {
+    if (onRegisterLoadMore) {
+      onRegisterLoadMore(handleLoadMore);
+    }
+  }, [onRegisterLoadMore, handleLoadMore]);
 
   // Title and subtitle depending on offer type and fallback status
   const sectionTitle = isPeriodOffer
@@ -123,18 +159,47 @@ export const OfferProductsSection: React.FC<OfferProductsSectionProps> = ({
           </Text>
         </View>
       ) : (
-        <View style={styles.gridContainer}>
-          {displayProducts.map((product) => (
-            <View key={product.id} style={styles.gridItem}>
-              <ProductCard
-                product={product}
-                onPress={() =>
-                  navigation.navigate('ProductDetails', { product })
-                }
-              />
+        <>
+          <View style={styles.gridContainer}>
+            {displayProducts.map((product) => (
+              <View key={product.id} style={styles.gridItem}>
+                <ProductCard
+                  product={product}
+                  onPress={() =>
+                    navigation.navigate('ProductDetails', { product })
+                  }
+                />
+              </View>
+            ))}
+          </View>
+
+          {/* Loading More Spinner (Infinite Scroll) */}
+          {isFetchingNextPage && (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.loadingMoreText}>Loading next products...</Text>
             </View>
-          ))}
-        </View>
+          )}
+
+          {/* Manual Load More Button */}
+          {!isFetchingNextPage && hasNextPage && displayProducts.length > 0 && (
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={handleLoadMore}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.loadMoreButtonText}>Load More Products</Text>
+              <MaterialIcons name="expand-more" size={18} color={COLORS.primary} />
+            </TouchableOpacity>
+          )}
+
+          {/* Reached End */}
+          {!hasNextPage && displayProducts.length > 0 && (
+            <View style={styles.endContainer}>
+              <Text style={styles.endText}>All products loaded</Text>
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -231,5 +296,43 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 18,
+  },
+  loadingMoreContainer: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  loadingMoreText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  loadMoreButton: {
+    marginTop: 10,
+    marginBottom: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  loadMoreButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  endContainer: {
+    marginTop: 14,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  endText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#9CA3AF',
   },
 });

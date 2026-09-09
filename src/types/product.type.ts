@@ -48,12 +48,23 @@ export interface Product {
   isAvailable: boolean;
 }
 
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+}
+
 export interface GetAllProductsResponse {
   success: boolean;
   message: string;
   data: {
     products: Product[];
     totalCount: number;
+    page?: number;
+    limit?: number;
+    totalPages?: number;
+    pagination?: PaginationInfo;
     nearbyVendorsCount: number;
     hasLocation: boolean;
     rangeKm: number;

@@ -11,16 +11,14 @@ import {
     View,
     FlatList,
     ScrollView,
+    ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { InlineLoading } from '../../components/ui/loader/InlineLoading';
 import { useAuth } from '../../context/AuthContext';
-import {
-    getAllProducts,
-    GetAllProductsParams,
-} from '../../services/product.service';
+import { useGetAllProducts } from '../../api/hooks/useProduct';
 import { getAllSubCategories } from '../../services/subcategory.service';
 import { useLocationStore } from '../../store/location';
 import { COLORS } from '../../theme/theme';
@@ -197,21 +195,27 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
 
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
     const [searchQuery, setSearchQuery] = useState(initialSearch || '');
-    const [loading, setLoading] = useState(true);
+    const [debouncedSearch, setDebouncedSearch] = useState(initialSearch || '');
     const [favorites, setFavorites] = useState<Set<string>>(new Set());
-    const [isBestSeller] = useState(categoryName === 'Bestsellers');
-    const [isRecommended] = useState(categoryName === 'Recommended For You');
+    const isBestSeller = categoryName === 'Bestsellers';
+    const isRecommended = categoryName === 'Recommended For You';
     const { latitude, longitude } = useLocationStore();
     const { userId, isAuthenticated } = useAuth();
-    const { totalItems: totalCartItems, subtotal: subTotal } = useCartStore();
+    const { totalItems: totalCartItems } = useCartStore();
+
+    // Debounce search query
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery.trim());
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     // Fetch subcategories on mount if categoryId exists
     useEffect(() => {
         const fetchSubCategories = async () => {
             if (!categoryId) {
-                setLoading(false);
                 return;
             }
             try {
@@ -229,83 +233,49 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
     // Dynamic categories for UI
     const displayCategories = ['All', ...subCategories.map(sc => sc.name)];
 
-    // Fetch products on category/subcategory change
-    const fetchProducts = useCallback(async () => {
-        const searchStr = searchQuery.trim();
-        const hasCategoryOrSpecial = categoryId || isBestSeller || isRecommended || searchStr;
-        if (!hasCategoryOrSpecial) {
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
-        try {
-            const params: GetAllProductsParams = {
-                isActive: true,
-                lat: latitude ?? undefined,
-                lng: longitude ?? undefined,
-                userId: userId ?? undefined,
-            };
-            if (categoryId) {
-                params.categoryId = categoryId;
-            }
-            if (selectedCategory !== 'All') {
-                const selectedSub = subCategories.find(
-                    sc => sc.name === selectedCategory,
-                );
-                if (selectedSub) {
-                    params.subCategoryId = selectedSub.id;
-                }
-            }
-            if (searchQuery.trim()) {
-                params.search = searchQuery.trim();
-            }
-            if (isBestSeller) {
-                params.isBestSeller = true;
-            }
-            if (isRecommended) {
-                params.isRecommended = true;
-            }
-            const response = await getAllProducts(params);
-            if (response.success) {
-                setProducts(response.data.products);
-            }
-        } catch (error) {
-            console.error('Error fetching products:', error);
-            setProducts([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [
-        categoryId,
-        selectedCategory,
-        subCategories,
-        searchQuery,
-        isBestSeller,
-        isRecommended,
-        latitude,
-        longitude,
-        userId,
-    ]);
+    const selectedSubId =
+        selectedCategory !== 'All'
+            ? subCategories.find(sc => sc.name === selectedCategory)?.id
+            : undefined;
 
-    useEffect(() => {
-        fetchProducts();
-    }, [
-        categoryId,
-        selectedCategory,
-        isBestSeller,
-        isRecommended,
-        latitude,
-        longitude,
-        userId,
-    ]);
+    const searchStr = debouncedSearch.trim();
+    const hasCategoryOrSpecial = Boolean(
+        categoryId || isBestSeller || isRecommended || searchStr
+    );
 
-    useEffect(() => {
-        if (!searchQuery.trim()) return;
-        const timer = setTimeout(() => {
-            fetchProducts();
-        }, 800);
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
+    const {
+        data,
+        isLoading,
+        isFetching,
+        isFetchingNextPage,
+        hasNextPage,
+        fetchNextPage,
+        refetch,
+    } = useGetAllProducts(
+        {
+            isActive: true,
+            limit: 15,
+            lat: latitude ?? undefined,
+            lng: longitude ?? undefined,
+            userId: userId ?? undefined,
+            categoryId: categoryId || undefined,
+            subCategoryId: selectedSubId || undefined,
+            search: searchStr || undefined,
+            isBestSeller: isBestSeller || undefined,
+            isRecommended: isRecommended || undefined,
+        },
+        {
+            enabled: hasCategoryOrSpecial,
+        }
+    );
+
+    const products = data?.pages.flatMap(page => page.products) || [];
+
+    const handleEndReached = () => {
+        if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    };
 
     const toggleFavorite = useCallback((productId: string) => {
         setFavorites(prev => {
@@ -397,12 +367,23 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
         </View>
     );
 
-    const renderFooter = () => (
-        loading ? <InlineLoading visible={loading} /> : null
-    );
+    const renderFooter = () => {
+        if (isFetchingNextPage) {
+            return (
+                <View style={{ paddingVertical: 16, alignItems: 'center', justifyContent: 'center' }}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                </View>
+            );
+        }
+        if (isLoading || (products.length === 0 && isFetching)) {
+            return <InlineLoading visible={true} />;
+        }
+        return null;
+    };
 
-    const renderEmpty = () => (
-        !loading ? (
+    const renderEmpty = () => {
+        if (isLoading || isFetching) return null;
+        return (
             <View
                 style={{
                     flex: 1,
@@ -415,8 +396,8 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
                     No products found
                 </Text>
             </View>
-        ) : null
-    );
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -433,7 +414,7 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
                         />
                     );
                 }}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item, index) => `${item.id}-${index}`}
                 numColumns={2}
                 contentContainerStyle={styles.scrollContent}
                 columnWrapperStyle={styles.columnWrapper}
@@ -441,6 +422,10 @@ const CategoryResults = ({ navigation }: AppNavigation) => {
                 ListHeaderComponent={renderHeader()}
                 ListFooterComponent={renderFooter()}
                 ListEmptyComponent={renderEmpty()}
+                onEndReached={handleEndReached}
+                onEndReachedThreshold={0.5}
+                refreshing={Boolean(isFetching && !isFetchingNextPage && !isLoading)}
+                onRefresh={refetch}
                 initialNumToRender={6}
                 maxToRenderPerBatch={6}
                 windowSize={5}

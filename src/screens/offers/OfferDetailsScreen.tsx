@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   SafeAreaView,
   Share,
   ActivityIndicator,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -32,6 +34,21 @@ export const OfferDetailsScreen: React.FC = () => {
   const hasCartItems = totalItems > 0 || (cartItems && cartItems.length > 0);
 
   const [refreshing, setRefreshing] = useState(false);
+  const loadMoreRef = useRef<(() => void) | null>(null);
+
+  const handleScroll = useCallback(
+    ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const paddingToBottom = 150;
+      const isCloseToBottom =
+        nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+        nativeEvent.contentSize.height - paddingToBottom;
+
+      if (isCloseToBottom && loadMoreRef.current) {
+        loadMoreRef.current();
+      }
+    },
+    []
+  );
 
   // Fetch latest available customer offers (which contain userPeriodProgress)
   const {
@@ -145,6 +162,8 @@ export const OfferDetailsScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={32}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -173,6 +192,9 @@ export const OfferDetailsScreen: React.FC = () => {
         <OfferProductsSection
           offerId={offerId}
           isPeriodOffer={isPeriodOffer}
+          onRegisterLoadMore={(fn) => {
+            loadMoreRef.current = fn;
+          }}
         />
       </ScrollView>
 

@@ -6,7 +6,7 @@
  */
 
 
-const IS_PRODUCTION = true; // 👈 Toggle this for Production/Local
+const IS_PRODUCTION = false; // 👈 Toggle this for Production/Local
 
 const LOCAL_IP = "192.168.31.40";
 const PROD_DOMAIN = "api.mintafresh.com";
@@ -20,6 +20,3 @@ export const API_BASE_URL = IS_PRODUCTION
 export const WS_BASE_URL = IS_PRODUCTION
     ? `wss://${PROD_DOMAIN}/ws`
     : `ws://${LOCAL_IP}:4000/ws`;
-
-
-    

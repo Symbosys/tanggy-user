@@ -1,10 +1,9 @@
-import { AxiosError } from 'axios';
-import { useEffect, useState } from 'react';
+import React from 'react';
 import {
     ActivityIndicator,
     Dimensions,
+    FlatList,
     Image,
-    ScrollView,
     StyleSheet,
     Text,
     View,
@@ -13,22 +12,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import UnifiedFloatingBar from '../../components/order/UnifiedFloatingBar';
 import ProductCard from '../../components/ui/products/DiscountProduct';
 import { useAuth } from '../../context/AuthContext';
-import { getAllProducts } from '../../services/product.service';
+import { useGetAllProducts } from '../../api/hooks/useProduct';
 import { useAlertStore } from '../../store/alert.store';
 import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
 import { COLORS } from '../../theme/theme';
 import { Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
-import { ErrorMessage } from '../../utils/utils';
 
 const { height: screenHeight } = Dimensions.get('window');
 const headerHeight = screenHeight * 0.4;
 
 const DealsScreen = ({ navigation }: AppNavigation) => {
-    const [products, setProducts] = useState<Product[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-
     const { latitude, longitude } = useLocationStore();
     const { userId, isAuthenticated } = useAuth();
     const { showAlert } = useAlertStore();
@@ -36,31 +31,26 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
         getQuantity,
         incrementQuantity,
         decrementQuantity,
-        totalItems: totalCartItems,
-        subtotal: subTotal,
     } = useCartStore();
 
-    const fetchDiscountProducts = async () => {
-        try {
-            setIsLoading(true);
-            const res = await getAllProducts({
-                isActive: true,
-                lat: latitude ?? undefined,
-                lng: longitude ?? undefined,
-                userId: userId ?? undefined,
-                marketPrice: 1, // Only products with marketPrice > sellingPrice
-            });
-            setProducts(res.data.products);
-        } catch (error) {
-            ErrorMessage(error as AxiosError | Error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const {
+        data,
+        isLoading,
+        isFetching,
+        isFetchingNextPage,
+        hasNextPage,
+        fetchNextPage,
+        refetch,
+    } = useGetAllProducts({
+        isActive: true,
+        marketPrice: 1, // Only products with marketPrice > sellingPrice
+        limit: 15,
+        lat: latitude ?? undefined,
+        lng: longitude ?? undefined,
+        userId: userId ?? undefined,
+    });
 
-    useEffect(() => {
-        fetchDiscountProducts();
-    }, [latitude, longitude, userId]);
+    const products = data?.pages.flatMap(page => page.products) || [];
 
     const handleNavigateToDetails = (product: Product) => {
         navigation.navigate('ProductDetails', { product });
@@ -76,7 +66,46 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
 
     const productChunks = chunkArray(products, 2);
 
-    if (isLoading) {
+    const handleEndReached = () => {
+        if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    };
+
+    const handleAdd = (product: Product) => {
+        if (!isAuthenticated) {
+            showAlert({
+                title: 'Login Required',
+                message: 'You need to log in to add this product to your cart.',
+                confirmText: 'Login',
+                cancelText: 'Cancel',
+                onConfirm: () => navigation.navigate('Login'),
+            });
+            return;
+        }
+        incrementQuantity(product);
+    };
+
+    const handleIncrement = (product: Product) => {
+        if (!isAuthenticated) {
+            showAlert({
+                title: 'Login Required',
+                message: 'You need to log in to update your cart.',
+                confirmText: 'Login',
+                cancelText: 'Cancel',
+                onConfirm: () => navigation.navigate('Login'),
+            });
+            return;
+        }
+        incrementQuantity(product);
+    };
+
+    const handleDecrement = (product: Product) => {
+        if (!isAuthenticated) return;
+        decrementQuantity(product);
+    };
+
+    if (isLoading && products.length === 0) {
         return (
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.loadingContainer}>
@@ -86,86 +115,84 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
         );
     }
 
+    const renderHeader = () => (
+        <View style={[styles.header, { height: headerHeight, marginBottom: 16 }]}>
+            <Image
+                source={require('../../assets/discount/discount.png')}
+                style={styles.headerImage}
+                resizeMode="cover"
+            />
+            <View style={styles.overlay} />
+            <View style={styles.headerContent}>
+                <Text style={styles.title}>Exclusive Discounts</Text>
+                <Text style={styles.subtitle}>Fresh Deals, Unbeatable Prices</Text>
+            </View>
+        </View>
+    );
+
+    const renderFooter = () => {
+        if (isFetchingNextPage) {
+            return (
+                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                </View>
+            );
+        }
+        return null;
+    };
+
+    const renderEmpty = () => {
+        if (isLoading || isFetching) return null;
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No discount products available</Text>
+            </View>
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <ScrollView
+            <FlatList
                 style={styles.main}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
-            >
-                {/* Header Image */}
-                <View style={[styles.header, { height: headerHeight }]}>
-                    <Image
-                        source={require('../../assets/discount/discount.png')}
-                        style={styles.headerImage}
-                        resizeMode="cover"
-                    />
-                    <View style={styles.overlay} />
-                    <View style={styles.headerContent}>
-                        <Text style={styles.title}>Exclusive Discounts</Text>
-                        <Text style={styles.subtitle}>Fresh Deals, Unbeatable Prices</Text>
+                data={productChunks}
+                keyExtractor={(row, index) =>
+                    `${row.map(p => p.id).join('-')}-${index}`
+                }
+                renderItem={({ item: row }) => (
+                    <View style={styles.row}>
+                        {row.map((product, colIndex) => {
+                            const quantity = getQuantity(product.id);
+                            return (
+                                <ProductCard
+                                    key={product.id}
+                                    product={product}
+                                    navigation={navigation}
+                                    handleNavigateToDetails={handleNavigateToDetails}
+                                    quantity={quantity}
+                                    onAdd={() => handleAdd(product)}
+                                    onIncrement={() => handleIncrement(product)}
+                                    onDecrement={() => handleDecrement(product)}
+                                    style={colIndex === 0 ? { marginRight: 16 } : undefined}
+                                />
+                            );
+                        })}
+                        {row.length === 1 && <View style={styles.spacer} />}
                     </View>
-                </View>
-
-                {/* Products Grid */}
-                <View style={styles.grid}>
-                    {productChunks.map((row, rowIndex) => (
-                        <View key={rowIndex} style={styles.row}>
-                            {row.map((product, colIndex) => {
-                                const quantity = getQuantity(product.id);
-
-                                const handleAdd = () => {
-                                    if (!isAuthenticated) {
-                                        showAlert({
-                                            title: 'Login Required',
-                                            message: 'You need to log in to add this product to your cart.',
-                                            confirmText: 'Login',
-                                            cancelText: 'Cancel',
-                                            onConfirm: () => navigation.navigate('Login'),
-                                        });
-                                        return;
-                                    }
-                                    incrementQuantity(product);
-                                };
-
-                                const handleIncrement = () => {
-                                    if (!isAuthenticated) {
-                                        showAlert({
-                                            title: 'Login Required',
-                                            message: 'You need to log in to update your cart.',
-                                            confirmText: 'Login',
-                                            cancelText: 'Cancel',
-                                            onConfirm: () => navigation.navigate('Login'),
-                                        });
-                                        return;
-                                    }
-                                    incrementQuantity(product);
-                                };
-
-                                const handleDecrement = () => {
-                                    if (!isAuthenticated) return;
-                                    decrementQuantity(product);
-                                };
-
-                                return (
-                                    <ProductCard
-                                        key={product.id}
-                                        product={product}
-                                        navigation={navigation}
-                                        handleNavigateToDetails={handleNavigateToDetails}
-                                        quantity={quantity}
-                                        onAdd={handleAdd}
-                                        onIncrement={handleIncrement}
-                                        onDecrement={handleDecrement}
-                                        style={colIndex === 0 ? { marginRight: 16 } : undefined}
-                                    />
-                                );
-                            })}
-                            {row.length === 1 && <View style={styles.spacer} />}
-                        </View>
-                    ))}
-                </View>
-            </ScrollView>
+                )}
+                ListHeaderComponent={renderHeader}
+                ListFooterComponent={renderFooter}
+                ListEmptyComponent={renderEmpty}
+                onEndReached={handleEndReached}
+                onEndReachedThreshold={0.5}
+                refreshing={Boolean(isFetching && !isFetchingNextPage && !isLoading)}
+                onRefresh={refetch}
+                initialNumToRender={4}
+                maxToRenderPerBatch={4}
+                windowSize={5}
+                removeClippedSubviews={true}
+            />
 
             {isAuthenticated && (
                 <UnifiedFloatingBar
@@ -229,16 +256,23 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         textAlign: 'center',
     },
-    grid: {
-        padding: 16,
-    },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        paddingHorizontal: 16,
         marginBottom: 16,
     },
     spacer: {
         flex: 1,
+    },
+    emptyContainer: {
+        paddingVertical: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyText: {
+        fontSize: 16,
+        color: COLORS.textSecondary,
     },
 });
 

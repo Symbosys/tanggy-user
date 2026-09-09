@@ -79,10 +79,21 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
     setShowPhoneModal(true);
   };
 
+  const INDIAN_MOBILE_REGEX = /^[6-9]\d{9}$/;
+  const isValidMobile = INDIAN_MOBILE_REGEX.test(phoneNumber);
+  const isInvalidMobile =
+    phoneNumber.length > 0 &&
+    (!/^[6-9]/.test(phoneNumber) || (phoneNumber.length === 10 && !isValidMobile));
+
+  const handlePhoneNumberChange = (text: string) => {
+    const numericOnly = text.replace(/[^0-9]/g, '');
+    setPhoneNumber(numericOnly);
+  };
+
   const handleLogin = async () => {
     setLoading(true);
     try {
-      if (phoneNumber.length === 10) {
+      if (isValidMobile) {
         const res = await api.post('/auth/user/request-otp', {
           mobile: phoneNumber,
         });
@@ -91,7 +102,7 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
           navigation.navigate('Otp', { mobile: phoneNumber });
         }
       } else {
-        ToastAndroid.show('Please enter a valid 10-digit number', ToastAndroid.SHORT);
+        ToastAndroid.show('Please enter a valid mobile number.', ToastAndroid.SHORT);
       }
     } catch (error) {
       ErrorMessage(error as AxiosError | Error);
@@ -206,7 +217,7 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
                             keyboardType="phone-pad"
                             maxLength={10}
                             value={phoneNumber}
-                            onChangeText={setPhoneNumber}
+                            onChangeText={handlePhoneNumberChange}
                             placeholder=""
                             placeholderTextColor={COLORS.muted}
                           />
@@ -216,6 +227,11 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
                             </TouchableOpacity>
                           )}
                         </View>
+                        {isInvalidMobile && (
+                          <Text style={styles.errorText}>
+                            Please enter a valid mobile number.
+                          </Text>
+                        )}
                       </View>
                     </View>
 
@@ -223,15 +239,15 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
                       <TouchableOpacity
                         style={[
                           styles.continueButton,
-                          (phoneNumber.length < 10 || loading) && styles.continueButtonDisabled,
+                          (!isValidMobile || loading) && styles.continueButtonDisabled,
                         ]}
                         onPress={handleLogin}
-                        disabled={phoneNumber.length < 10 || loading}
+                        disabled={!isValidMobile || loading}
                       >
                         <Text
                           style={[
                             styles.continueButtonText,
-                            phoneNumber.length < 10 && styles.continueButtonTextDisabled,
+                            !isValidMobile && styles.continueButtonTextDisabled,
                           ]}
                         >
                           {loading ? 'Continue...' : 'Continue'}
@@ -475,6 +491,13 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textDecorationLine: 'underline',
     fontWeight: '600',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 6,
+    marginLeft: 16,
+    fontWeight: '500',
   },
 });
 

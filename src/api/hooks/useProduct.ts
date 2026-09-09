@@ -1,4 +1,9 @@
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  UseInfiniteQueryOptions,
+  InfiniteData,
+  QueryKey,
+} from "@tanstack/react-query";
 import { GetAllProductsResponse } from "../../types/product.type";
 import api from "../api";
 
@@ -20,6 +25,8 @@ export interface GetAllProductsParams {
   isBestSeller?: boolean;
   isRecommended?: boolean;
   offerId?: string | number;
+  page?: number;
+  limit?: number;
 }
 
 /**
@@ -35,18 +42,51 @@ export const fetchAllProducts = async (
 };
 
 /**
- * TanStack Query hook to fetch products with optional filters (e.g. category, search, offerId, location)
+ * TanStack Infinite Query hook to fetch products with pagination.
+ * If client is not sending the limit then by default it will be 25.
  */
 export const useGetAllProducts = (
-  params?: GetAllProductsParams,
+  params?: Omit<GetAllProductsParams, "page">,
   options?: Omit<
-    UseQueryOptions<GetAllProductsData, Error, GetAllProductsData, any>,
-    "queryKey" | "queryFn"
+    UseInfiniteQueryOptions<
+      GetAllProductsData,
+      Error,
+      InfiniteData<GetAllProductsData>,
+      QueryKey,
+      number
+    >,
+    "queryKey" | "queryFn" | "initialPageParam" | "getNextPageParam"
   >
 ) => {
-  return useQuery<GetAllProductsData, Error>({
-    queryKey: ["products", params],
-    queryFn: () => fetchAllProducts(params),
+  const limit = params?.limit ?? 25;
+
+  return useInfiniteQuery<
+    GetAllProductsData,
+    Error,
+    InfiniteData<GetAllProductsData>,
+    QueryKey,
+    number
+  >({
+    queryKey: ["products", { ...params, limit }],
+    queryFn: ({ pageParam = 1 }) =>
+      fetchAllProducts({
+        ...params,
+        page: pageParam as number,
+        limit,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const currentPage = lastPage.page ?? (lastPage.pagination?.page ?? allPages.length);
+      const totalPages =
+        lastPage.totalPages ??
+        lastPage.pagination?.totalPages ??
+        Math.ceil(lastPage.totalCount / (lastPage.limit ?? limit));
+      return currentPage < totalPages ? currentPage + 1 : undefined;
+    },
+    getPreviousPageParam: (firstPage) => {
+      const currentPage = firstPage.page ?? (firstPage.pagination?.page ?? 1);
+      return currentPage > 1 ? currentPage - 1 : undefined;
+    },
     ...options,
   });
 };
