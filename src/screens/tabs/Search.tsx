@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   Keyboard,
@@ -19,7 +20,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { InlineLoading } from '../../components/ui/loader/InlineLoading';
-import { getAllProducts } from '../../services/product.service';
+import { useGetAllProducts } from '../../api/hooks/useProduct';
 import { useLocationStore } from '../../store/location';
 import { COLORS, FONTS } from '../../theme/theme';
 import { Product } from '../../types/product.type';
@@ -30,19 +31,15 @@ const { width, height } = Dimensions.get('window');
 
 const SearchScreen = ({ navigation }: AppNavigation) => {
   const [searchText, setSearchText] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   
   const inputRef = useRef<TextInput>(null);
-  const timeoutRef = useRef<any | null>(null);
   const { latitude, longitude } = useLocationStore();
 
   const TRENDING = [
     { id: '1', name: 'Chicken', icon: 'restaurant' },
     { id: '2', name: 'Fish', icon: 'water' },
     { id: '3', name: 'Mutton', icon: 'outdoor-grill' },
-    { id: '4', name: 'Eggs', icon: 'egg' },
   ];
 
   useEffect(() => {
@@ -52,6 +49,56 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText.trim());
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  const querySearch = debouncedSearch.trim();
+
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+    isError,
+    error,
+  } = useGetAllProducts(
+    {
+      search: querySearch,
+      lat: latitude ?? undefined,
+      lng: longitude ?? undefined,
+      limit: 15,
+    },
+    {
+      enabled: querySearch.length > 0,
+    }
+  );
+
+  const products = querySearch.length > 0
+    ? data?.pages.flatMap(page => page.products) || []
+    : [];
+
+  const handleEndReached = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
+  const renderFooter = () => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={COLORS.primary} />
+      </View>
+    );
+  };
+
   const getStringValue = (value: any): string => {
     if (typeof value === 'string') return value;
     if (typeof value === 'object' && value !== null) {
@@ -60,53 +107,14 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
     return String(value) || 'Unknown';
   };
 
-  const fetchProducts = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setProducts([]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getAllProducts({ 
-        search: query, 
-        lat: latitude ?? undefined, 
-        lng: longitude ?? undefined 
-      });
-      if (response.success) {
-        setProducts(response.data.products);
-      } else {
-        setError('Failed to fetch products');
-      }
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [latitude, longitude]);
-
-  const debouncedFetch = useCallback((query: string) => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      fetchProducts(query);
-    }, 500);
-  }, [fetchProducts]);
-
-  useEffect(() => {
-    debouncedFetch(searchText);
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, [searchText, debouncedFetch]);
+  const clearSearch = () => {
+    setSearchText('');
+    setDebouncedSearch('');
+    inputRef.current?.focus();
+  };
 
   const handleProductPress = (product: Product) => {
     navigation.navigate('ProductDetails', { product });
-  };
-
-  const clearSearch = () => {
-    setSearchText('');
-    setProducts([]);
-    inputRef.current?.focus();
   };
 
   const renderProductItem = ({ item }: { item: Product }) => {
@@ -210,68 +218,72 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
 
         {/* Dynamic Content Area */}
         <View style={styles.contentArea}>
-          {loading ? (
+          {querySearch.length > 0 && isLoading ? (
             <View style={styles.fullCenter}>
               <InlineLoading visible />
               <Text style={styles.mutedLabel}>Looking for results...</Text>
             </View>
-          ) : error ? (
+          ) : querySearch.length > 0 && isError ? (
             <View style={styles.fullCenter}>
               <View style={styles.errorCircle}>
                 <Icon name="wifi-off" size={40} color="#F87171" />
               </View>
-              <Text style={styles.errorMsg}>{error}</Text>
-              <TouchableOpacity style={styles.actBtn} onPress={() => fetchProducts(searchText)}>
+              <Text style={styles.errorMsg}>
+                {error instanceof Error ? error.message : 'Something went wrong. Please try again.'}
+              </Text>
+              <TouchableOpacity style={styles.actBtn} onPress={() => refetch()}>
                 <Text style={styles.actBtnText}>Retry</Text>
               </TouchableOpacity>
             </View>
+          ) : querySearch.length === 0 ? (
+            <ScrollView 
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.introBox}>
+                <View style={styles.heroDeco}>
+                  <Icon name="set-meal" size={50} color={COLORS.primary} />
+                </View>
+                <Text style={styles.introTitle}>Craving something fresh?</Text>
+                <Text style={styles.introSub}>Search and order premium quality meat delivered in 30 mins.</Text>
+                
+                <View style={styles.trendingSection}>
+                  <Text style={styles.sectionHeading}>Trending Searches</Text>
+                  <View style={styles.trendingGrid}>
+                    {TRENDING.map(item => (
+                      <TouchableOpacity 
+                        key={item.id} 
+                        style={styles.trendChip}
+                        onPress={() => {
+                          setSearchText(item.name);
+                          setDebouncedSearch(item.name);
+                        }}
+                      >
+                        <Icon name={item.icon} size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+                        <Text style={styles.trendText}>{item.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.emptyIllustrationSpace} />
+              </View>
+            </ScrollView>
           ) : products.length === 0 ? (
             <ScrollView 
               contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              {searchText.trim() === '' ? (
-                <View style={styles.introBox}>
-                  <View style={styles.heroDeco}>
-                        <Icon name="set-meal" size={50} color={COLORS.primary} />
-                  </View>
-                  <Text style={styles.introTitle}>Craving something fresh?</Text>
-                  <Text style={styles.introSub}>Search and order premium quality meat delivered in 30 mins.</Text>
-                  
-                  <View style={styles.trendingSection}>
-                    <Text style={styles.sectionHeading}>Trending Searches</Text>
-                    <View style={styles.trendingGrid}>
-                      {[
-                        { id: '1', name: 'Chicken', icon: 'restaurant' },
-                        { id: '2', name: 'Fish', icon: 'water' },
-                        { id: '3', name: 'Mutton', icon: 'outdoor-grill' },
-                        { id: '4', name: 'Eggs', icon: 'egg' },
-                      ].map(item => (
-                        <TouchableOpacity 
-                          key={item.id} 
-                          style={styles.trendChip}
-                          onPress={() => setSearchText(item.name)}
-                        >
-                          <Icon name={item.icon} size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
-                          <Text style={styles.trendText}>{item.name}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  <View style={styles.emptyIllustrationSpace} />
-                </View>
-              ) : (
-                <View style={styles.fullCenter}>
-                  <Icon name="sentiment-dissatisfied" size={70} color="#CBD5E1" />
-                  <Text style={styles.emptyHead}>No matches found</Text>
-                  <Text style={styles.emptySide}>We couldn't find "{searchText}". Please try another keyword.</Text>
-                  <TouchableOpacity style={styles.ghostBtn} onPress={clearSearch}>
-                    <Text style={styles.ghostBtnText}>Clear Search</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+              <View style={styles.fullCenter}>
+                <Icon name="sentiment-dissatisfied" size={70} color="#CBD5E1" />
+                <Text style={styles.emptyHead}>No matches found</Text>
+                <Text style={styles.emptySide}>We couldn't find "{searchText}". Please try another keyword.</Text>
+                <TouchableOpacity style={styles.ghostBtn} onPress={clearSearch}>
+                  <Text style={styles.ghostBtnText}>Clear Search</Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           ) : (
             <FlatList
@@ -281,6 +293,9 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
               contentContainerStyle={styles.itemList}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              onEndReached={handleEndReached}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={renderFooter}
             />
           )}
         </View>
@@ -575,7 +590,13 @@ const styles = StyleSheet.create({
   actBtnText: {
     color: 'white',
     fontWeight: '800',
-    fontSize: 16,  }
+    fontSize: 16,
+  },
+  footerLoader: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 export default SearchScreen;
