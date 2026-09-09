@@ -385,7 +385,7 @@ function EditAddress({ navigation: propNavigation }: AppNavigation) {
 
     const tags = ['Home', 'Work', 'Other'];
     const isFormValid =
-        receiverName.trim().length > 0 &&
+        receiverName.trim().length >= 3 &&
         receiverContact.trim().length >= 10 &&
         currentAddress.trim().length > 0;
 

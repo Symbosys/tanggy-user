@@ -402,7 +402,7 @@ function AddAddresses({ navigation: propNavigation }: AppNavigation) {
 
     // ✅ Check if all required fields are filled
     const isFormValid =
-        receiverName.trim().length > 0 &&
+        receiverName.trim().length >= 3 &&
         receiverContact.trim().length >= 10 && // at least 10 digits
         currentAddress.trim().length > 0;
 
