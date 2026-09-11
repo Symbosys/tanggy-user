@@ -19,6 +19,7 @@ export interface Offer {
     url: string;
   } | null;
   searchQuery?: string | null;
+  modeId?: string | null;
   displayOrder?: number;
   isActive?: boolean;
   status?: string;
@@ -66,6 +67,7 @@ export interface AvailableOffer {
   } | null;
   userPeriodProgress?: UserPeriodProgress | null;
   codes?: Array<{ code: string; isActive: boolean }>;
+  modeId?: string | null;
   metadata?: {
     minCartValue?: number;
     minCartItems?: number;
@@ -78,12 +80,22 @@ export interface AvailableOffer {
 
 // ── Hooks ───────────────────────────────────────────────────
 
-export const useGetAllOffers = (isActive?: boolean) => {
+export interface GetAllOffersParams {
+  isActive?: boolean;
+  modeId?: string | number;
+}
+
+export const useGetAllOffers = (params?: GetAllOffersParams | boolean) => {
+  const queryParams =
+    typeof params === "boolean" ? { isActive: params } : (params ?? {});
+
   return useQuery<Offer[]>({
-    queryKey: ["all-offers", isActive],
+    queryKey: ["all-offers", queryParams],
     queryFn: async () => {
       try {
-        const res = await apiClient.get<any>("/offers/sliders");
+        const res = await apiClient.get<any>("/offers/sliders", {
+          params: queryParams,
+        });
         const raw = res.data?.data ?? res.data;
         if (Array.isArray(raw)) {
           return raw;
@@ -101,12 +113,14 @@ export const useGetAllOffers = (isActive?: boolean) => {
   });
 };
 
-export const useGetAvailableOffers = () => {
+export const useGetAvailableOffers = (params?: { modeId?: string | number }) => {
   return useQuery<AvailableOffer[]>({
-    queryKey: ["available-customer-offers"],
+    queryKey: ["available-customer-offers", params],
     queryFn: async () => {
       try {
-        const res = await apiClient.get<any>("/offers/available");
+        const res = await apiClient.get<any>("/offers/available", {
+          params,
+        });
         const raw = res.data?.data ?? res.data;
         if (Array.isArray(raw)) {
           return raw;

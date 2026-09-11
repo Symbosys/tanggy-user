@@ -21,6 +21,7 @@ export const usePlaceOrder = () => {
                 // Invalidate relevant queries like cart, order list, profile, and wallet transactions
                 queryClient.invalidateQueries({ queryKey: ['orders'] });
                 queryClient.invalidateQueries({ queryKey: ['cart'] });
+                queryClient.invalidateQueries({ queryKey: ['cart-summary'] });
                 queryClient.invalidateQueries({ queryKey: ['profile'] });
                 queryClient.invalidateQueries({ queryKey: ['wallet-transactions'] });
             }
@@ -32,16 +33,18 @@ export const usePlaceOrder = () => {
 };
 
 /**
- * Hook to fetch all orders with pagination and filters.
+ * Hook to fetch all orders with pagination and filters (including modeId/modeSlug).
  */
 export const useOrders = (params: { 
     page?: number; 
     limit?: number; 
     statusType?: 'ongoing' | 'past'; 
     status?: string;
+    modeId?: number | string;
+    modeSlug?: string;
     startDate?: string;
     endDate?: string;
-}) => {
+} = {}) => {
     return useQuery({
         queryKey: ['orders', params],
         queryFn: async () => {

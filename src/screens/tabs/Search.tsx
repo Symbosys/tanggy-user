@@ -22,6 +22,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useGetAllProducts } from '../../api/hooks/useProduct';
 import { InlineLoading } from '../../components/ui/loader/InlineLoading';
 import { useLocationStore } from '../../store/location';
+import { useModeStore } from '../../store/mode';
 import { COLORS } from '../../theme/theme';
 import { Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
@@ -36,6 +37,7 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
   const inputRef = useRef<TextInput>(null);
   const isNavigatingToDetails = useRef(false);
   const { latitude, longitude } = useLocationStore();
+  const { selectedMode } = useModeStore();
 
   const TRENDING = [
     { id: '1', name: 'Chicken', icon: 'restaurant' },
@@ -102,6 +104,7 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
       lat: latitude ?? undefined,
       lng: longitude ?? undefined,
       limit: 15,
+      modeId: selectedMode?.id,
     },
     {
       enabled: querySearch.length > 0,
@@ -235,7 +238,7 @@ const SearchScreen = ({ navigation }: AppNavigation) => {
                 ref={inputRef}
                 value={searchText}
                 onChangeText={setSearchText}
-                placeholder="Search chicken, meat, fish..."
+                placeholder={selectedMode ? `Search ${selectedMode.name}...` : "Search chicken, meat, fish..."}
                 placeholderTextColor="#94A3B8"
                 style={styles.inputField}
                 selectionColor={COLORS.primary}

@@ -1,65 +1,50 @@
-import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  Dimensions,
   Image,
-  TouchableOpacity,
+  RefreshControl,
   ScrollView,
   StyleSheet,
-  Dimensions,
-  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import Toast from 'react-native-toast-message';
-import { AxiosError } from 'axios';
-import api from '../../api/api';
-import { Category } from '../../types/product.type';
-import { AppNavigation } from '../../types/type';
+import { useGetAllCategories } from '../../api/hooks/useCategory';
 import { useAuth } from '../../context/AuthContext';
+import { useModeStore } from '../../store/mode';
+import { AppNavigation } from '../../types/type';
 
 const { width: screenWidth } = Dimensions.get('window');
 const itemWidth = (screenWidth - 32 - 16) / 2; // Adjust for gap-4 (16px total gap)
 const cardMinHeight = 260;
 
 const ExploreCategories = ({ navigation }: AppNavigation) => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { selectedMode } = useModeStore();
+  const {
+    data: categories = [],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetAllCategories(
+    { modeId: selectedMode?.id },
+    { enabled: Boolean(selectedMode?.id) }
+  );
 
   const { isAuthenticated } = useAuth();
   console.log(isAuthenticated);
 
-    const fetchCategories = async () => {
-      try {
-        const res = await api.get('/category/all');
-        setCategories(res.data.data);
-      } catch (error) {
-        if (error instanceof AxiosError) {
-          Toast.show({
-            type: 'error',
-            text1: error.response?.data.message || "Something went wrong",
-          });
-        } else {
-          Toast.show({
-            type: 'error',
-            text1: "Something went wrong",
-          });
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  if (loading) {
+  if (isLoading && categories.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Explore Categories</Text>
-          <Text style={styles.subtitle}>Discover fresh meat and seafood selections</Text>
+          <Text style={styles.title}>
+            {selectedMode ? `${selectedMode.name} Categories` : 'Explore Categories'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {selectedMode ? `Discover fresh ${selectedMode.name.toLowerCase()} selections` : 'Discover fresh meat and seafood selections'}
+          </Text>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#8719C6" />
@@ -72,53 +57,71 @@ const ExploreCategories = ({ navigation }: AppNavigation) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Explore Categories</Text>
-        <Text style={styles.subtitle}>Discover fresh meat and seafood selections</Text>
+        <Text style={styles.title}>
+          {selectedMode ? `${selectedMode.name} Categories` : 'Explore Categories'}
+        </Text>
+        <Text style={styles.subtitle}>
+          {selectedMode ? `Discover fresh ${selectedMode.name.toLowerCase()} selections` : 'Discover fresh meat and seafood selections'}
+        </Text>
       </View>
 
       {/* Content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.grid}>
-          {categories.map((cat, index) => (
-            <TouchableOpacity
-              key={cat.id || index}
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate('CategoryResults', { categoryId: cat.id, categoryName: cat.name })}
-              style={[
-                styles.cardWrapper,
-                { width: itemWidth, minHeight: cardMinHeight, marginBottom: 16 },
-              ]}>
-              <LinearGradient
-                colors={['#f9eae9', '#ffffff']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.card}>
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={{ uri: cat.image.url }}
-                    style={styles.image}
-                    resizeMode="contain"
-                  />
-                </View>
-                <View style={styles.textContainer}>
-                  <Text style={styles.categoryTitle}>{cat.name}</Text>
-                  <LinearGradient
-                    colors={['#8719C6', '#b58ff0']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.buttonGradient}>
-                    <View style={styles.buttonTouchable}>
-                      <Text style={styles.buttonText}>View Products</Text>
-                    </View>
-                  </LinearGradient>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          ))}
-        </View>
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={Boolean(isFetching && !isLoading)}
+            onRefresh={refetch}
+          />
+        }
+      >
+        {categories.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="category" size={60} color="#CBD5E1" />
+            <Text style={styles.emptyText}>No categories available in this mode</Text>
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {categories.map((cat, index) => (
+              <TouchableOpacity
+                key={cat.id || index}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('CategoryResults', { categoryId: cat.id, categoryName: cat.name })}
+                style={[
+                  styles.cardWrapper,
+                  { width: itemWidth, minHeight: cardMinHeight, marginBottom: 16 },
+                ]}>
+                <LinearGradient
+                  colors={['#f9eae9', '#ffffff']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.card}>
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={{ uri: cat.image.url }}
+                      style={styles.image}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.categoryTitle}>{cat.name}</Text>
+                    <LinearGradient
+                      colors={['#8719C6', '#b58ff0']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.buttonGradient}>
+                      <View style={styles.buttonTouchable}>
+                        <Text style={styles.buttonText}>View Products</Text>
+                      </View>
+                    </LinearGradient>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -238,6 +241,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: 'white',
+  },
+  emptyContainer: {
+    flex: 1,
+    paddingTop: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#94A3B8',
+    textAlign: 'center',
   },
 });
 

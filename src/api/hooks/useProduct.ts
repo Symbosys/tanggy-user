@@ -3,8 +3,10 @@ import {
   UseInfiniteQueryOptions,
   InfiniteData,
   QueryKey,
+  useQuery,
+  UseQueryOptions,
 } from "@tanstack/react-query";
-import { GetAllProductsResponse } from "../../types/product.type";
+import { GetAllProductsResponse, Product } from "../../types/product.type";
 import api from "../api";
 
 export type GetAllProductsData = GetAllProductsResponse["data"];
@@ -12,6 +14,8 @@ export type GetAllProductsData = GetAllProductsResponse["data"];
 export interface GetAllProductsParams {
   categoryId?: string | number;
   subCategoryId?: string | number;
+  modeId?: string | number;
+  modeSlug?: string;
   maxPrice?: number;
   isActive?: boolean;
   isMandatory?: boolean;
@@ -42,7 +46,19 @@ export const fetchAllProducts = async (
 };
 
 /**
- * TanStack Infinite Query hook to fetch products with pagination.
+ * Fetch a single product by ID
+ */
+export const fetchProductById = async (
+  id: string | number
+): Promise<Product> => {
+  const response = await api.get<{ success: boolean; data: Product }>(
+    `/product/${id}`
+  );
+  return response.data.data;
+};
+
+/**
+ * TanStack Infinite Query hook to fetch products with pagination and filters (including modeId/modeSlug).
  * If client is not sending the limit then by default it will be 25.
  */
 export const useGetAllProducts = (
@@ -76,7 +92,8 @@ export const useGetAllProducts = (
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
-      const currentPage = lastPage.page ?? (lastPage.pagination?.page ?? allPages.length);
+      const currentPage =
+        lastPage.page ?? (lastPage.pagination?.page ?? allPages.length);
       const totalPages =
         lastPage.totalPages ??
         lastPage.pagination?.totalPages ??
@@ -87,6 +104,21 @@ export const useGetAllProducts = (
       const currentPage = firstPage.page ?? (firstPage.pagination?.page ?? 1);
       return currentPage > 1 ? currentPage - 1 : undefined;
     },
+    ...options,
+  });
+};
+
+/**
+ * TanStack Query hook to fetch a single product by ID
+ */
+export const useGetProductById = (
+  id?: string | number,
+  options?: Omit<UseQueryOptions<Product, Error>, "queryKey" | "queryFn">
+) => {
+  return useQuery<Product, Error>({
+    queryKey: ["product", id],
+    queryFn: () => fetchProductById(id!),
+    enabled: Boolean(id) && options?.enabled !== false,
     ...options,
   });
 };

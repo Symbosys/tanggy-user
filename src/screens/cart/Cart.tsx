@@ -23,18 +23,20 @@ import BottomCartPopup from '../../components/ui/popup/BottonCart';
 import { COLORS } from '../../theme/theme';
 import { AppNavigation } from '../../types/type';
 import { useCartStore } from '../../store/cart';
+import { useModeStore } from '../../store/mode';
 
 const CartScreen = ({ navigation }: AppNavigation) => {
 
   // Initialization Logic
   const { loading, cartItems } = useCartInitialization();
   const { fetchCart } = useCartStore();
+  const selectedMode = useModeStore((s) => s.selectedMode);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      fetchCart();
-    }, [fetchCart])
+      fetchCart(undefined, undefined, selectedMode?.id);
+    }, [fetchCart, selectedMode?.id])
   );
 
   // Calculations
@@ -63,7 +65,7 @@ const CartScreen = ({ navigation }: AppNavigation) => {
     setRefreshing(true);
     try {
       await Promise.all([
-        fetchCart(),
+        fetchCart(undefined, undefined, selectedMode?.id),
         refetchPartnerCount(),
         refetchWallet(),
       ]);
@@ -72,7 +74,7 @@ const CartScreen = ({ navigation }: AppNavigation) => {
     } finally {
       setRefreshing(false);
     }
-  }, [fetchCart, refetchPartnerCount, refetchWallet]);
+  }, [fetchCart, refetchPartnerCount, refetchWallet, selectedMode?.id]);
 
   if (loading) {
     return (

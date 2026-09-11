@@ -21,6 +21,7 @@ import { usePlaceOrder } from '../../api/hooks/useOrder';
 import { useNearbyDeliveryPartnersCount } from '../../api/hooks/useProfile';
 import { useUserWallet } from '../../api/hooks/useWallet';
 import { OrderSource, PaymentMethod } from '../../types/order.type';
+import { useModeStore } from '../../store/mode';
 import api from '../../api/api';
 
 export const useCartInitialization = () => {
@@ -28,11 +29,12 @@ export const useCartInitialization = () => {
   const { fetchAddresses, addresses } = useAddressStore();
   const { selectedAddressId, setSelectedAddressId } = useCartUIStore();
   const { latitude, longitude } = useLocationStore();
+  const selectedMode = useModeStore((s) => s.selectedMode);
 
   useEffect(() => {
-    fetchCart();
+    fetchCart(undefined, undefined, selectedMode?.id);
     fetchAddresses();
-  }, [fetchCart, fetchAddresses, latitude, longitude]);
+  }, [fetchCart, fetchAddresses, latitude, longitude, selectedMode?.id]);
 
   useEffect(() => {
     if (addresses.length > 0 && selectedAddressId === null) {
@@ -319,8 +321,10 @@ export const useCheckoutLogic = () => {
 
     // Build order data (shared for all payment methods)
     const cartState = useCartStore.getState();
+    const currentModeId = useModeStore.getState().selectedMode?.id;
     const orderData = {
       addressId: String(selectedAddressId || hasDefaultAddress?.id),
+      modeId: currentModeId ? String(currentModeId) : undefined,
       items: cartItems.map((item: any) => ({
         productId: String(item.product.id),
         quantity: item.quantity,

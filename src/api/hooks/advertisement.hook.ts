@@ -12,6 +12,7 @@ export interface Advertisement {
     url: string;
   };
   link?: string | null;
+  modeId?: string | null;
   displayOrder: number;
   isActive: boolean;
   createdAt: string;
@@ -24,14 +25,24 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+export interface GetAllAdvertisementsParams {
+  isActive?: boolean;
+  modeId?: string | number;
+}
+
 // ── Hooks ───────────────────────────────────────────────────
 
-export const useGetAllAdvertisements = (isActive?: boolean) => {
+export const useGetAllAdvertisements = (
+  params?: GetAllAdvertisementsParams | boolean
+) => {
+  const queryParams =
+    typeof params === "boolean" ? { isActive: params } : (params ?? {});
+
   return useQuery<Advertisement[]>({
-    queryKey: ["all-advertisements", isActive],
+    queryKey: ["all-advertisements", queryParams],
     queryFn: async () => {
       const { data } = await apiClient.get<ApiResponse<Advertisement[]>>("/admin/ads/all", {
-        params: isActive !== undefined ? { isActive } : {},
+        params: queryParams,
       });
       return data.data;
     },

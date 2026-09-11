@@ -1,9 +1,10 @@
-import { AxiosError } from 'axios';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Image,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -13,13 +14,13 @@ import {
 } from 'react-native';
 import { RefreshControl } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { VideoRef } from 'react-native-video';
-import api from '../../api/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { useGetAllCategories } from '../../api/hooks/useCategory';
+import { useGetAllModes } from '../../api/hooks/useMode';
 import { useGetAllProducts } from '../../api/hooks/useProduct';
 import { EliteMemberShipCard, FloatingEliteMembership } from '../../components/common/EliteMembership';
+import Offer from '../../components/home/Offer';
 import UnifiedFloatingBar from '../../components/order/UnifiedFloatingBar';
 import HomeLoading from '../../components/skeleton/HomeSkeleton';
 import CategoryList from '../../components/ui/CategoryList';
@@ -27,19 +28,17 @@ import ProductCard from '../../components/ui/products/Product';
 import { useAuth } from '../../context/AuthContext';
 import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
+import { useModeStore } from '../../store/mode';
 import { COLORS } from '../../theme/theme';
-import { Category, Product } from '../../types/product.type';
-import Offer from '../../components/home/Offer';
+import { Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
-import { ErrorMessage } from '../../utils/utils';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }: AppNavigation) {
   const queryClient = useQueryClient();
-  const [category, setCategory] = useState<Category[]>([]);
   const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const videoRef = useRef<VideoRef>(null);
   const { latitude, longitude, primaryLocation, secondaryLocation, initializeLocation } =
@@ -51,29 +50,62 @@ export default function HomeScreen({ navigation }: AppNavigation) {
     fetchCart,
   } = useCartStore();
 
+  const { data: modes = [], isLoading: isModesLoading } = useGetAllModes();
+  const { selectedMode, setSelectedMode } = useModeStore();
+
+  // Auto-select first mode if none selected yet
+  useEffect(() => {
+    if (modes && modes.length > 0 && !selectedMode) {
+      setSelectedMode(modes[0]);
+    }
+  }, [modes, selectedMode, setSelectedMode]);
+
+  // Synchronize cart whenever selectedMode changes or user authenticates
+  useEffect(() => {
+    if (selectedMode?.id && userId) {
+      useCartStore.getState().switchMode(selectedMode.id);
+    }
+  }, [selectedMode?.id, userId]);
+
+  // TanStack Query for Categories (cached per modeId with 5min staleTime)
+  const {
+    data: category = [],
+    isLoading: isCategoriesLoading,
+  } = useGetAllCategories(
+    { modeId: selectedMode?.id },
+    { enabled: Boolean(selectedMode?.id) }
+  );
+
   console.log('isAuthenticated', isAuthenticated)
 
   console.log('cartItems', totalCartItems, subTotal, isAuthenticated, userId);
 
-  // TanStack Query for Bestsellers (horizontal infinite scroll, limit: 10)
+  // TanStack Query for Bestsellers (horizontal infinite scroll, limit: 10, cached per modeId)
   const {
     data: bestSellersData,
+    isLoading: isBestsellersLoading,
     fetchNextPage: fetchNextBestSellers,
     hasNextPage: hasNextBestSellers,
     isFetchingNextPage: isFetchingNextBestSellers,
-  } = useGetAllProducts({
-    isBestSeller: true,
-    limit: 10,
-    isActive: true,
-    lat: latitude ?? undefined,
-    lng: longitude ?? undefined,
-    userId: userId ?? undefined,
-  });
+  } = useGetAllProducts(
+    {
+      isBestSeller: true,
+      limit: 10,
+      isActive: true,
+      modeId: selectedMode?.id,
+      lat: latitude ?? undefined,
+      lng: longitude ?? undefined,
+      userId: userId ?? undefined,
+    },
+    {
+      enabled: Boolean(selectedMode?.id),
+    }
+  );
 
   const bestsellerProducts =
     bestSellersData?.pages.flatMap((page) => page.products) || [];
 
-  // TanStack Query for Recommended Products (horizontal infinite scroll, limit: 10)
+  // TanStack Query for Recommended Products (horizontal infinite scroll, limit: 10, cached per modeId)
   const {
     data: recommendedData,
     fetchNextPage: fetchNextRecommended,
@@ -84,55 +116,18 @@ export default function HomeScreen({ navigation }: AppNavigation) {
       isRecommended: true,
       limit: 10,
       isActive: true,
+      modeId: selectedMode?.id,
       lat: latitude ?? undefined,
       lng: longitude ?? undefined,
       userId: userId ?? undefined,
     },
     {
-      enabled: Boolean(isAuthenticated),
+      enabled: Boolean(isAuthenticated && selectedMode?.id),
     }
   );
 
   const recommendedProducts =
     recommendedData?.pages.flatMap((page) => page.products) || [];
-
-  const fetchCategories = async () => {
-    try {
-      const res = await api.get('/category/all');
-      setCategory(res.data.data);
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        Toast.show({
-          type: 'error',
-          text1: error.response?.data.message || 'Something went wrong',
-        });
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Something went wrong',
-        });
-      }
-    }
-  };
-
-  // Unified Data Fetching with Loading State
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        await Promise.allSettled([
-          fetchCategories(),
-          userId ? fetchCart() : Promise.resolve(),
-        ]);
-      } catch (error) {
-        console.error('Error loading home data', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [latitude, longitude, userId]);
 
   useEffect(() => {
     initializeLocation();
@@ -161,9 +156,20 @@ export default function HomeScreen({ navigation }: AppNavigation) {
     navigation.navigate('Search');
   };
 
-  // Render Loading State
-  if (isLoading) {
-    return <HomeLoading />;
+  // Determine if core data for the currently selected mode is still loading
+  const isModeDataLoading =
+    (!selectedMode && isModesLoading) ||
+    (!selectedMode && modes.length > 0) ||
+    (isCategoriesLoading && category.length === 0) ||
+    (isBestsellersLoading && bestsellerProducts.length === 0);
+
+  // Render Loading State on cold start or when first visiting an uncached mode
+  if (isModeDataLoading) {
+    return (
+      <HomeLoading
+        title={selectedMode?.name ? `Loading ${selectedMode.name}...` : 'Loading Fresh Delights...'}
+      />
+    );
   }
 
   return (
@@ -176,20 +182,21 @@ export default function HomeScreen({ navigation }: AppNavigation) {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={isLoading}
+              refreshing={isRefreshing}
               onRefresh={async () => {
-                setIsLoading(true);
+                setIsRefreshing(true);
                 try {
                   await Promise.allSettled([
-                    fetchCategories(),
-                    userId ? fetchCart() : Promise.resolve(),
+                    queryClient.invalidateQueries({ queryKey: ['categories'] }),
                     queryClient.invalidateQueries({ queryKey: ['products'] }),
+                    queryClient.invalidateQueries({ queryKey: ['modes'] }),
                     queryClient.invalidateQueries({ queryKey: ['orders'] }),
+                    userId ? fetchCart(undefined, undefined, selectedMode?.id) : Promise.resolve(),
                   ]);
                 } catch (error) {
                   console.error('Error refreshing home data', error);
                 } finally {
-                  setIsLoading(false);
+                  setIsRefreshing(false);
                 }
               }}
             />
@@ -220,35 +227,112 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.notificationButton}
-                onPress={() => { navigation.navigate('Accounts') }}
-                activeOpacity={0.7}
-              >
-                <Icon name="person" size={35} color={COLORS.textPrimary} />
-                <View style={styles.notificationBadge} />
-              </TouchableOpacity>
+              <View style={styles.headerRightActions}>
+                <TouchableOpacity
+                  style={styles.searchIconButton}
+                  onPress={handleSearchPress}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="search" size={24} color={COLORS.textPrimary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.notificationButton}
+                  onPress={() => { navigation.navigate('Accounts'); }}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="person" size={32} color={COLORS.textPrimary} />
+                  <View style={styles.notificationBadge} />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            {/* Search Bar */}
-            <View style={styles.searchSection}>
-              <TouchableOpacity
-                style={styles.searchBar}
-                onPress={handleSearchPress}
-                activeOpacity={0.9}
-                onPressIn={() => navigation.navigate("Search")}
-              >
-                <Icon
-                  name="search"
-                  size={24}
-                  color={COLORS.muted}
-                  style={styles.searchIcon}
-                />
-                <Text style={styles.searchPlaceholderText}>
-                  Search for chicken, meat, or dishes…
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {/* Horizontal Scrolling Modes */}
+            {modes && modes.length > 0 && (
+              <View style={styles.modesSection}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.modesScrollContent}
+                >
+                  {modes.map((mode) => {
+                    const isSelected = selectedMode?.id === mode.id;
+                    const imageUrl =
+                      mode.image?.secure_url ||
+                      mode.image?.url ||
+                      mode.icon?.secure_url ||
+                      mode.icon?.url;
+
+                    return (
+                      <TouchableOpacity
+                        key={String(mode.id)}
+                        style={[
+                          styles.modeCard,
+                          isSelected && styles.modeCardSelected,
+                        ]}
+                        onPress={() => {
+                          setSelectedMode(mode);
+                          useCartStore.getState().switchMode(mode.id);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        {imageUrl ? (
+                          <Image
+                            source={{ uri: imageUrl }}
+                            style={styles.modeImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View
+                            style={[
+                              styles.modeIconPlaceholder,
+                              isSelected && styles.modeIconPlaceholderSelected,
+                            ]}
+                          >
+                            <Icon
+                              name="restaurant"
+                              size={16}
+                              color={isSelected ? COLORS.primary : COLORS.muted}
+                            />
+                          </View>
+                        )}
+
+                        <View style={styles.modeTextContainer}>
+                          <Text
+                            style={[
+                              styles.modeName,
+                              isSelected && styles.modeNameSelected,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {mode.name}
+                          </Text>
+
+                          {mode.badge ? (
+                            <View
+                              style={[
+                                styles.modeBadge,
+                                isSelected && styles.modeBadgeSelected,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.modeBadgeText,
+                                  isSelected && styles.modeBadgeTextSelected,
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {mode.badge}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
           </View>
 
           <Offer category={category} navigation={navigation} />
@@ -391,13 +475,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   locationSection: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 16,
+    marginRight: 12,
   },
   locationCircle: {
     width: 40,
@@ -442,25 +539,86 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.background,
   },
-  searchSection: {
-    paddingHorizontal: 16,
+  modesSection: {
+    marginTop: 2,
   },
-  searchBar: {
+  modesScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    gap: 10,
+  },
+  modeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9', // Light grey search bar background
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 16,
-    height: 60,
-    paddingHorizontal: 16,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  searchIcon: {
-    marginRight: 12,
+  modeCardSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: '#F7EEFD',
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 2,
   },
-  searchPlaceholderText: {
-    flex: 1,
-    fontSize: 16,
+  modeImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  modeIconPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  modeIconPlaceholderSelected: {
+    backgroundColor: '#EBD4F9',
+  },
+  modeTextContainer: {
+    justifyContent: 'center',
+  },
+  modeName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  modeNameSelected: {
+    color: COLORS.primary,
+    fontWeight: '800',
+  },
+  modeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    marginTop: 2,
+  },
+  modeBadgeSelected: {
+    backgroundColor: COLORS.primary,
+  },
+  modeBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
     color: COLORS.muted,
-    fontWeight: '500',
+  },
+  modeBadgeTextSelected: {
+    color: '#FFFFFF',
   },
   bannerSection: {
     paddingHorizontal: 16,

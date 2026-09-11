@@ -1,4 +1,3 @@
-import React from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -9,13 +8,14 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useGetAllProducts } from '../../api/hooks/useProduct';
 import UnifiedFloatingBar from '../../components/order/UnifiedFloatingBar';
 import ProductCard from '../../components/ui/products/DiscountProduct';
 import { useAuth } from '../../context/AuthContext';
-import { useGetAllProducts } from '../../api/hooks/useProduct';
 import { useAlertStore } from '../../store/alert.store';
 import { useCartStore } from '../../store/cart';
 import { useLocationStore } from '../../store/location';
+import { useModeStore } from '../../store/mode';
 import { COLORS } from '../../theme/theme';
 import { Product } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
@@ -26,6 +26,7 @@ const headerHeight = screenHeight * 0.4;
 const DealsScreen = ({ navigation }: AppNavigation) => {
     const { latitude, longitude } = useLocationStore();
     const { userId, isAuthenticated } = useAuth();
+    const { selectedMode } = useModeStore();
     const { showAlert } = useAlertStore();
     const {
         getQuantity,
@@ -45,6 +46,7 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
         isActive: true,
         marketPrice: 1, // Only products with marketPrice > sellingPrice
         limit: 15,
+        modeId: selectedMode?.id,
         lat: latitude ?? undefined,
         lng: longitude ?? undefined,
         userId: userId ?? undefined,
@@ -124,7 +126,9 @@ const DealsScreen = ({ navigation }: AppNavigation) => {
             />
             <View style={styles.overlay} />
             <View style={styles.headerContent}>
-                <Text style={styles.title}>Exclusive Discounts</Text>
+                <Text style={styles.title}>
+                    {selectedMode ? `${selectedMode.name} Deals` : 'Exclusive Discounts'}
+                </Text>
                 <Text style={styles.subtitle}>Fresh Deals, Unbeatable Prices</Text>
             </View>
         </View>

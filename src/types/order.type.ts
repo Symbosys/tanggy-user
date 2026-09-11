@@ -1,4 +1,5 @@
 // types/order.type.ts
+import { Mode } from './product.type';
 
 export enum OrderStatus {
   PLACED = 'PLACED',
@@ -258,6 +259,8 @@ export interface Order {
   orderNumber: string;
   userId: bigint;
   addressId: bigint;
+  modeId?: bigint | string;
+  mode?: Mode;
   itemTotal: number;
   gstOnItemTotal: number;
   deliveryFee: number;
@@ -353,6 +356,7 @@ export interface PlaceOrderItem {
 export interface PlaceOrderInput {
   addressId: string;
   items: PlaceOrderItem[];
+  modeId?: string | number;
   tipAmount?: number;
   paymentMethod: PaymentMethod;
   notes?: string | null;

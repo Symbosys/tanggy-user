@@ -5,6 +5,7 @@ import api from "../api/api";
 import { Product } from "../types/product.type";
 import { ErrorMessage, parseToDecimal, parseWeightToGrams, SuccessMessage } from "../utils/utils";
 import { useLocationStore } from "./location";
+import { useModeStore } from "./mode";
 
 export interface ItemPricing {
   originalPrice: number;
@@ -92,16 +93,21 @@ interface CartState {
   appliedOffers: AppliedOfferSummary[];
   offerProgress: OfferProgress | null;
 
+  // Mode Scoping
+  currentModeId: string | number | null;
+  modeCarts: Record<string, any>;
+
   // Actions
-  fetchCart: (explicitPromoCodes?: string | string[], explicitOfferIds?: string | string[]) => Promise<void>;
+  switchMode: (modeId: string | number) => void;
+  fetchCart: (explicitPromoCodes?: string | string[], explicitOfferIds?: string | string[], explicitModeId?: string | number) => Promise<void>;
   applyOfferById: (offerId: string, isStackable?: boolean) => Promise<boolean>;
   removeOfferById: (offerId: string) => Promise<void>;
   applyPromoCode: (code: string, isStackable?: boolean) => Promise<boolean>;
   removePromoCodeByCode: (code: string) => Promise<void>;
   removeAppliedOffer: () => Promise<void>;
   removePromoCode: () => Promise<void>;
-  addToCart: (productId: string, quantity: number, product?: any) => Promise<void>;
-  clearCart: () => Promise<void>;
+  addToCart: (productId: string, quantity: number, product?: any, explicitModeId?: string | number) => Promise<void>;
+  clearCart: (explicitModeId?: string | number) => Promise<void>;
   getQuantity: (productId: string) => number;
   incrementQuantity: (product: Product) => Promise<void>;
   decrementQuantity: (product: Product) => Promise<void>;
@@ -134,11 +140,78 @@ export const useCartStore = create<CartState>((set, get) => ({
   appliedOffers: [],
   offerProgress: null,
 
+  // Mode Scoping State
+  currentModeId: null,
+  modeCarts: {},
+
+  // Switch Mode: optimistically set UI cart state from cache and fetch latest for this mode
+  switchMode: (modeId: string | number) => {
+    if (!modeId) return;
+    const currentModeId = get().currentModeId;
+    if (String(currentModeId) === String(modeId)) return;
+
+    const modeKey = String(modeId);
+    const cachedModeCart = get().modeCarts[modeKey];
+
+    if (cachedModeCart) {
+      set({
+        currentModeId: modeId,
+        cartItems: cachedModeCart.cartItems || [],
+        subtotal: cachedModeCart.subtotal || 0,
+        itemTotal: cachedModeCart.itemTotal || 0,
+        itemDiscountTotal: cachedModeCart.itemDiscountTotal || 0,
+        promoDiscountTotal: cachedModeCart.promoDiscountTotal || 0,
+        discountTotal: cachedModeCart.discountTotal || 0,
+        cashbackTotal: cachedModeCart.cashbackTotal || 0,
+        finalItemTotal: cachedModeCart.finalItemTotal || 0,
+        totalItems: cachedModeCart.totalItems || 0,
+        deliveryFee: cachedModeCart.deliveryFee || 0,
+        platformFee: cachedModeCart.platformFee || 0,
+        gstOnPlatform: cachedModeCart.gstOnPlatform || 0,
+        packingFee: cachedModeCart.packingFee || 0,
+        surcharge: cachedModeCart.surcharge || 0,
+        appliedOffers: cachedModeCart.appliedOffers || [],
+        appliedOffer: cachedModeCart.appliedOffer || null,
+        appliedPromoCode: cachedModeCart.appliedPromoCode || null,
+        appliedPromoCodes: cachedModeCart.appliedPromoCodes || [],
+        promoError: null,
+        offerProgress: cachedModeCart.offerProgress || null,
+      });
+    } else {
+      set({
+        currentModeId: modeId,
+        cartItems: [],
+        subtotal: 0,
+        itemTotal: 0,
+        itemDiscountTotal: 0,
+        promoDiscountTotal: 0,
+        discountTotal: 0,
+        cashbackTotal: 0,
+        finalItemTotal: 0,
+        totalItems: 0,
+        deliveryFee: 0,
+        platformFee: 0,
+        gstOnPlatform: 0,
+        packingFee: 0,
+        surcharge: 0,
+        appliedOffers: [],
+        appliedOffer: null,
+        appliedPromoCode: null,
+        appliedPromoCodes: [],
+        promoError: null,
+        offerProgress: null,
+      });
+    }
+
+    get().fetchCart(undefined, undefined, modeId);
+  },
+
   // Fetch all items from backend with active offers & promo calculation
-  fetchCart: async (explicitPromoCodes?: string | string[], explicitOfferIds?: string | string[]) => {
+  fetchCart: async (explicitPromoCodes?: string | string[], explicitOfferIds?: string | string[], explicitModeId?: string | number) => {
     set({ loading: true, error: null });
     try {
       const { latitude, longitude } = useLocationStore.getState();
+      const targetModeId = explicitModeId ?? get().currentModeId ?? useModeStore.getState().selectedMode?.id;
       
       const codesArray = explicitPromoCodes !== undefined
         ? (Array.isArray(explicitPromoCodes) ? explicitPromoCodes : explicitPromoCodes ? [explicitPromoCodes] : [])
@@ -150,6 +223,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
       const res = await api.get("/user/cart/all", {
         params: {
+          modeId: targetModeId ? String(targetModeId) : undefined,
           latitude,
           longitude,
           promoCodes: codesArray.length > 0 ? codesArray.join(",") : undefined,
@@ -190,7 +264,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         ? codesArray.filter((c) => c.toUpperCase() === serverAppliedCode.toUpperCase())
         : [];
 
-      set({
+      const modeCartData = {
         cartItems: data.items || [],
         subtotal,
         itemTotal,
@@ -213,8 +287,28 @@ export const useCartStore = create<CartState>((set, get) => ({
         appliedPromoCodes: validatedPromoCodes,
         promoError: data.promoError || null,
         offerProgress: data.offerProgress || null,
-        loading: false,
-      });
+      };
+
+      const nextModeCarts = {
+        ...get().modeCarts,
+        ...(targetModeId ? { [String(targetModeId)]: modeCartData } : {}),
+      };
+
+      // Only update active cart items if this fetch was for the active mode
+      const activeModeId = get().currentModeId ?? useModeStore.getState().selectedMode?.id;
+      if (!targetModeId || String(targetModeId) === String(activeModeId)) {
+        set({
+          ...modeCartData,
+          currentModeId: targetModeId ?? activeModeId,
+          modeCarts: nextModeCarts,
+          loading: false,
+        });
+      } else {
+        set({
+          modeCarts: nextModeCarts,
+          loading: false,
+        });
+      }
     } catch (err: any) {
       set({ loading: false });
       ErrorMessage(err);
@@ -393,20 +487,20 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   // Add or update an item in cart
-  addToCart: async (productId: string, quantity: number, product?: any) => {
+  addToCart: async (productId: string, quantity: number, product?: any, explicitModeId?: string | number) => {
     const currentItems = get().cartItems;
-    const targetItem = currentItems.find((item) => String(item.product.id) === String(productId));
+    const targetItem = currentItems.find((item) => String(item.product?.id || item.productId) === String(productId));
     const currentQty = targetItem ? targetItem.quantity : 0;
 
     // Check weight constraint if quantity is increasing
     if (quantity > currentQty) {
-      const weightStr = product ? product.weight : targetItem ? targetItem.product.weight : null;
+      const weightStr = product ? product.weight : targetItem ? targetItem.product?.weight : null;
       if (weightStr) {
         const itemWeight = parseWeightToGrams(weightStr);
         let proposedWeight = 0;
         for (const item of currentItems) {
-          if (String(item.product.id) !== String(productId)) {
-            proposedWeight += parseWeightToGrams(item.product.weight) * item.quantity;
+          if (String(item.product?.id || item.productId) !== String(productId)) {
+            proposedWeight += parseWeightToGrams(item.product?.weight || "0g") * item.quantity;
           }
         }
         proposedWeight += itemWeight * quantity;
@@ -420,22 +514,36 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     set({ loading: true, error: null });
     try {
-      await api.post("/user/cart/add", { productId, quantity });
-      // refresh cart with updated pricing & recalculations
-      await get().fetchCart();
+      const targetModeId = explicitModeId ?? product?.modeId ?? get().currentModeId ?? useModeStore.getState().selectedMode?.id;
+      await api.post("/user/cart/add", {
+        productId,
+        quantity,
+        modeId: targetModeId ? Number(targetModeId) : undefined,
+      });
+      // refresh cart with updated pricing & recalculations for current mode
+      await get().fetchCart(undefined, undefined, targetModeId);
     } catch (err: any) {
       set({ loading: false });
       ErrorMessage(err as AxiosError | Error);
     }
   },
 
-  // Clear the entire cart
-  clearCart: async () => {
+  // Clear the current mode's cart (or specified mode's cart)
+  clearCart: async (explicitModeId?: string | number) => {
+    const targetModeId = explicitModeId ?? get().currentModeId ?? useModeStore.getState().selectedMode?.id;
     set({ loading: true, error: null });
     try {
       await api.delete("/user/cart/clear", {
+        params: targetModeId ? { modeId: targetModeId } : undefined,
         withCredentials: true,
       });
+
+      const modeKey = targetModeId ? String(targetModeId) : null;
+      const nextModeCarts = { ...get().modeCarts };
+      if (modeKey) {
+        delete nextModeCarts[modeKey];
+      }
+
       set({
         cartItems: [],
         subtotal: 0,
@@ -460,6 +568,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         appliedOffers: [],
         promoError: null,
         offerProgress: null,
+        modeCarts: nextModeCarts,
         loading: false,
       });
     } catch (err: any) {
@@ -470,7 +579,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   // Get quantity for a specific product
   getQuantity: (productId: string) => {
-    return get().cartItems.find((item) => String(item.product.id) === String(productId))?.quantity || 0;
+    return get().cartItems.find((item) => String(item.product?.id || item.productId) === String(productId))?.quantity || 0;
   },
 
   // Increment quantity for a product
@@ -483,7 +592,15 @@ export const useCartStore = create<CartState>((set, get) => ({
   decrementQuantity: async (product: Product) => {
     const currentQuantity = get().getQuantity(String(product.id));
     if (currentQuantity > 0) {
-      await get().addToCart(String(product.id), currentQuantity - 1);
+      await get().addToCart(String(product.id), currentQuantity - 1, product);
     }
   },
 }));
+
+// Automatic synchronization: switch cart mode whenever active mode changes
+useModeStore.subscribe((state) => {
+  const modeId = state.selectedMode?.id;
+  if (modeId && String(modeId) !== String(useCartStore.getState().currentModeId)) {
+    useCartStore.getState().switchMode(modeId);
+  }
+});
