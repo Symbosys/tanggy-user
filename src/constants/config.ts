@@ -6,10 +6,10 @@
  */
 
 
-const IS_PRODUCTION = false; // 👈 Toggle this for Production/Local
+const IS_PRODUCTION = true; // 👈 Toggle this for Production/Local
 
 const LOCAL_IP = "192.168.31.40";
-const PROD_DOMAIN = "api.mintafresh.com";
+const PROD_DOMAIN = "api.tanggy.in";
 
 // 🚀 API BASE URL
 export const API_BASE_URL = IS_PRODUCTION

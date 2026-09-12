@@ -1,4 +1,4 @@
-package com.mintafresh.user
+package com.tanggy.user
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

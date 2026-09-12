@@ -1,4 +1,4 @@
-npx @react-native-community/cli@latest init MintafreshUser --package-name com.mintafresh.user
+npx @react-native-community/cli@latest init MintafreshUser --package-name com.tanggy.user
 
 
 ref={bottomSheetRef}
