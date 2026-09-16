@@ -1,15 +1,30 @@
 export const COLORS = {
-  primary: '#9235D0',    // Deep Purple (for buttons, highlights)
-  secondary: '#f9eae9',  // Soft Pink (for backgrounds, cards)
-  accent: '#b58ff0',     // Lavender (hover, subtle accents)
-  highlight: '#ff9fa3',  // Coral/Peach (alerts, badges)
-  background: '#fafafa', // Default background
-  white: '#ffffff',       // White color
-  textPrimary: '#222222', // Main text
-  textSecondary: '#4a4a4a', // Secondary text
-  muted: '#888888',       // Muted text or icons
-  warning: '#FF9800',     // Warning color for status updates
-  success: '#4CAF50',     // Success color for successful actions
+  // Brand
+  primary: '#FF6503',        // Tanggy Orange - primary buttons, CTAs, active states
+  primaryDark: '#E85400',    // Darker orange - hover/pressed states
+  primaryLight: '#FFF0E6',   // Very light orange - selected backgrounds
+
+  // Supporting colors
+  secondary: '#FFF7F2',      // Warm cream - cards/sections
+  accent: '#FFB066',         // Soft orange - subtle accents
+  highlight: '#FFE0CC',      // Peach - badges/highlights
+
+  // Backgrounds
+  background: '#FAFAFA',     // Main application background
+  surface: '#FFFFFF',        // Cards, modals, panels
+  white: '#FFFFFF',
+
+  // Typography
+  textPrimary: '#222222',     // Main text
+  textSecondary: '#555555',   // Secondary text
+  muted: '#8A8A8A',          // Muted text/icons
+  border: '#EAEAEA',         // Borders/dividers
+
+  // Status
+  warning: '#F59E0B',
+  success: '#22A06B',
+  error: '#DC3545',
+  info: '#3B82F6',
 };
 
 export const FONTS = {

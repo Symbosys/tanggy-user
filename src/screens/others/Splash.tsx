@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Video from 'react-native-video';
+import { Image, StatusBar, StyleSheet, View } from 'react-native';
 import { getMessaging, requestPermission, getToken, onTokenRefresh } from '@react-native-firebase/messaging';
 import { useAuth } from '../../context/AuthContext';
 import { useUpdateProfile } from '../../api/hooks/useProfile';
@@ -96,25 +95,19 @@ const Splash = ({ navigation }: AppNavigation) => {
 
     const timeout = setTimeout(() => {
       checkNavigationTarget();
-    }, 2000);
+    }, 3000);
 
     return () => clearTimeout(timeout);
   }, [ready, isAuthenticated, hasSkippedLogin, navigation]);
 
   return (
     <View style={styles.container}>
-      <Video
-        source={require('../../assets/video/splash.mp4')}
-        style={StyleSheet.absoluteFill}
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <Image
+        source={require('../../assets/splash/splash.png')}
+        style={styles.image}
         resizeMode="cover"
-
-        // KEY FIXES
-        onLoad={() => setReady(true)}      // ensures first frame is ready
-        poster={require('../../assets/video/splash.mp4')}  // first frame
-        posterResizeMode="cover"
-        // posterStyle={StyleSheet.absoluteFill}
-        muted
-        repeat
+        onLoad={() => setReady(true)}
       />
     </View>
   );
@@ -125,6 +118,10 @@ export default Splash;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',  // prevents white flash
+    backgroundColor: '#FAF5EE',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
   },
 });

@@ -20,7 +20,6 @@ import { useGetAllCategories } from '../../api/hooks/useCategory';
 import { useGetAllModes } from '../../api/hooks/useMode';
 import { useGetAllProducts } from '../../api/hooks/useProduct';
 import { EliteMemberShipCard, FloatingEliteMembership } from '../../components/common/EliteMembership';
-import Offer from '../../components/home/Offer';
 import UnifiedFloatingBar from '../../components/order/UnifiedFloatingBar';
 import HomeLoading from '../../components/skeleton/HomeSkeleton';
 import CategoryList from '../../components/ui/CategoryList';
@@ -175,7 +174,7 @@ export default function HomeScreen({ navigation }: AppNavigation) {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
         <ScrollView
           style={styles.scrollView}
@@ -204,47 +203,52 @@ export default function HomeScreen({ navigation }: AppNavigation) {
         >
           {/* Systematic & Professional Header */}
           <View style={styles.topHeaderContainer}>
-            {/* Location & Notification Bar */}
+            {/* Location & Actions Bar */}
             <View style={styles.topBar}>
               <TouchableOpacity
                 style={styles.locationSection}
                 onPress={() => navigation.navigate('SelectLocation')}
                 activeOpacity={0.7}
               >
-                <View style={styles.locationCircle}>
-                  <Icon name="place" size={24} color={COLORS.primary} />
+                <View style={styles.deliveryIconCircle}>
+                  <Icon name="local-shipping" size={20} color={COLORS.primary} />
                 </View>
                 <View style={styles.locationInfo}>
+                  <Text style={styles.deliveryToLabel}>Delivery to</Text>
                   <View style={styles.locationRow}>
                     <Text style={styles.primaryLocationText} numberOfLines={1}>
                       {primaryLocation || 'Select Location'}
                     </Text>
-                    <Icon name="keyboard-arrow-down" size={20} color={COLORS.textPrimary} />
+                    <Icon name="keyboard-arrow-down" size={18} color={COLORS.textPrimary} />
                   </View>
-                  <Text style={styles.secondaryLocationText} numberOfLines={1}>
-                    {secondaryLocation || 'Tap to set address'}
-                  </Text>
                 </View>
               </TouchableOpacity>
 
               <View style={styles.headerRightActions}>
                 <TouchableOpacity
-                  style={styles.searchIconButton}
-                  onPress={handleSearchPress}
+                  style={styles.actionIconButton}
+                  onPress={() => { navigation.navigate('Wallet'); }}
                   activeOpacity={0.7}
                 >
-                  <Icon name="search" size={24} color={COLORS.textPrimary} />
+                  <Icon name="account-balance-wallet" size={22} color={COLORS.textPrimary} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.notificationButton}
-                  onPress={() => { navigation.navigate('Accounts'); }}
+                  style={styles.actionIconButton}
+                  onPress={() => { navigation.navigate('Profile'); }}
                   activeOpacity={0.7}
                 >
-                  <Icon name="person" size={32} color={COLORS.textPrimary} />
-                  <View style={styles.notificationBadge} />
+                  <Icon name="person-outline" size={24} color={COLORS.textPrimary} />
                 </TouchableOpacity>
               </View>
+            </View>
+
+            {/* Hero Title */}
+            <View style={styles.heroSection}>
+              <Text style={styles.heroTitle}>
+                <Text style={styles.heroTitleBold}>Hungry?</Text>
+                <Text style={styles.heroTitleLight}> Order & Eat.</Text>
+              </Text>
             </View>
 
             {/* Horizontal Scrolling Modes */}
@@ -333,15 +337,25 @@ export default function HomeScreen({ navigation }: AppNavigation) {
                 </ScrollView>
               </View>
             )}
-          </View>
 
-          <Offer category={category} navigation={navigation} />
+            {/* Search */}
+            <View style={styles.searchSection}>
+              <TouchableOpacity
+                style={styles.searchBar}
+                onPress={handleSearchPress}
+                activeOpacity={0.8}
+              >
+                <Icon name="search" size={22} color="#8A92A0" style={{ marginRight: 10 }} />
+                <Text style={styles.searchPlaceholder}>Search for fast food, dishes...</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Tilted Arc Categories */}
+            <CategoryList categories={category} navigation={navigation} />
+          </View>
 
           {/* Main Content */}
           <View style={styles.mainContent}>
-            {/* Categories Section */}
-            <CategoryList categories={category} navigation={navigation} />
-
             {/* Bestsellers Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -466,8 +480,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topHeaderContainer: {
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingTop: 12,
+    paddingBottom: 2,
     backgroundColor: COLORS.background,
   },
   topBar: {
@@ -475,20 +489,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  headerRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchIconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
+    marginBottom: 8,
   },
   locationSection: {
     flexDirection: 'row',
@@ -496,51 +497,122 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  locationCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3E8FF', // Light lavender
+  deliveryIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFF0E6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   locationInfo: {
-    marginLeft: 8,
+    marginLeft: 10,
     flex: 1,
+  },
+  deliveryToLabel: {
+    fontSize: 11,
+    color: '#8A8A8A',
+    fontWeight: '500',
+    marginBottom: 1,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   primaryLocationText: {
-    color: '#000000',
-    fontSize: 16,
+    color: '#18181B',
+    fontSize: 14,
     fontWeight: '800',
-    marginRight: 4,
+    marginRight: 2,
+    maxWidth: '85%',
   },
-  secondaryLocationText: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: '500',
-    marginTop: 1,
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  notificationButton: {
+  actionIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#F4F4F5',
+    justifyContent: 'center',
+    alignItems: 'center',
     position: 'relative',
-    padding: 4,
   },
-  notificationBadge: {
+  cartBadge: {
     position: 'absolute',
-    top: 6,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FF3B30', // Vibrant red
+    top: -2,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
     borderWidth: 1.5,
-    borderColor: COLORS.background,
+    borderColor: '#FFFFFF',
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  heroSection: {
+    paddingHorizontal: 16,
+    marginTop: 6,
+    marginBottom: 12,
+  },
+  heroTitle: {
+    fontSize: 28,
+    lineHeight: 34,
+  },
+  heroTitleBold: {
+    fontWeight: '900',
+    color: '#18181B',
+  },
+  heroTitleLight: {
+    fontWeight: '400',
+    color: '#71717A',
+  },
+  searchSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  searchBar: {
+    flex: 1,
+    height: 48,
+    backgroundColor: '#F4F4F5',
+    borderRadius: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  searchPlaceholder: {
+    fontSize: 14,
+    color: '#A1A1AA',
+    fontWeight: '400',
+  },
+  filterButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#18181B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   modesSection: {
     marginTop: 2,
+    marginBottom: 6,
   },
   modesScrollContent: {
     paddingHorizontal: 16,
