@@ -1,15 +1,16 @@
 import { useNavigation } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,222 +21,343 @@ import { User } from '../../types/user';
 import { ErrorMessage } from '../../utils/utils';
 
 const UpdateProfile = () => {
-    const navigation = useNavigation();
-    const { data: user, isLoading: isFetching } = useProfile();
-    const { mutate: updateProfile, isPending: isUpdating } = useUpdateProfile();
+  const navigation = useNavigation();
+  const { data: user, isLoading: isFetching } = useProfile();
+  const { mutate: updateProfile, isPending: isUpdating } = useUpdateProfile();
 
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (user) {
-            setName(user.name || '');
-            setEmail(user.email || '');
-        }
-    }, [user]);
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
 
-    const handleUpdate = () => {
-        if (!user) return;
+  const handleUpdate = () => {
+    if (!user) return;
 
-        const updatedUser: User = {
-            ...user,
-            name,
-            email,
-        };
-
-        updateProfile(updatedUser, {
-            onSuccess: () => {
-                navigation.goBack();
-            },
-            onError: (error) => ErrorMessage(error)
-        });
+    const updatedUser: User = {
+      ...user,
+      name,
+      email,
     };
 
-    if (isFetching) {
-        return (
-            <SafeAreaView style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-            </SafeAreaView>
-        );
-    }
+    updateProfile(updatedUser, {
+      onSuccess: () => {
+        navigation.goBack();
+      },
+      onError: (error) => ErrorMessage(error),
+    });
+  };
 
+  if (isFetching) {
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Edit Profile</Text>
-                <View style={{ width: 40 }} />
+      <SafeAreaView style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Icon name="arrow-back-ios" size={18} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <View style={styles.headerRightPlaceholder} />
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.flexContainer}
+      >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Form Fields Section */}
+          <View style={styles.formContainer}>
+            {/* Full Name */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Full Name</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  focusedInput === 'name' && styles.inputFocused,
+                ]}
+              >
+                <View style={styles.iconCircle}>
+                  <Icon
+                    name="person-outline"
+                    size={18}
+                    color={
+                      focusedInput === 'name'
+                        ? COLORS.primary
+                        : COLORS.textSecondary
+                    }
+                  />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                  onFocus={() => setFocusedInput('name')}
+                  onBlur={() => setFocusedInput(null)}
+                  placeholder="Enter your full name"
+                  placeholderTextColor={COLORS.muted}
+                  selectionColor={COLORS.primary}
+                />
+              </View>
             </View>
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1 }}
-            >
-                <ScrollView contentContainerStyle={styles.content}>
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Full Name</Text>
-                        <View style={styles.inputContainer}>
-                            <Icon name="person-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={name}
-                                onChangeText={setName}
-                                placeholder="Enter your full name"
-                                placeholderTextColor={COLORS.textSecondary}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Email Address</Text>
-                        <View style={styles.inputContainer}>
-                            <Icon name="mail-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={email}
-                                onChangeText={setEmail}
-                                placeholder="Enter your email"
-                                placeholderTextColor={COLORS.textSecondary}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                            />
-                        </View>
-                    </View>
-
-
-
-
-                </ScrollView>
-
-                <View style={styles.footer}>
-                    <TouchableOpacity
-                        style={styles.updateButton}
-                        onPress={handleUpdate}
-                        disabled={isUpdating}
-                    >
-                        <LinearGradient
-                            colors={[COLORS.primary, '#b58ff0']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.gradientButton}
-                        >
-                            {isUpdating ? (
-                                <ActivityIndicator size="small" color="#FFF" />
-                            ) : (
-                                <Text style={styles.buttonText}>Update Profile</Text>
-                            )}
-                        </LinearGradient>
-                    </TouchableOpacity>
+            {/* Email Address */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <View
+                style={[
+                  styles.inputContainer,
+                  focusedInput === 'email' && styles.inputFocused,
+                ]}
+              >
+                <View style={styles.iconCircle}>
+                  <Icon
+                    name="mail-outline"
+                    size={18}
+                    color={
+                      focusedInput === 'email'
+                        ? COLORS.primary
+                        : COLORS.textSecondary
+                    }
+                  />
                 </View>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
-    );
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  onFocus={() => setFocusedInput('email')}
+                  onBlur={() => setFocusedInput(null)}
+                  placeholder="Enter your email address"
+                  placeholderTextColor={COLORS.muted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  selectionColor={COLORS.primary}
+                />
+              </View>
+            </View>
+
+            {/* Phone Number (Unedited / Read Only) */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Phone Number</Text>
+              <View style={[styles.inputContainer, styles.disabledInput]}>
+                <View style={styles.iconCircle}>
+                  <Icon
+                    name="phone-android"
+                    size={18}
+                    color={COLORS.textSecondary}
+                  />
+                </View>
+                <TextInput
+                  style={[styles.input, styles.disabledInputText]}
+                  value={user?.mobile || ''}
+                  placeholder="Phone number not set"
+                  placeholderTextColor={COLORS.muted}
+                  editable={false}
+                />
+                <View style={styles.verifiedPill}>
+                  <Icon name="lock-outline" size={13} color={COLORS.muted} />
+                  <Text style={styles.verifiedPillText}>Locked</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Footer Button */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.updateButton}
+            onPress={handleUpdate}
+            disabled={isUpdating}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.accent]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientButton}
+            >
+              {isUpdating ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={styles.buttonText}>Save Changes</Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#FAFAFA',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#FAFAFA',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#FFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#EEE',
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 20,
-        backgroundColor: '#F5F5F5',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    content: {
-        padding: 24,
-    },
-    formGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: COLORS.textPrimary,
-        marginBottom: 8,
-        marginLeft: 4,
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFF',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        height: 50,
-    },
-    disabledInput: {
-        backgroundColor: '#F3F4F6',
-        borderColor: '#E5E7EB',
-    },
-    inputIcon: {
-        marginRight: 10,
-    },
-    input: {
-        flex: 1,
-        fontSize: 16,
-        color: COLORS.textPrimary,
-    },
-    helperText: {
-        fontSize: 12,
-        color: COLORS.textSecondary,
-        marginTop: 4,
-        marginLeft: 4,
-    },
-    footer: {
-        padding: 24,
-        backgroundColor: '#FFF',
-        borderTopWidth: 1,
-        borderTopColor: '#EEE',
-    },
-    updateButton: {
-        width: '100%',
-        borderRadius: 12,
-        overflow: 'hidden',
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    gradientButton: {
-        paddingVertical: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    buttonText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '700',
-    },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  flexContainer: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 14,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  headerRightPlaceholder: {
+    width: 38,
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 30,
+  },
+
+  // ── Form Section ──
+  formContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.textPrimary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+    marginLeft: 2,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 50,
+  },
+  inputFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    fontSize: 14.5,
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+  },
+  disabledInput: {
+    backgroundColor: COLORS.secondary,
+    borderColor: COLORS.border,
+  },
+  disabledInputText: {
+    color: COLORS.textSecondary,
+  },
+  verifiedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  verifiedPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.muted,
+  },
+
+  // ── Footer ──
+  footer: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: COLORS.surface,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  updateButton: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  gradientButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '800',
+  },
 });
 
 export default UpdateProfile;

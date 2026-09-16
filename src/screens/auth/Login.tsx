@@ -193,7 +193,7 @@ const LoginScreen = ({ navigation }: AppNavigation) => {
                     <Text style={styles.skipText}>Skip</Text>
                   </TouchableOpacity> */}
 
-                  <Text style={styles.brandName}>Minta Fresh</Text>
+                  <Text style={styles.brandName}>TANGGY</Text>
                   <Text style={styles.brandTagline}>Great taste delivered at lowest rate</Text>
                 </View>
 

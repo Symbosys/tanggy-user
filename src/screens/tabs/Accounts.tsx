@@ -1,11 +1,13 @@
+import React from 'react';
 import {
+  Image,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -34,18 +36,75 @@ const MENU_SECTIONS: { title: string; items: MenuItem[] }[] = [
   {
     title: 'Manage',
     items: [
-      { icon: 'location-on', iconFamily: 'material', label: 'My Addresses', subtitle: 'Saved delivery addresses', route: 'Address', color: '#ea580c', bg: '#fff7ed' },
-      { icon: 'history', iconFamily: 'material', label: 'My Refunds', subtitle: 'View cancellation refunds', route: 'Refunds', color: '#059669', bg: '#ecfdf5' },
-      { icon: 'delivery-dining', iconFamily: 'material', label: 'How to Track Order', subtitle: 'Track your delivery live', route: 'HowToTrackOrder', color: '#7c3aed', bg: '#f5f3ff' },
-      { icon: 'info-outline', iconFamily: 'material', label: 'About Us', subtitle: 'Know more about Minta Fresh', route: 'Docs', params: { type: 'ABOUT_US' }, color: '#0891b2', bg: '#ecfeff' },
+      {
+        icon: 'location-on',
+        iconFamily: 'material',
+        label: 'My Addresses',
+        subtitle: 'Saved delivery addresses',
+        route: 'Address',
+        color: COLORS.primary,
+        bg: COLORS.primaryLight,
+      },
+      {
+        icon: 'replay',
+        iconFamily: 'material',
+        label: 'My Refunds',
+        subtitle: 'View cancellation refunds',
+        route: 'Refunds',
+        color: COLORS.success,
+        bg: COLORS.secondary,
+      },
+      {
+        icon: 'two-wheeler',
+        iconFamily: 'material',
+        label: 'How to Track Order',
+        subtitle: 'Track your delivery live',
+        route: 'HowToTrackOrder',
+        color: COLORS.info,
+        bg: COLORS.primaryLight,
+      },
+      {
+        icon: 'info',
+        iconFamily: 'material',
+        label: 'About Us',
+        subtitle: 'Know more about Tanggy',
+        route: 'Docs',
+        params: { type: 'ABOUT_US' },
+        color: COLORS.info,
+        bg: COLORS.secondary,
+      },
     ],
   },
   {
     title: 'Legal',
     items: [
-      { icon: 'description', iconFamily: 'material', label: 'Terms & Conditions', route: 'Docs', params: { type: 'TERMS_AND_CONDITIONS' }, color: '#64748b', bg: '#f8fafc' },
-      { icon: 'shield', iconFamily: 'material', label: 'Privacy Policy', route: 'Docs', params: { type: 'PRIVACY_POLICY' }, color: '#64748b', bg: '#f8fafc' },
-      { icon: 'gavel', iconFamily: 'material', label: 'Return & Refund Policy', route: 'Docs', params: { type: 'REFUND_POLICY' }, color: '#64748b', bg: '#f8fafc' },
+      {
+        icon: 'description',
+        iconFamily: 'material',
+        label: 'Terms & Conditions',
+        route: 'Docs',
+        params: { type: 'TERMS_AND_CONDITIONS' },
+        color: COLORS.textSecondary,
+        bg: COLORS.background,
+      },
+      {
+        icon: 'security',
+        iconFamily: 'material',
+        label: 'Privacy Policy',
+        route: 'Docs',
+        params: { type: 'PRIVACY_POLICY' },
+        color: COLORS.textSecondary,
+        bg: COLORS.background,
+      },
+      {
+        icon: 'gavel',
+        iconFamily: 'material',
+        label: 'Return & Refund Policy',
+        route: 'Docs',
+        params: { type: 'REFUND_POLICY' },
+        color: COLORS.textSecondary,
+        bg: COLORS.background,
+      },
     ],
   },
 ];
@@ -73,7 +132,6 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
   const expiryDays = getDaysRemaining();
   const isEliteMember = membership?.status === 'ACTIVE' && expiryDays > 0;
 
-
   const handleLogout = async () => {
     await logout();
     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
@@ -88,7 +146,7 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
   const renderMenuItem = (item: MenuItem, isLast: boolean, index: number) => (
     <TouchableOpacity
       key={`${item.route}-${index}`}
-      activeOpacity={0.6}
+      activeOpacity={0.65}
       style={[styles.menuRow, !isLast && styles.menuRowBorder]}
       onPress={() => navigation.navigate(item.route as any, item.params)}
     >
@@ -103,24 +161,39 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
         <Text style={styles.menuLabel}>{item.label}</Text>
         {item.subtitle && <Text style={styles.menuSub}>{item.subtitle}</Text>}
       </View>
-      <MaterialIcons name="chevron-right" size={22} color="#cbd5e1" />
+      <MaterialIcons name="chevron-right" size={20} color={COLORS.muted} />
     </TouchableOpacity>
   );
 
   // ═══════════════════════════════════════
-  // 1.  GUEST UI
+  // 1. GUEST UI
   // ═══════════════════════════════════════
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+
+        {/* Top Bar with Logo */}
+        <View style={styles.topHeader}>
+          <Image
+            source={require('../../assets/logo/LOGO.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+        </View>
+
         <View style={styles.guestWrap}>
           <View style={styles.guestIconRing}>
-            <MaterialCommunityIcons name="chef-hat" size={56} color={COLORS.primary} />
+            <MaterialCommunityIcons
+              name="chef-hat"
+              size={52}
+              color={COLORS.primary}
+            />
           </View>
           <Text style={styles.guestTitle}>Your Fresh Journey Awaits</Text>
           <Text style={styles.guestSub}>
-            Sign in to track orders, save addresses, and unlock exclusive deals on premium fresh products.
+            Sign in to track orders, save addresses, and unlock exclusive deals on
+            delicious meals and fresh groceries.
           </Text>
 
           <View style={styles.guestPerks}>
@@ -138,7 +211,11 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
             ))}
           </View>
 
-          <TouchableOpacity activeOpacity={0.85} onPress={handleLoginNavigation} style={styles.guestBtn}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleLoginNavigation}
+            style={styles.guestBtn}
+          >
             <LinearGradient
               colors={[COLORS.primary, COLORS.accent]}
               start={{ x: 0, y: 0 }}
@@ -146,7 +223,7 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
               style={styles.guestBtnGrad}
             >
               <Text style={styles.guestBtnText}>Login / Sign Up</Text>
-              <MaterialIcons name="arrow-forward" size={18} color="#FFF" />
+              <MaterialIcons name="arrow-forward" size={18} color={COLORS.white} />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -155,80 +232,131 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
   }
 
   // ═══════════════════════════════════════
-  // 2.  AUTHENTICATED UI
+  // 2. AUTHENTICATED UI
   // ═══════════════════════════════════════
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* ── Top Header with Logo & Settings ── */}
+        <View style={styles.topHeader}>
+          <Image
+            source={require('../../assets/logo/LOGO.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('UpdateProfile')}
+          >
+            <MaterialIcons name="settings" size={20} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+        </View>
 
         {/* ── Profile Header Card ── */}
-        <LinearGradient
-          colors={[COLORS.primary, COLORS.accent]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGrad}
-        >
-          <View style={styles.headerRow}>
-            <View style={styles.avatarRing}>
-              <Text style={styles.avatarText}>{getInitials(userName)}</Text>
-            </View>
-            <View style={styles.headerInfo}>
-              <Text style={styles.headerName} numberOfLines={1}>{userName}</Text>
-              {userPhone ? <Text style={styles.headerPhone}>{userPhone}</Text> : null}
-              {userEmail ? <Text style={styles.headerEmail} numberOfLines={1}>{userEmail}</Text> : null}
-            </View>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              style={styles.editBtn}
-              onPress={() => navigation.navigate('UpdateProfile')}
-            >
-              <MaterialIcons name="edit" size={16} color={COLORS.primary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Elite Membership Section */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.eliteCard}
+        <View style={styles.profileCardWrapper}>
+          <LinearGradient
+            colors={[COLORS.secondary, COLORS.highlight]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.profileCardGrad}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialCommunityIcons
-                name="truck-delivery"
-                size={20}
-                color="#FFD700"
-              />
-              <Text style={{
-                marginLeft: 10,
-                fontSize: 16,
-                fontWeight: '600',
-                color: '#fff'
-              }}>
-                Experience Free Delivery
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </LinearGradient>
+            {/* Subtle background decoration */}
+            <View style={styles.decorCircle1} />
+            <View style={styles.decorCircle2} />
 
-        {/* ── Quick Actions Row ── */}
-        <View style={styles.quickRow}>
-          {[
-            { icon: 'receipt-long', label: 'Orders', route: 'MyOrders', color: '#6366f1' },
-            { icon: 'account-balance-wallet', label: 'Wallet', route: 'Wallet', color: '#0d9488' },
-            { icon: 'headset-mic', label: 'Support', route: 'AiAssistant', color: '#2563eb' },
-            // { icon: 'star-outline', label: 'Elite', route: 'EliteMembership', color: '#d97706' },
-          ].map((a) => (
-            <TouchableOpacity
-              key={a.route}
-              activeOpacity={0.7}
-              style={styles.quickItem}
-              onPress={() => navigation.navigate(a.route as any)}
-            >
-              <View style={[styles.quickCircle, { backgroundColor: a.color + '12' }]}>
-                <MaterialIcons name={a.icon} size={22} color={a.color} />
+            <View style={styles.profileCardContent}>
+              <View style={styles.avatarWrap}>
+                <Text style={styles.avatarText}>{getInitials(userName)}</Text>
               </View>
-              <Text style={styles.quickLabel}>{a.label}</Text>
+
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {userName}
+                </Text>
+                {userPhone ? (
+                  <Text style={styles.profilePhone}>{userPhone}</Text>
+                ) : null}
+                {userEmail ? (
+                  <Text style={styles.profileEmail} numberOfLines={1}>
+                    {userEmail}
+                  </Text>
+                ) : null}
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.editProfileBtn}
+                onPress={() => navigation.navigate('UpdateProfile')}
+              >
+                <MaterialIcons name="edit" size={13} color={COLORS.textPrimary} />
+                <Text style={styles.editProfileText}>Edit Profile</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* ── 3 Quick Action Cards ── */}
+        <View style={styles.quickGrid}>
+          {[
+            {
+              icon: 'shopping-bag',
+              label: 'My Orders',
+              subtitle: 'View your order history',
+              route: 'MyOrders',
+              color: COLORS.primary,
+              bg: COLORS.primaryLight,
+            },
+            {
+              icon: 'account-balance-wallet',
+              label: 'My Wallet',
+              subtitle: 'View balance & transactions',
+              route: 'Wallet',
+              color: COLORS.success,
+              bg: COLORS.secondary,
+            },
+            {
+              icon: 'headset-mic',
+              label: 'Support',
+              subtitle: 'Get help & contact us',
+              route: 'AiAssistant',
+              color: COLORS.info,
+              bg: COLORS.primaryLight,
+            },
+          ].map((item) => (
+            <TouchableOpacity
+              key={item.route}
+              activeOpacity={0.75}
+              style={styles.quickCard}
+              onPress={() => navigation.navigate(item.route as any)}
+            >
+              <View style={styles.quickCardTop}>
+                <View
+                  style={[
+                    styles.quickCardIconWrap,
+                    { backgroundColor: item.bg },
+                  ]}
+                >
+                  <MaterialIcons
+                    name={item.icon}
+                    size={20}
+                    color={item.color}
+                  />
+                </View>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={16}
+                  color={COLORS.muted}
+                />
+              </View>
+
+              <Text style={styles.quickCardTitle}>{item.label}</Text>
+              <Text style={styles.quickCardSub}>{item.subtitle}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -245,20 +373,16 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
           </View>
         ))}
 
-        {/* ── Logout ── */}
-        <View style={styles.sectionWrap}>
-          <TouchableOpacity activeOpacity={0.6} style={styles.logoutBtn} onPress={handleLogout}>
-            <View style={styles.logoutIconWrap}>
-              <MaterialIcons name="logout" size={20} color="#ef4444" />
-            </View>
+        {/* ── Logout Button ── */}
+        <View style={styles.logoutWrapper}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            style={styles.logoutBtn}
+            onPress={handleLogout}
+          >
+            <MaterialIcons name="logout" size={18} color={COLORS.error} />
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* ── Footer ── */}
-        <View style={styles.footer}>
-          <Text style={styles.footerVersion}>Version 1.0.0</Text>
-          <Text style={styles.footerMade}>Make in India</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -269,266 +393,321 @@ const ProfileScreen = ({ navigation }: AppNavigation) => {
 //   STYLES
 // ═══════════════════════════════════════
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f8' },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    paddingBottom: 90,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  headerLogo: {
+    width: 140,
+    height: 42,
+  },
+  settingsBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // ── Profile Card ──
+  profileCardWrapper: {
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 14,
+  },
+  profileCardGrad: {
+    borderRadius: 20,
+    padding: 16,
+    position: 'relative',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.highlight,
+  },
+  decorCircle1: {
+    position: 'absolute',
+    right: -20,
+    top: -20,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: COLORS.primaryLight,
+    opacity: 0.5,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    right: 40,
+    bottom: -30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.primaryLight,
+    opacity: 0.4,
+  },
+  profileCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  avatarWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.surface,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: 14,
+    marginRight: 8,
+  },
+  profileName: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  profilePhone: {
+    fontSize: 12.5,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  profileEmail: {
+    fontSize: 11.5,
+    color: COLORS.muted,
+    marginTop: 1,
+    fontWeight: '500',
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+    shadowColor: COLORS.textPrimary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  editProfileText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+
+  // ── Quick Cards Grid ──
+  quickGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 10,
+  },
+  quickCard: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'space-between',
+    minHeight: 105,
+  },
+  quickCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  quickCardIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickCardTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  quickCardSub: {
+    fontSize: 10,
+    color: COLORS.muted,
+    lineHeight: 13,
+    fontWeight: '500',
+  },
+
+  // ── Menu Sections ──
+  sectionWrap: {
+    paddingHorizontal: 16,
+    marginTop: 14,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+    marginLeft: 2,
+  },
+  sectionCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+  },
+  menuRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  menuIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuTextBlock: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  menuLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  menuSub: {
+    fontSize: 11,
+    color: COLORS.muted,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+
+  // ── Logout ──
+  logoutWrapper: {
+    paddingHorizontal: 16,
+    marginTop: 18,
+    marginBottom: 24,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primaryLight,
+    borderWidth: 1,
+    borderColor: COLORS.highlight,
+    borderRadius: 16,
+    height: 48,
+    gap: 8,
+  },
+  logoutText: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: COLORS.error,
+  },
 
   // ── Guest ──
   guestWrap: {
     flex: 1,
-    backgroundColor: '#FFF',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
   },
   guestIconRing: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: COLORS.primary + '10',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   guestTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1e293b',
+    color: COLORS.textPrimary,
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   guestSub: {
-    fontSize: 14,
-    color: '#64748b',
+    fontSize: 13.5,
+    color: COLORS.muted,
     textAlign: 'center',
-    lineHeight: 21,
-    marginBottom: 28,
+    lineHeight: 20,
+    marginBottom: 26,
     paddingHorizontal: 8,
   },
   guestPerks: {
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 36,
+    marginBottom: 32,
   },
-  guestPerkItem: { alignItems: 'center', gap: 6 },
+  guestPerkItem: {
+    alignItems: 'center',
+    gap: 6,
+  },
   guestPerkDot: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: COLORS.primary + '0F',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  guestPerkText: { fontSize: 11, fontWeight: '600', color: '#475569' },
-  guestBtn: { width: '100%', borderRadius: 14, overflow: 'hidden' },
+  guestPerkText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  guestBtn: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
   guestBtnGrad: {
-    paddingVertical: 15,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  guestBtnText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
-
-  // ── Header ──
-  headerGrad: {
-    paddingTop: 28,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  avatarRing: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
-  avatarText: { fontSize: 22, fontWeight: '800', color: '#FFF', letterSpacing: 1 },
-  headerInfo: { flex: 1, marginLeft: 14 },
-  headerName: { fontSize: 19, fontWeight: '800', color: '#FFF' },
-  headerPhone: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  headerEmail: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 1 },
-  editBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#FFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-
-  // ── Elite Section (inside header) ──
-  eliteCard: {
-    marginTop: 18,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.22)',
-    padding: 16,
-  },
-  eliteCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  eliteCrownWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,215,0,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.2)',
-  },
-  eliteActiveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0,255,0,0.15)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 3,
-    gap: 4,
-  },
-  eliteActiveDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#00ff00',
-  },
-  eliteActiveBadgeText: {
-    color: '#00ff00',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  eliteCardTitle: {
-    color: '#FFF',
+  guestBtnText: {
+    color: COLORS.white,
     fontSize: 15,
     fontWeight: '800',
   },
-  eliteCardSub: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  eliteBenefitsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
-  eliteBenefitItem: {
-    alignItems: 'center',
-    gap: 3,
-  },
-  eliteBenefitText: {
-    color: 'rgba(255,255,255,0.65)',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-
-  // ── Quick Actions ──
-  quickRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 10,
-    paddingVertical: 18,
-  },
-  quickItem: { alignItems: 'center', gap: 6 },
-  quickCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickLabel: { fontSize: 11, fontWeight: '600', color: '#475569' },
-
-  // ── Sections ──
-  sectionWrap: { paddingHorizontal: 16, marginBottom: 6 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#94a3b8',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  sectionCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    marginBottom: 8,
-  },
-
-  // ── Menu rows ──
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-  },
-  menuRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  menuIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuTextBlock: { flex: 1, marginLeft: 12 },
-  menuLabel: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
-  menuSub: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
-
-  // ── Logout ──
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  logoutIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#fef2f2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutText: { fontSize: 14, fontWeight: '600', color: '#ef4444', marginLeft: 12 },
-
-  // ── Footer ──
-  footer: { alignItems: 'center', paddingVertical: 28, gap: 4 },
-  footerVersion: { fontSize: 12, color: '#94a3b8' },
-  footerMade: { fontSize: 12, fontWeight: '700', color: '#cbd5e1' },
 });
 
 export default ProfileScreen;

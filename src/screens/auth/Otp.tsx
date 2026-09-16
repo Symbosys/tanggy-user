@@ -20,6 +20,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import api from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
+import { COLORS } from '../../theme/theme';
 import { RootStackParamList } from '../../types/type';
 import { ErrorMessage } from '../../utils/utils';
 import { PROFILE_INCOMPLETE_KEY } from './CompleteProfile';
@@ -147,7 +148,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#8719C6" />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -156,12 +157,12 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Icon name="arrow-back" size={24} color="#FFFFFF" />
+          <Icon name="arrow-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>Minta Fresh</Text>
+          <Text style={styles.logoText}>TANGGY</Text>
         </View>
-        <Text style={styles.tagline}>Quick & Fresh</Text>
+        <Text style={styles.tagline}>Great taste delivered at lowest rate</Text>
       </View>
 
       {/* Content */}
@@ -195,7 +196,10 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
             {/* OTP Input Boxes */}
             <View style={styles.otpContainer}>
               {otp.map((digit, index) => (
-                <View key={index} style={styles.otpBox}>
+                <View
+                  key={index}
+                  style={[styles.otpBox, digit ? styles.otpBoxFilled : null]}
+                >
                   <TextInput
                     ref={ref => {
                       inputRefs.current[index] = ref;
@@ -262,10 +266,10 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#8719C6',
+    backgroundColor: COLORS.primary,
   },
   header: {
-    backgroundColor: '#8719C6',
+    backgroundColor: COLORS.primary,
     paddingTop: 50,
     paddingBottom: 30,
     alignItems: 'center',
@@ -285,22 +289,22 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 40,
     fontWeight: '800',
-    color: 'white',
+    color: COLORS.white,
     fontStyle: 'italic',
-    textShadowColor: '#8B008B',
+    textShadowColor: COLORS.primaryDark,
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 0,
   },
   bySwiggy: {
     fontSize: 10,
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontWeight: '600',
     letterSpacing: 1,
     marginTop: -8,
   },
   tagline: {
     fontSize: 18,
-    color: '#ffff',
+    color: COLORS.white,
     fontWeight: '600',
   },
   scrollContent: {
@@ -308,7 +312,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: '#f9eae9',
+    backgroundColor: COLORS.surface,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingHorizontal: 24,
@@ -320,13 +324,13 @@ const styles = StyleSheet.create({
   },
   otpSubtitle: {
     fontSize: 14,
-    color: '#4B5563',
+    color: COLORS.textSecondary,
     marginBottom: 6,
     fontWeight: '400',
   },
   otpPhoneText: {
     fontSize: 15,
-    color: '#111827',
+    color: COLORS.textPrimary,
     fontWeight: '600',
   },
   phoneRow: {
@@ -339,14 +343,14 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     paddingVertical: 2,
     paddingHorizontal: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#8719C6',
+    borderColor: COLORS.primary,
   },
   changeNumberText: {
     fontSize: 12,
-    color: '#8719C6',
+    color: COLORS.primary,
     fontWeight: '700',
   },
   otpContainer: {
@@ -357,16 +361,22 @@ const styles = StyleSheet.create({
   otpBox: {
     width: 60,
     height: 60,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: COLORS.background,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 8,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  otpBoxFilled: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
   },
   otpInput: {
     fontSize: 24,
-    fontWeight: '400',
-    color: '#374151',
+    fontWeight: '700',
+    color: COLORS.textPrimary,
     textAlign: 'center',
     width: '100%',
     height: '100%',
@@ -375,33 +385,32 @@ const styles = StyleSheet.create({
   resendText: {
     textAlign: 'center',
     fontSize: 14,
-    color: '#6B7280',
+    color: COLORS.muted,
     marginBottom: 30,
   },
   verifyButton: {
-    backgroundColor: '#8719C6',
+    backgroundColor: COLORS.primary,
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: 'center',
     marginBottom: 20,
   },
   verifyButtonDisabled: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: COLORS.border,
   },
   verifyButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: '700',
   },
   verifyButtonTextDisabled: {
-    color: '#A0A0A0',
+    color: COLORS.muted,
   },
   footer: {
     flex: 1,
     justifyContent: 'flex-end',
     paddingBottom: 40,
   },
-
   buttonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -409,21 +418,21 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    backgroundColor: '#8719C6',
+    backgroundColor: COLORS.primary,
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: COLORS.border,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: '700',
   },
   buttonTextDisabled: {
-    color: '#A0A0A0',
+    color: COLORS.muted,
   },
 });
 
