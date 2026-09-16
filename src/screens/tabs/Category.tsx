@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -9,16 +10,72 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useGetAllCategories } from '../../api/hooks/useCategory';
-import { useAuth } from '../../context/AuthContext';
 import { useModeStore } from '../../store/mode';
+import { COLORS } from '../../theme/theme';
+import { Category } from '../../types/product.type';
 import { AppNavigation } from '../../types/type';
 
 const { width: screenWidth } = Dimensions.get('window');
-const itemWidth = (screenWidth - 32 - 16) / 2; // Adjust for gap-4 (16px total gap)
-const cardMinHeight = 260;
+const CARD_GAP = 14;
+const itemWidth = (screenWidth - 32 - CARD_GAP) / 2;
+
+const getCategoryIcon = (name: string) => {
+  const lower = name.toLowerCase();
+  if (lower.includes('burger')) return 'lunch-dining';
+  if (lower.includes('pizza')) return 'local-pizza';
+  if (lower.includes('noodle') || lower.includes('pasta') || lower.includes('chinese'))
+    return 'ramen-dining';
+  if (lower.includes('dessert') || lower.includes('cake') || lower.includes('sweet'))
+    return 'cake';
+  if (
+    lower.includes('beverage') ||
+    lower.includes('drink') ||
+    lower.includes('juice') ||
+    lower.includes('shake')
+  )
+    return 'local-drink';
+  if (lower.includes('biryani') || lower.includes('rice') || lower.includes('bhat'))
+    return 'rice-bowl';
+  if (
+    lower.includes('chicken') ||
+    lower.includes('meat') ||
+    lower.includes('curry') ||
+    lower.includes('mutton') ||
+    lower.includes('fish')
+  )
+    return 'set-meal';
+  if (
+    lower.includes('snack') ||
+    lower.includes('starter') ||
+    lower.includes('fry') ||
+    lower.includes('fries')
+  )
+    return 'fastfood';
+  return 'restaurant';
+};
+
+const getCategorySubtitle = (cat: Category) => {
+  if (cat.description && cat.description.trim().length > 0) {
+    return cat.description;
+  }
+  const lower = cat.name.toLowerCase();
+  if (lower.includes('burger')) return 'Juicy bites, always a good idea';
+  if (lower.includes('pizza')) return 'Made to share, always a favourite';
+  if (lower.includes('noodle') || lower.includes('chinese'))
+    return 'Comfort in every bowl';
+  if (lower.includes('dessert') || lower.includes('sweet'))
+    return 'Sweet moments always';
+  if (lower.includes('beverage') || lower.includes('drink'))
+    return 'Cool sips for brighter days';
+  if (lower.includes('biryani') || lower.includes('rice'))
+    return 'Aromatic & rich flavours';
+  if (lower.includes('chicken') || lower.includes('meat'))
+    return 'Tender & fresh cuts';
+  return 'Fresh flavours for every moment';
+};
 
 const ExploreCategories = ({ navigation }: AppNavigation) => {
   const { selectedMode } = useModeStore();
@@ -32,36 +89,41 @@ const ExploreCategories = ({ navigation }: AppNavigation) => {
     { enabled: Boolean(selectedMode?.id) }
   );
 
-  const { isAuthenticated } = useAuth();
-  console.log(isAuthenticated);
-
   if (isLoading && categories.length === 0) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.title}>
-            {selectedMode ? `${selectedMode.name} Categories` : 'Explore Categories'}
-          </Text>
+          <Image
+            source={require('../../assets/logo/LOGO.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Categories</Text>
           <Text style={styles.subtitle}>
-            {selectedMode ? `Discover fresh ${selectedMode.name.toLowerCase()} selections` : 'Discover fresh meat and seafood selections'}
+            Explore our delicious food categories
           </Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8719C6" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>
-          {selectedMode ? `${selectedMode.name} Categories` : 'Explore Categories'}
-        </Text>
+        <Image
+          source={require('../../assets/logo/LOGO.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>Categories</Text>
         <Text style={styles.subtitle}>
-          {selectedMode ? `Discover fresh ${selectedMode.name.toLowerCase()} selections` : 'Discover fresh meat and seafood selections'}
+          {selectedMode
+            ? `Explore our ${selectedMode.name.toLowerCase()} categories`
+            : 'Explore our delicious food categories'}
         </Text>
       </View>
 
@@ -74,87 +136,126 @@ const ExploreCategories = ({ navigation }: AppNavigation) => {
           <RefreshControl
             refreshing={Boolean(isFetching && !isLoading)}
             onRefresh={refetch}
+            colors={[COLORS.primary]}
           />
         }
       >
         {categories.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialIcons name="category" size={60} color="#CBD5E1" />
-            <Text style={styles.emptyText}>No categories available in this mode</Text>
+            <Text style={styles.emptyText}>
+              No categories available in this mode
+            </Text>
           </View>
         ) : (
           <View style={styles.grid}>
-            {categories.map((cat, index) => (
-              <TouchableOpacity
-                key={cat.id || index}
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('CategoryResults', { categoryId: cat.id, categoryName: cat.name })}
-                style={[
-                  styles.cardWrapper,
-                  { width: itemWidth, minHeight: cardMinHeight, marginBottom: 16 },
-                ]}>
-                <LinearGradient
-                  colors={['#f9eae9', '#ffffff']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.card}>
-                  <View style={styles.imageContainer}>
-                    <Image
-                      source={{ uri: cat.image.url }}
-                      style={styles.image}
-                      resizeMode="contain"
-                    />
-                  </View>
-                  <View style={styles.textContainer}>
-                    <Text style={styles.categoryTitle}>{cat.name}</Text>
-                    <LinearGradient
-                      colors={['#8719C6', '#b58ff0']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.buttonGradient}>
-                      <View style={styles.buttonTouchable}>
-                        <Text style={styles.buttonText}>View Products</Text>
+            {categories.map((cat, index) => {
+              const imageUrl = cat.image?.secure_url || cat.image?.url;
+              const iconName = getCategoryIcon(cat.name);
+              const subtitle = getCategorySubtitle(cat);
+
+              return (
+                <TouchableOpacity
+                  key={cat.id || String(index)}
+                  activeOpacity={0.88}
+                  onPress={() =>
+                    navigation.navigate('CategoryResults', {
+                      categoryId: cat.id,
+                      categoryName: cat.name,
+                    })
+                  }
+                  style={[styles.cardWrapper, { width: itemWidth }]}
+                >
+                  <View style={styles.card}>
+                    {/* Left Info Column */}
+                    <View style={styles.cardLeft}>
+                      {/* Icon Badge */}
+                      <View style={styles.iconCircle}>
+                        <MaterialIcons
+                          name={iconName}
+                          size={22}
+                          color={COLORS.primary}
+                        />
                       </View>
-                    </LinearGradient>
+
+                      {/* Title & Subtitle */}
+                      <View style={styles.textBlock}>
+                        <Text style={styles.categoryTitle} numberOfLines={1}>
+                          {cat.name}
+                        </Text>
+                        <Text style={styles.categorySubtitle} numberOfLines={2}>
+                          {subtitle}
+                        </Text>
+                      </View>
+
+                      {/* Arrow Action Button */}
+                      <View style={styles.arrowCircle}>
+                        <MaterialIcons
+                          name="arrow-forward"
+                          size={14}
+                          color={COLORS.primary}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Right Product Image */}
+                    <View style={styles.cardRight}>
+                      {imageUrl ? (
+                        <Image
+                          source={{ uri: imageUrl }}
+                          style={styles.categoryImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.imagePlaceholder}>
+                          <MaterialIcons
+                            name="restaurant"
+                            size={32}
+                            color="#E2E8F0"
+                          />
+                        </View>
+                      )}
+                    </View>
                   </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f6f8',
+    backgroundColor: COLORS.surface,
   },
   header: {
-    flexDirection: 'column',
-    paddingTop: 16,
+    paddingTop: 10,
     paddingHorizontal: 16,
-    paddingBottom: 8,
-    backgroundColor: '#f7f6f8',
+    paddingBottom: 10,
+    backgroundColor: COLORS.surface,
+  },
+  logo: {
+    width: 350,
+    height: 120,
+    marginBottom: 20,
   },
   title: {
-    marginTop: 8,
     fontSize: 30,
-    fontWeight: '700',
-    color: '#1b1121',
+    fontWeight: '900',
+    color: COLORS.textPrimary,
     lineHeight: 36,
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
   },
   subtitle: {
     marginTop: 4,
-    paddingBottom: 12,
-    paddingTop: 4,
-    fontSize: 16,
-    fontWeight: '400',
-    color: '#6b7280',
-    lineHeight: 24,
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.muted,
+    lineHeight: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -170,77 +271,89 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 16,
-    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: CARD_GAP,
   },
   cardWrapper: {
-    // Width and minHeight set inline
+    marginBottom: 2,
   },
   card: {
-    flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  imageContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    height: 165,
+    backgroundColor: COLORS.surface,
+    borderRadius: 22,
+    flexDirection: 'row',
     overflow: 'hidden',
-    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    position: 'relative',
+  },
+  cardLeft: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'space-between',
+    zIndex: 2,
+    maxWidth: '56%',
+  },
+  iconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 12,
   },
-
-  image: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 60,
-  },
-
-  textContainer: {
-    width: '100%',
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'flex-end',
+  textBlock: {
+    marginVertical: 4,
   },
   categoryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333333',
-    lineHeight: 24,
-    textAlign: 'center',
-    marginBottom: 12,
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
   },
-  buttonGradient: {
-    width: '100%',
-    height: 40,
-    borderRadius: 9999,
-    overflow: 'hidden',
-    marginTop: 12,
+  categorySubtitle: {
+    fontSize: 10.5,
+    color: COLORS.muted,
+    fontWeight: '500',
+    lineHeight: 14,
   },
-  buttonTouchable: {
-    flex: 1,
+  arrowCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
   },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'white',
+  cardRight: {
+    position: 'absolute',
+    right: -14,
+    top: 10,
+    bottom: 10,
+    width: '54%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  categoryImage: {
+    width: 105,
+    height: 105,
+    borderRadius: 52.5,
+    backgroundColor: COLORS.background,
+  },
+  imagePlaceholder: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyContainer: {
     flex: 1,
@@ -253,7 +366,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: COLORS.muted,
     textAlign: 'center',
   },
 });

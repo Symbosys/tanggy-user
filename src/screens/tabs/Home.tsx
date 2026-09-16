@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FFF0E6',
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   },
   deliveryToLabel: {
     fontSize: 11,
-    color: '#8A8A8A',
+    color: COLORS.muted,
     fontWeight: '500',
     marginBottom: 1,
   },
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryLocationText: {
-    color: '#18181B',
+    color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: '800',
     marginRight: 2,
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#F4F4F5',
+    backgroundColor: COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -552,10 +552,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 3,
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: COLORS.white,
   },
   cartBadgeText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 9,
     fontWeight: '800',
   },
@@ -570,11 +570,11 @@ const styles = StyleSheet.create({
   },
   heroTitleBold: {
     fontWeight: '900',
-    color: '#18181B',
+    color: COLORS.textPrimary,
   },
   heroTitleLight: {
     fontWeight: '400',
-    color: '#71717A',
+    color: COLORS.textSecondary,
   },
   searchSection: {
     flexDirection: 'row',
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flex: 1,
     height: 48,
-    backgroundColor: '#F4F4F5',
+    backgroundColor: COLORS.border,
     borderRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     fontSize: 14,
-    color: '#A1A1AA',
+    color: COLORS.muted,
     fontWeight: '400',
   },
   filterButton: {
@@ -622,12 +622,12 @@ const styles = StyleSheet.create({
   modeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: COLORS.border,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   },
   modeCardSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: '#F7EEFD',
+    backgroundColor: COLORS.primaryLight,
     shadowColor: COLORS.primary,
     shadowOpacity: 0.15,
     shadowRadius: 5,
@@ -647,19 +647,19 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     marginRight: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.background,
   },
   modeIconPlaceholder: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
   },
   modeIconPlaceholderSelected: {
-    backgroundColor: '#EBD4F9',
+    backgroundColor: COLORS.primaryLight,
   },
   modeTextContainer: {
     justifyContent: 'center',

@@ -84,8 +84,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 style={styles.productImage}
             />
             <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={styles.productWeight}>
+                <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
+                <Text style={styles.productWeight} numberOfLines={1}>
                     {product.weight} | {product.pieces}{' '}
                     {Number(product.pieces) === 1 ? 'piece' : 'pieces'}
                 </Text>
@@ -97,23 +97,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
                         <TouchableOpacity
                             style={styles.addButton}
                             onPress={handleAdd}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            activeOpacity={0.8}
                         >
-                            <Icon name="add" size={24} color={COLORS.white} />
+                            <Icon name="add" size={20} color={COLORS.white} />
                         </TouchableOpacity>
                     ) : (
                         <View style={styles.quantityContainer}>
                             <TouchableOpacity
                                 style={styles.quantityButton}
                                 onPress={handleDecrement}
+                                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                                activeOpacity={0.8}
                             >
-                                <Icon name="remove" size={20} color={COLORS.white} />
+                                <Icon name="remove" size={16} color={COLORS.white} />
                             </TouchableOpacity>
                             <Text style={styles.quantityText}>{quantity}</Text>
                             <TouchableOpacity
                                 style={styles.quantityButton}
                                 onPress={handleIncrement}
+                                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                                activeOpacity={0.8}
                             >
-                                <Icon name="add" size={20} color={COLORS.white} />
+                                <Icon name="add" size={16} color={COLORS.white} />
                             </TouchableOpacity>
                         </View>
                     )}
@@ -125,34 +131,38 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
 const styles = StyleSheet.create({
     productCard: {
-        width: 176,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
+        width: 172,
+        backgroundColor: COLORS.surface,
+        borderRadius: 20,
         overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+        elevation: 3,
         position: 'relative',
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     productImage: {
         width: '100%',
         height: 128,
+        backgroundColor: COLORS.background,
     },
     productInfo: {
         padding: 12,
     },
     productName: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '800',
-        color: '#000000',
-        marginBottom: 4,
+        color: COLORS.textPrimary,
+        marginBottom: 2,
     },
     productWeight: {
-        fontSize: 14,
-        color: '#9CA3AF',
-        marginBottom: 8,
+        fontSize: 12,
+        color: COLORS.muted,
+        fontWeight: '500',
+        marginBottom: 10,
     },
     productFooter: {
         flexDirection: 'row',
@@ -160,52 +170,60 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     productPrice: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#000000',
+        fontSize: 17,
+        fontWeight: '900',
+        color: COLORS.textPrimary,
     },
     addButton: {
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: '#8719C6',
+        backgroundColor: COLORS.textPrimary,
         alignItems: 'center',
         justifyContent: 'center',
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        elevation: 2,
     },
     quantityContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: COLORS.border,
+        borderRadius: 16,
+        padding: 2,
     },
     quantityButton: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: '#8719C6',
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: COLORS.textPrimary,
         alignItems: 'center',
         justifyContent: 'center',
-        marginHorizontal: 4,
     },
     quantityText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#000000',
-        minWidth: 20,
+        fontSize: 14,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        minWidth: 18,
         textAlign: 'center',
+        marginHorizontal: 3,
     },
     bestsellerBadge: {
         position: 'absolute',
         top: 8,
         left: 8,
-        backgroundColor: '#F59E0B',
+        backgroundColor: COLORS.textPrimary,
         paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
+        paddingVertical: 3,
+        borderRadius: 10,
         zIndex: 1,
     },
     bestsellerText: {
-        color: '#FFFFFF',
+        color: COLORS.white,
         fontSize: 10,
-        fontWeight: '800',
+        fontWeight: '700',
     },
     unavailableOverlay: {
         position: 'absolute',
@@ -213,22 +231,24 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(250, 250, 250, 0.8)',
+        backgroundColor: 'rgba(250, 250, 250, 0.85)',
         zIndex: 10,
-        borderRadius: 16,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
     },
     unavailableText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#8719C6',
-        backgroundColor: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        backgroundColor: COLORS.white,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
         overflow: 'hidden',
         elevation: 2,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
 });
 
